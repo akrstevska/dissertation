@@ -1,0 +1,274 @@
+{
+  "scenario_id": "DC-002",
+  "config": "agent",
+  "model": "gpt-5.6-luna",
+  "seconds": 48.1,
+  "result": {
+    "trigger": "customer_complaint",
+    "trigger_input": {
+      "lineid": "78:88:8A:9E:69:74",
+      "complaint": "It was fixed last week and now it is bad again"
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [
+        {
+          "type": "rx_power",
+          "value": "-26.12 dBm current; -21.23 to -26.25 dBm over 7 days, change -5.02 dBm",
+          "threshold": "Degraded is -25 to -28 dBm; a reported change cannot be cleared by one current reading"
+        },
+        {
+          "type": "session_flapping",
+          "value": "8 sessions in 24 hours and 33 in 7 days",
+          "threshold": "Normal is 2-3 sessions/day; elevated is 4-7; flapping starts at 8+"
+        },
+        {
+          "type": "session_duration",
+          "value": "128 minutes average",
+          "threshold": "Network mean is 11.9 hours"
+        },
+        {
+          "type": "distance_change",
+          "value": "95 to 41 over 7 days, change -54",
+          "threshold": "Distance is constant per customer; any step change is abnormal"
+        },
+        {
+          "type": "peer_scope",
+          "value": "Target RX -26.12 dBm versus same-port peers -22.59 to -19.74 dBm",
+          "threshold": "Normal RX is -20 to -25 dBm; target is degraded while peers are normal or strong"
+        }
+      ],
+      "preliminary_severity": "Average",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "78:88:8A:9E:69:74"
+      ],
+      "olt_id": "10231",
+      "interface": "EPON0/5:22",
+      "summary": "The customer has degraded and worsening RX power, flapping-level sessions, and an abnormal distance change while the OLT and same-port peers remain healthy."
+    },
+    "diagnosis": {
+      "fault_type": "distance_change",
+      "root_cause": "The customer's fibre path or ONU record changed from a stable distance of 95 to 41 over the 7-day window. The resulting path change coincides with RX falling from the normal band near -21.23 dBm to degraded levels around -26.25 to -26.58 dBm and explains the signal-related session flapping. TX power and bias remain healthy, peers on the same port are normal, and RADIUS and OLT health checks are consistent, so this is not a laser, shared PON, OLT, or authentication fault.",
+      "confidence": 0.98,
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "78:88:8A:9E:69:74"
+      ],
+      "evidence": [
+        "Live ONU query confirms the customer is online with degraded RX power of -26.58 dBm and normal TX power of 2.4 dBm.",
+        "The 7-day optical series shows distance changing from 95 to 41, a 54-unit step change; distance is expected to be constant per customer.",
+        "RX declined from -21.23 dBm in the normal band to -26.25 dBm at the end of the window, with a -5.02 dBm change.",
+        "TX power stayed stable at 2.33 to 2.36 dBm and TX bias stayed healthy and flat at 11.45 to 11.41 mA, ruling against laser degradation.",
+        "All seven probed peers on EPON0/5 are online with RX from -17.47 to -24.24 dBm, so the issue is customer-specific rather than shared infrastructure.",
+        "The customer has 8 sessions in 24 hours with 128-minute average duration, consistent with signal-related flapping; this is a symptom of the path change.",
+        "RADIUS entry, line ID, CRM consistency, and assigned IP are valid, ruling out a RADIUS fault.",
+        "The OLT responds to ping and SNMP, ruling out an OLT failure."
+      ],
+      "cached_vs_live_discrepancy": true,
+      "discrepancy_detail": "Stored/detection and CRM RX is -26.12 dBm, while the live ONU query reads -26.58 dBm, a 0.46 dB difference. Both readings are degraded and support the same diagnosis."
+    },
+    "remediation": {
+      "action": "dispatch_technician",
+      "automated": false,
+      "reason": "The customer-specific fibre distance changed from 95 to 41 and RX degraded by about 5 dB to approximately -26.58 dBm, causing session flapping. Healthy TX power and bias, normal peers, and healthy RADIUS and OLT checks rule out laser, shared PON, infrastructure, and authentication faults.",
+      "instructions": "Dispatch a technician to inspect the customer's fibre path, ONU connection, connectors, and splitter route. Verify the actual optical distance and repair or restore the path to stable routing, then confirm RX power and session stability after remediation.",
+      "alternatives_considered": [
+        {
+          "action": "onu_reset",
+          "rejected_because": "The ONU is online and the persistent distance change with degraded RX indicates a physical fibre-path issue, not a transient ONU state."
+        },
+        {
+          "action": "schedule_onu_replacement",
+          "rejected_because": "TX power and bias remain healthy, providing no evidence of laser ageing or ONU hardware degradation."
+        },
+        {
+          "action": "escalate_infrastructure",
+          "rejected_because": "The fault is isolated to one customer; peers on the same port and OLT health checks are normal."
+        },
+        {
+          "action": "create_radius_entry",
+          "rejected_because": "The RADIUS entry, line ID, CRM data, and assigned IP are valid."
+        },
+        {
+          "action": "no_action",
+          "rejected_because": "The degraded RX level, distance change, and repeated session flapping require physical remediation."
+        }
+      ]
+    },
+    "escalation": {
+      "priority": "Warning",
+      "category": "field_service",
+      "requires_human_review": false,
+      "review_reason": null,
+      "summary": "A single customer on EPON0/5:22 has degraded RX power at approximately -26.58 dBm, 8 sessions in 24 hours, and shortened session duration. The customer-specific optical distance changed from 95 to 41, indicating a changed or faulty fibre path. TX power and bias, same-port peers, the OLT, RADIUS, and provisioning records are healthy. Dispatch a technician to inspect and restore the fibre path, ONU connection, connectors, and splitter route, then verify stable distance, RX power, and sessions.",
+      "affected_customer_count": 1,
+      "service_impact": false
+    },
+    "trace": [
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "78:88:8A:9E:69:74"
+        },
+        "result": "{\"customer_id\": 31594, \"lineid\": \"78:88:8A:9E:69:74\", \"mac\": \"C8:3A:35:86:E6:ED\", \"interface\": \"EPON0/5:22\", \"olt_id\": \"10231\", \"olt_host\": \"TK_AZ-OLT_OH_SC-02\", \"olt_ip\": \"10.220.55.3\", \"olt_technology\": \"EPON\", \"olt_model\": \"V1600D\", \"router_id\": 10, \"router_name\": \"TK_AZ_Ohrid_SC\", \"profile\": \"profile_300M\", \"active\": 1, \"deleted\": 0, \"onu_model\": \"Aztech 2GE + WiFi(dual band) + POTs + CATV\", \"onu_type\": \"Router\", \"has_catv\": 1, \"has_voip\": 1, \"catv_service\": 1, \"catv_synced\": 1, \"city\": \"Ohrid\", \"area\": \"SC\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "78:88:8A:9E:69:74"
+        },
+        "result": "{\"onu_status\": 1, \"rx_power\": \"-26.12\", \"tx_power\": \"2.41\", \"reading_age_minutes\": 31}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "78:88:8A:9E:69:74",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 168, \"first\": -21.23, \"last\": -26.25, \"min\": -26.69, \"max\": -17.94, \"mean\": -21.68, \"range\": 8.75, \"change\": -5.02, \"gaps\": 0}, \"tx_power\": {\"available\": true, \"points\": 168, \"first\": 2.33, \"last\": 2.36, \"min\": 2.25, \"max\": 2.47, \"mean\": 2.35, \"range\": 0.22, \"change\": 0.03, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 21.89, \"last\": 21.18, \"min\": 19.62, \"max\": 24.18, \"mean\": 21.92, \"range\": 4.56, \"change\": -0.71, \"gaps\": 0}, \"distance\": {\"available\": true, \"points\": 168, \"first\": 95, \"last\": 41, \"min\": 41, \"max\": 95, \"mean\": 64.14, \"range\": 54, \"change\": -54, \"gaps\": 0}, \"tx_bias_current\": {\"available\": true, \"points\": 168, \"first\": 11.45, \"last\": 11.41, \"min\": 10.85, \"max\": 11.57, \"mean\": 11.19, \"range\": 0.72, \"change\": -0.04, \"gaps\": 0}, \"supply_voltage\": {\"available\": true, \"points\": 168, \"first\": 3.42, \"last\": 3.42, \"min\": 3.41, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.05, \"change\": 0.0, \"gaps\": 0}, \"speed_kbps\": {\"available\": true, \"points\": 168, \"first\": 1.75, \"last\": 8.6, \"min\": 0.05, \"max\": 11.94, \"mean\": 5.46, \"range\": 11.89, \"change\": 6.85, \"gaps\": 0}}}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "78:88:8A:9E:69:74"
+        },
+        "result": "{\"count_24h\": 8, \"count_7d\": 33, \"avg_duration_minutes\": 128, \"last_disconnect\": \"2026-09-20T04:56:00Z\", \"recent\": [{\"start\": \"2026-09-20T04:56:00Z\", \"end\": null, \"duration_s\": 7868, \"ip\": \"10.5.50.209\"}, {\"start\": \"2026-09-20T02:34:06Z\", \"end\": \"2026-09-20T04:36:53Z\", \"duration_s\": 7367, \"ip\": \"10.5.50.209\"}, {\"start\": \"2026-09-20T00:17:16Z\", \"end\": \"2026-09-20T02:44:33Z\", \"duration_s\": 8837, \"ip\": \"10.5.50.209\"}, {\"start\": \"2026-09-19T21:46:00Z\", \"end\": \"2026-09-19T23:19:30Z\", \"duration_s\": 5610, \"ip\": \"10.5.50.209\"}]}"
+      },
+      {
+        "tool": "get_traffic",
+        "args": {
+          "lineid": "78:88:8A:9E:69:74"
+        },
+        "result": "{\"download_mb_daily\": [1160, 1240, 1180, 990, 760, 520, 340], \"upload_mb_daily\": [7016, 7425, 7090, 6096, 4757, 3062, 1847], \"monthly_avg_download_mb\": 884, \"monthly_avg_upload_mb\": 5327, \"pon_port_traffic\": {\"current_mbps\": 222, \"avg_mbps\": 218, \"peak_mbps\": 690}}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "10231",
+          "interface": "EPON0/5:22"
+        },
+        "result": "{\"interface_port\": \"EPON0/5\", \"crm_view\": {\"total_on_port\": 24, \"customers\": [{\"lineid\": \"80:F1:A8:1D:B5:44\", \"interface\": \"EPON0/5:2\", \"onu_status\": 1, \"rx_power\": \"-21.38\", \"active\": 1}, {\"lineid\": \"78:88:8A:35:A1:9B\", \"interface\": \"EPON0/5:16\", \"onu_status\": 1, \"rx_power\": \"-22.59\", \"active\": 1}, {\"lineid\": \"B4:64:15:F3:37:6E\", \"interface\": \"EPON0/5:20\", \"onu_status\": 1, \"rx_power\": \"-21.04\", \"active\": 1}, {\"lineid\": \"78:88:8A:9E:69:74\", \"interface\": \"EPON0/5:22\", \"onu_status\": 1, \"rx_power\": \"-26.12\", \"active\": 1}, {\"lineid\": \"70:B6:4F:F5:25:E5\", \"interface\": \"EPON0/5:23\", \"onu_status\": 1, \"rx_power\": \"-19.74\", \"active\": 1}, {\"lineid\": \"80:F1:A8:74:2D:E5\", \"interface\": \"EPON0/5:29\", \"onu_status\": 1, \"rx_power\": \"-22.07\", \"active\": 1}, {\"lineid\": \"4C:46:D1:99:9D:28\", \"interface\": \"EPON0/5:34\", \"onu_status\": 1, \"rx_power\": \"-21.99\", \"active\": 1}, {\"lineid\": \"4C:46:D1:FC:7A:11\", \"interface\": \"EPON0/5:40\", \"onu_status\": 1, \"rx_power\": \"-20.17\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "get_olt_health",
+        "args": {
+          "olt_id": "10231"
+        },
+        "result": "{\"olt_ip\": \"10.220.55.3\", \"olt_host\": \"TK_AZ-OLT_OH_SC-02\", \"olt_technology\": \"EPON\", \"olt_ext_id\": \"10231\", \"ping_ok\": true, \"snmp_community_ok\": true, \"snmp_response_ok\": true, \"total_pons_tested\": 7, \"healthy_pons\": 7, \"failed_pons_list\": [], \"error_description\": null, \"overall_status\": \"healthy\", \"run_date\": \"2026-09-20\"}"
+      },
+      {
+        "tool": "get_olt_population",
+        "args": {
+          "olt_id": "10231"
+        },
+        "result": "{\"total_customers\": 192, \"pon_ports_in_use\": 7, \"customers_per_port\": {\"EPON0/1\": 28, \"EPON0/2\": 28, \"EPON0/3\": 28, \"EPON0/4\": 28, \"EPON0/5\": 24, \"EPON0/6\": 28, \"EPON0/7\": 28}, \"onu_online_count\": 184, \"onu_offline_count\": 8}"
+      },
+      {
+        "tool": "get_olt_metrics",
+        "args": {
+          "olt_id": "10231"
+        },
+        "result": "{\"cpu_load\": 24, \"memory_usage\": 18, \"temperature\": 42, \"uptime_days\": 29, \"firmware\": \"V2.03.78R\", \"firmware_date\": \"2024-06-11\"}"
+      },
+      {
+        "tool": "get_router_status",
+        "args": {
+          "router_id": 10
+        },
+        "result": "{\"name\": \"TK_AZ_Ohrid_SC\", \"model\": \"CCR2004-1G-12S+2XS\", \"os_version\": \"7.24\", \"last_checkin\": \"2026-09-20T07:02:00Z\", \"hours_since_checkin\": 0.3, \"heartbeat_status\": \"ok\", \"cpu_usage\": 7, \"memory_utilization\": 0, \"temperature\": 39}"
+      },
+      {
+        "tool": "snmp_get_onu",
+        "args": {
+          "lineid": "78:88:8A:9E:69:74"
+        },
+        "result": "{\"responds\": true, \"online\": 1, \"rx_power\": -26.58, \"tx_power\": 2.4, \"auth_flag\": \"Auth\", \"exchange\": \"Finish\", \"rtt_tq\": 52}"
+      },
+      {
+        "tool": "snmp_probe_pon_port",
+        "args": {
+          "olt_id": "10231",
+          "interface": "EPON0/5:22"
+        },
+        "result": "{\"interface_port\": \"EPON0/5\", \"onus\": [{\"onu_index\": 2, \"online\": 1, \"rx_power\": -17.47, \"tx_power\": 2.46, \"responds\": true}, {\"onu_index\": 16, \"online\": 1, \"rx_power\": -21.81, \"tx_power\": 2.37, \"responds\": true}, {\"onu_index\": 20, \"online\": 1, \"rx_power\": -22.09, \"tx_power\": 2.6, \"responds\": true}, {\"onu_index\": 22, \"online\": 1, \"rx_power\": -26.58, \"tx_power\": 2.35, \"responds\": true}, {\"onu_index\": 23, \"online\": 1, \"rx_power\": -21.0, \"tx_power\": 2.42, \"responds\": true}, {\"onu_index\": 29, \"online\": 1, \"rx_power\": -17.44, \"tx_power\": 2.41, \"responds\": true}, {\"onu_index\": 34, \"online\": 1, \"rx_power\": -20.92, \"tx_power\": 2.38, \"responds\": true}, {\"onu_index\": 40, \"online\": 1, \"rx_power\": -24.24, \"tx_power\": 2.36, \"responds\": true}]}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "78:88:8A:9E:69:74",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 168, \"first\": -21.23, \"last\": -26.25, \"min\": -26.69, \"max\": -17.94, \"mean\": -21.68, \"range\": 8.75, \"change\": -5.02, \"gaps\": 0}, \"tx_power\": {\"available\": true, \"points\": 168, \"first\": 2.33, \"last\": 2.36, \"min\": 2.25, \"max\": 2.47, \"mean\": 2.35, \"range\": 0.22, \"change\": 0.03, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 21.89, \"last\": 21.18, \"min\": 19.62, \"max\": 24.18, \"mean\": 21.92, \"range\": 4.56, \"change\": -0.71, \"gaps\": 0}, \"distance\": {\"available\": true, \"points\": 168, \"first\": 95, \"last\": 41, \"min\": 41, \"max\": 95, \"mean\": 64.14, \"range\": 54, \"change\": -54, \"gaps\": 0}, \"tx_bias_current\": {\"available\": true, \"points\": 168, \"first\": 11.45, \"last\": 11.41, \"min\": 10.85, \"max\": 11.57, \"mean\": 11.19, \"range\": 0.72, \"change\": -0.04, \"gaps\": 0}, \"supply_voltage\": {\"available\": true, \"points\": 168, \"first\": 3.42, \"last\": 3.42, \"min\": 3.41, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.05, \"change\": 0.0, \"gaps\": 0}, \"speed_kbps\": {\"available\": true, \"points\": 168, \"first\": 1.75, \"last\": 8.6, \"min\": 0.05, \"max\": 11.94, \"mean\": 5.46, \"range\": 11.89, \"change\": 6.85, \"gaps\": 0}}}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "78:88:8A:9E:69:74"
+        },
+        "result": "{\"count_24h\": 8, \"count_7d\": 33, \"avg_duration_minutes\": 128, \"last_disconnect\": \"2026-09-20T04:56:00Z\", \"recent\": [{\"start\": \"2026-09-20T04:56:00Z\", \"end\": null, \"duration_s\": 7868, \"ip\": \"10.5.50.209\"}, {\"start\": \"2026-09-20T02:34:06Z\", \"end\": \"2026-09-20T04:36:53Z\", \"duration_s\": 7367, \"ip\": \"10.5.50.209\"}, {\"start\": \"2026-09-20T00:17:16Z\", \"end\": \"2026-09-20T02:44:33Z\", \"duration_s\": 8837, \"ip\": \"10.5.50.209\"}, {\"start\": \"2026-09-19T21:46:00Z\", \"end\": \"2026-09-19T23:19:30Z\", \"duration_s\": 5610, \"ip\": \"10.5.50.209\"}]}"
+      },
+      {
+        "tool": "get_radius_status",
+        "args": {
+          "lineid": "78:88:8A:9E:69:74"
+        },
+        "result": "{\"radcheck_exists\": true, \"username\": \"C8:3A:35:86:E6:ED\", \"lineid_in_radius\": \"78:88:8A:9E:69:74\", \"framed_pool\": null, \"assigned_ip\": \"10.5.50.209\", \"crm_consistent\": true, \"mismatches\": []}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "10231",
+          "interface": "EPON0/5:22"
+        },
+        "result": "{\"interface_port\": \"EPON0/5\", \"crm_view\": {\"total_on_port\": 24, \"customers\": [{\"lineid\": \"80:F1:A8:1D:B5:44\", \"interface\": \"EPON0/5:2\", \"onu_status\": 1, \"rx_power\": \"-21.38\", \"active\": 1}, {\"lineid\": \"78:88:8A:35:A1:9B\", \"interface\": \"EPON0/5:16\", \"onu_status\": 1, \"rx_power\": \"-22.59\", \"active\": 1}, {\"lineid\": \"B4:64:15:F3:37:6E\", \"interface\": \"EPON0/5:20\", \"onu_status\": 1, \"rx_power\": \"-21.04\", \"active\": 1}, {\"lineid\": \"78:88:8A:9E:69:74\", \"interface\": \"EPON0/5:22\", \"onu_status\": 1, \"rx_power\": \"-26.12\", \"active\": 1}, {\"lineid\": \"70:B6:4F:F5:25:E5\", \"interface\": \"EPON0/5:23\", \"onu_status\": 1, \"rx_power\": \"-19.74\", \"active\": 1}, {\"lineid\": \"80:F1:A8:74:2D:E5\", \"interface\": \"EPON0/5:29\", \"onu_status\": 1, \"rx_power\": \"-22.07\", \"active\": 1}, {\"lineid\": \"4C:46:D1:99:9D:28\", \"interface\": \"EPON0/5:34\", \"onu_status\": 1, \"rx_power\": \"-21.99\", \"active\": 1}, {\"lineid\": \"4C:46:D1:FC:7A:11\", \"interface\": \"EPON0/5:40\", \"onu_status\": 1, \"rx_power\": \"-20.17\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "snmp_probe_olt",
+        "args": {
+          "olt_id": "10231"
+        },
+        "result": "{\"ping_ok\": true, \"snmp_responds\": true, \"sys_uptime_seconds\": 2505600, \"oid_subtree_responds\": true}"
+      }
+    ]
+  },
+  "ground_truth": {
+    "fault_type": "distance_change",
+    "root_cause": "A re-splice four days ago shortened the path from 95 m to 41 m and initially improved RX from -20.8 to -18.2 dBm. Since then RX has fallen steadily to -26.5 dBm, so the new splice itself is failing.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "78:88:8A:9E:69:74"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Current RX of -26.1 dBm is in the degraded band and live RX is worse still at -26.6",
+      "The recent RX series shows a clear downward slope, which alone reads as fibre degradation",
+      "Looking further back, distance stepped from 95 m to 41 m four days ago",
+      "At that same moment RX jumped upward from -20.8 to -18.2 dBm, consistent with a shorter path",
+      "So the sequence is: path shortened and improved first, then began degrading from the new baseline",
+      "The customer's statement that it was fixed last week corroborates a work visit at that point",
+      "TX power, bias current and supply voltage are flat, so the ONU is not implicated",
+      "Peers on EPON0/5 are normal, so the fault is in this customer's own path",
+      "A splice made four days ago that is now losing 8 dB is a defective splice, not coincidental degradation"
+    ],
+    "required_evidence": [
+      "distance_step_detected",
+      "rx_improved_then_degraded",
+      "degradation_postdates_path_change"
+    ],
+    "expected_remediation": "dispatch_technician",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "field_service",
+      "requires_human_review": true,
+      "review_reason": "Rework of a splice completed four days ago; the original job should be reviewed"
+    },
+    "distractors": [
+      "The recent RX slope is a textbook fibre degradation signature",
+      "The distance step is buried three days back in the series",
+      "Eight sessions in 24h invites a flapping diagnosis"
+    ]
+  }
+}

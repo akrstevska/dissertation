@@ -1,0 +1,83 @@
+{
+  "scenario_id": "RU-002",
+  "config": "monolithic_shared_p1",
+  "model": "gpt-5.6-luna",
+  "seconds": 11.3,
+  "result": {
+    "diagnosis": {
+      "fault_type": "router_unreachable",
+      "root_cause": "The router has never produced a heartbeat record. This indicates missing router monitoring or management reachability, although subscriber service is currently operational.",
+      "confidence": 0.86,
+      "affected_scope": "router",
+      "evidence": [
+        "The router heartbeat status is 'never' with no last_checkin, meaning no heartbeat record has ever been collected.",
+        "The subscriber ONU is online and responding, with normal RX power of -21.9 dBm and TX power of 2.34 dBm.",
+        "The seven-day optical telemetry is stable: RX remains in the normal band, TX and bias current are healthy, and distance is constant at 87.",
+        "All probed peers on EPON0/4 are online, ruling out an ONU, splitter, or PON-port outage.",
+        "The OLT responds to ping, SNMP, and subtree queries and has healthy CPU, memory, and temperature, ruling out an OLT failure.",
+        "Authentication is consistent, sessions are within the normal baseline, VLAN 1124 is correctly provisioned, and traffic is passing.",
+        "Therefore the only abnormal condition is the absence of router heartbeat data, with no evidence of an EPON or subscriber-service failure."
+      ]
+    },
+    "remediation": {
+      "action": "Verify that router monitoring and heartbeat collection are enabled, confirm management-plane reachability and credentials, and check whether the router is configured to report to the monitoring system. Do not dispatch for an access-network outage unless heartbeat failure is confirmed as an actual router outage."
+    },
+    "escalation": {
+      "priority": "Warning"
+    },
+    "monolithic": {
+      "fault_type": "router_unreachable",
+      "root_cause": "The router has never produced a heartbeat record. This indicates missing router monitoring or management reachability, although subscriber service is currently operational.",
+      "confidence": 0.86,
+      "severity": "Warning",
+      "affected_scope": "router",
+      "remediation": "Verify that router monitoring and heartbeat collection are enabled, confirm management-plane reachability and credentials, and check whether the router is configured to report to the monitoring system. Do not dispatch for an access-network outage unless heartbeat failure is confirmed as an actual router outage.",
+      "reasoning": [
+        "The router heartbeat status is 'never' with no last_checkin, meaning no heartbeat record has ever been collected.",
+        "The subscriber ONU is online and responding, with normal RX power of -21.9 dBm and TX power of 2.34 dBm.",
+        "The seven-day optical telemetry is stable: RX remains in the normal band, TX and bias current are healthy, and distance is constant at 87.",
+        "All probed peers on EPON0/4 are online, ruling out an ONU, splitter, or PON-port outage.",
+        "The OLT responds to ping, SNMP, and subtree queries and has healthy CPU, memory, and temperature, ruling out an OLT failure.",
+        "Authentication is consistent, sessions are within the normal baseline, VLAN 1124 is correctly provisioned, and traffic is passing.",
+        "Therefore the only abnormal condition is the absence of router heartbeat data, with no evidence of an EPON or subscriber-service failure."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "no_fault",
+    "root_cause": "The router has no check-in record of any kind, which means it was never enrolled in heartbeat monitoring rather than that it stopped responding. Its customers are authenticated, holding long sessions and passing normal traffic.",
+    "severity": "Information",
+    "affected_scope": "none",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The router's heartbeat status is 'never' with a null last_checkin",
+      "That is different from a heartbeat that went stale, which would carry a timestamp and an elapsed time",
+      "No record at all indicates the router was never enrolled in the check-in mechanism",
+      "The ONU behind it is online with RX -21.9 and TX 2.3, both normal",
+      "The live probe confirms the ONU and its peers are all responding normally",
+      "Sessions are active with a 683 minute mean, close to the 11.9 hour network norm",
+      "Daily traffic is steady across all seven days with no interruption",
+      "Customers on this router are being served, so there is no outage",
+      "The finding is a monitoring gap, not a network fault"
+    ],
+    "required_evidence": [
+      "never_checked_in_not_stale",
+      "customers_passing_traffic",
+      "sessions_normal_duration"
+    ],
+    "expected_remediation": "flag_monitoring_defect",
+    "expected_escalation": {
+      "priority": "Information",
+      "category": "monitoring",
+      "requires_human_review": true,
+      "review_reason": "Router is not enrolled in heartbeat monitoring and should be added"
+    },
+    "distractors": [
+      "A null heartbeat looks worse than a stale one and invites a Disaster conclusion",
+      "A scheduled scan targeting the router frames it as the suspect",
+      "The correct answer is that nothing is wrong with the network"
+    ]
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "scenario_id": "OF-002",
+  "config": "monolithic_p1",
+  "model": "gpt-5.6-luna",
+  "seconds": 7.1,
+  "result": {
+    "diagnosis": {
+      "fault_type": "olt_health_false_critical",
+      "root_cause": "The OLT is reachable by ping and has historically normal CPU, memory, temperature, optical levels, ONU availability, and traffic, but SNMP authentication/access is failing. The critical health alarm is therefore caused by an SNMP community or access-control/configuration problem, not an OLT, PON, fibre, or subscriber outage.",
+      "confidence": 0.99,
+      "affected_scope": "olt",
+      "evidence": [
+        "The OLT responds to ping, so it is reachable and not conclusively failed.",
+        "SNMP community validation and SNMP response both fail, while all OLT SNMP-derived metrics are zero or unavailable.",
+        "Historical OLT telemetry is normal: CPU is generally near the 25% baseline, memory near 17%, and temperature near 42C.",
+        "The subscriber ONU is stored online with normal RX power of -20.03 dBm and TX power of 2.38 dBm; historical optical variation is within healthy bounds.",
+        "Distance is constant at 201 m and TX bias current remains within the healthy 9.5-13.0 mA range, providing no evidence of fibre, distance, or laser degradation.",
+        "All six listed peers on EPON0/6 are online in the CRM view, and the OLT has 158 of 167 ONUs online; the nine offline ONUs are below the expected background level for the stated baseline.",
+        "The router heartbeat is healthy at 0.3 hours, and the subscriber has normal authentication state, two sessions in 24 hours, and consistent RADIUS/CRM records.",
+        "The health alarm is therefore a monitoring/access failure producing a false critical OLT health status rather than a customer-impacting network fault."
+      ]
+    },
+    "remediation": {
+      "action": "Verify and correct the SNMP community string, SNMP version, source-IP ACLs, and management access on TK_AZ_OLT-KO-14 and the monitoring system. Re-run the OLT and PON SNMP probes and restore polling. Treat the zero OLT metrics and null live optical values as unavailable readings, not as actual device or signal values. Do not dispatch for fibre or ONU repair unless service telemetry changes after monitoring is restored."
+    },
+    "escalation": {
+      "priority": "Warning"
+    },
+    "monolithic": {
+      "fault_type": "olt_health_false_critical",
+      "root_cause": "The OLT is reachable by ping and has historically normal CPU, memory, temperature, optical levels, ONU availability, and traffic, but SNMP authentication/access is failing. The critical health alarm is therefore caused by an SNMP community or access-control/configuration problem, not an OLT, PON, fibre, or subscriber outage.",
+      "confidence": 0.99,
+      "severity": "Warning",
+      "affected_scope": "olt",
+      "remediation": "Verify and correct the SNMP community string, SNMP version, source-IP ACLs, and management access on TK_AZ_OLT-KO-14 and the monitoring system. Re-run the OLT and PON SNMP probes and restore polling. Treat the zero OLT metrics and null live optical values as unavailable readings, not as actual device or signal values. Do not dispatch for fibre or ONU repair unless service telemetry changes after monitoring is restored.",
+      "reasoning": [
+        "The OLT responds to ping, so it is reachable and not conclusively failed.",
+        "SNMP community validation and SNMP response both fail, while all OLT SNMP-derived metrics are zero or unavailable.",
+        "Historical OLT telemetry is normal: CPU is generally near the 25% baseline, memory near 17%, and temperature near 42C.",
+        "The subscriber ONU is stored online with normal RX power of -20.03 dBm and TX power of 2.38 dBm; historical optical variation is within healthy bounds.",
+        "Distance is constant at 201 m and TX bias current remains within the healthy 9.5-13.0 mA range, providing no evidence of fibre, distance, or laser degradation.",
+        "All six listed peers on EPON0/6 are online in the CRM view, and the OLT has 158 of 167 ONUs online; the nine offline ONUs are below the expected background level for the stated baseline.",
+        "The router heartbeat is healthy at 0.3 hours, and the subscriber has normal authentication state, two sessions in 24 hours, and consistent RADIUS/CRM records.",
+        "The health alarm is therefore a monitoring/access failure producing a false critical OLT health status rather than a customer-impacting network fault."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "olt_failure",
+    "root_cause": "The OLT's SNMP agent has stopped answering while the device continues to forward traffic. Ping succeeds, customers are authenticated and passing normal traffic, and only the monitoring path is broken.",
+    "severity": "Warning",
+    "affected_scope": "olt",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The health check reports critical, but its two SNMP flags come from a single sysUpTime read and are always equal, so the wording distinguishes nothing",
+      "Ping succeeds, so the device is powered and reachable on the management network",
+      "No SNMP query answers, so no ONU can be probed and no device metrics can be collected",
+      "Telemetry for both the ONU and the OLT stops 48 hours ago, matching when SNMP failed",
+      "Cached optical readings are 2880 minutes old for the same reason",
+      "Customer-facing evidence is intact: sessions are active with normal durations and daily traffic is unchanged across all seven days",
+      "Service therefore continues normally; what has been lost is visibility, not connectivity",
+      "The correct conclusion is a monitoring-path failure on a serving OLT, not a customer outage"
+    ],
+    "required_evidence": [
+      "ping_succeeds_snmp_fails",
+      "customers_passing_traffic",
+      "telemetry_stopped_at_same_time"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "monitoring",
+      "requires_human_review": true,
+      "review_reason": "SNMP agent or community configuration on a serving OLT; no customer impact but the estate is unmonitored"
+    },
+    "distractors": [
+      "A critical alarm on a whole OLT invites a Disaster severity",
+      "Zeroed olt_metrics could be read as a failing device",
+      "Every probe returns no response, which resembles the firmware mismatch signature"
+    ]
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "scenario_id": "NF-001",
+  "config": "monolithic_shared_p1",
+  "model": "gpt-5.6-luna",
+  "seconds": 8.9,
+  "result": {
+    "diagnosis": {
+      "fault_type": "no_fault",
+      "root_cause": "No active network fault. The ONU is online, authenticated, passing traffic, and has normal RX/TX power. RX shows bounded variation with brief excursions just below -25 dBm but no qualifying decline from the normal band into a degraded or critical endpoint. TX power, bias current, distance, supply voltage, router, OLT, VLAN, and RADIUS state are all healthy.",
+      "confidence": 0.96,
+      "affected_scope": "none",
+      "evidence": [
+        "The ONU is currently online and responding: onu_status=1, SNMP online=1, and authentication exchange is Auth/Finish.",
+        "Current RX power is -24.61 dBm, which is within the calibrated normal range of -20 to -25 dBm; TX power is 2.63 dBm, within the normal 0 to +5 dBm range.",
+        "RX telemetry fluctuates around the normal range with only brief readings slightly below -25 dBm. The seven-day series starts and ends in the normal band, so it is not a qualifying decline into degraded or critical state.",
+        "TX power and TX bias current remain stable and healthy, providing no evidence of laser degradation.",
+        "Distance remains constant at 289, so there is no fibre-path step change or distance fault.",
+        "Peers on EPON0/2 are online and healthy, indicating no shared PON, splitter, port, or OLT failure.",
+        "OLT ping, SNMP, OID subtree, CPU, memory, and temperature are healthy; the router heartbeat is also healthy.",
+        "The ONU has 3 sessions in 24 hours, matching the normal re-authentication baseline, with average duration near the 11.9-hour network mean; this is not session flapping.",
+        "RADIUS records match CRM and the line ID, the expected VLAN 1072 is present, and traffic is active, so there is no authentication, VLAN, or provisioning fault.",
+        "The OLT-wide offline count of 8 is below the 4.85% baseline expectation for 148 customers and does not indicate an outage."
+      ]
+    },
+    "remediation": {
+      "action": "No corrective action required. Continue routine monitoring; investigate only if RX begins a sustained decline into the degraded or critical range, the ONU goes offline, or session frequency becomes abnormal."
+    },
+    "escalation": {
+      "priority": "Not classified"
+    },
+    "monolithic": {
+      "fault_type": "no_fault",
+      "root_cause": "No active network fault. The ONU is online, authenticated, passing traffic, and has normal RX/TX power. RX shows bounded variation with brief excursions just below -25 dBm but no qualifying decline from the normal band into a degraded or critical endpoint. TX power, bias current, distance, supply voltage, router, OLT, VLAN, and RADIUS state are all healthy.",
+      "confidence": 0.96,
+      "severity": "Not classified",
+      "affected_scope": "none",
+      "remediation": "No corrective action required. Continue routine monitoring; investigate only if RX begins a sustained decline into the degraded or critical range, the ONU goes offline, or session frequency becomes abnormal.",
+      "reasoning": [
+        "The ONU is currently online and responding: onu_status=1, SNMP online=1, and authentication exchange is Auth/Finish.",
+        "Current RX power is -24.61 dBm, which is within the calibrated normal range of -20 to -25 dBm; TX power is 2.63 dBm, within the normal 0 to +5 dBm range.",
+        "RX telemetry fluctuates around the normal range with only brief readings slightly below -25 dBm. The seven-day series starts and ends in the normal band, so it is not a qualifying decline into degraded or critical state.",
+        "TX power and TX bias current remain stable and healthy, providing no evidence of laser degradation.",
+        "Distance remains constant at 289, so there is no fibre-path step change or distance fault.",
+        "Peers on EPON0/2 are online and healthy, indicating no shared PON, splitter, port, or OLT failure.",
+        "OLT ping, SNMP, OID subtree, CPU, memory, and temperature are healthy; the router heartbeat is also healthy.",
+        "The ONU has 3 sessions in 24 hours, matching the normal re-authentication baseline, with average duration near the 11.9-hour network mean; this is not session flapping.",
+        "RADIUS records match CRM and the line ID, the expected VLAN 1072 is present, and traffic is active, so there is no authentication, VLAN, or provisioning fault.",
+        "The OLT-wide offline count of 8 is below the 4.85% baseline expectation for 148 customers and does not indicate an outage."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "no_fault",
+    "root_cause": "No fault is present. RX sits in the lower part of the normal band, TX is inside the measured healthy range, the session count is at the network baseline, and the OLT's offline count matches the background rate.",
+    "severity": "Not classified",
+    "affected_scope": "none",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "RX is -24.58 dBm, which is in the lower part of the normal -20 to -25 band and above the -25 degraded threshold",
+      "The RX series has been flat for seven days inside the noise floor, so there is no downward trend",
+      "TX is 2.62 dBm, inside the measured healthy range of 0 to +5 for this estate",
+      "The documented -6 to -10 band would flag this value, but that threshold is wrong and would flag most of the network",
+      "Three sessions in 24 hours is the baseline that 80.8% of customers show, not flapping",
+      "Session duration of 668 minutes is close to the 11.9 hour network mean",
+      "Router heartbeat at 1.6 hours is inside the 2 hour ok threshold",
+      "The OLT's offline count is consistent with the 4.85% background rate",
+      "Traffic is steady across all seven days with no trend",
+      "Every value that looks mildly unusual is inside its calibrated normal band"
+    ],
+    "required_evidence": [
+      "rx_within_normal_band",
+      "tx_judged_against_correct_band",
+      "session_count_is_baseline"
+    ],
+    "expected_remediation": "no_action",
+    "expected_escalation": {
+      "priority": "Not classified",
+      "category": "monitoring",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "RX near -25 looks close to the degraded threshold",
+      "TX at 2.62 would be flagged by the incorrect documented threshold",
+      "Router heartbeat at 1.6 hours looks stale without the threshold",
+      "A scheduled scan implies something is expected to be found"
+    ]
+  }
+}

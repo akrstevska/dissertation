@@ -1,0 +1,87 @@
+{
+  "scenario_id": "RA-003",
+  "config": "monolithic_shared_p1",
+  "model": "gpt-5.6-luna",
+  "seconds": 6.8,
+  "result": {
+    "diagnosis": {
+      "fault_type": "radius_lineid_conflict",
+      "root_cause": "RADIUS still associates username C8:3A:35:26:A9:89 with the superseded ONU line ID B4:64:15:D6:DE:BB, while CRM and the installed ONU use line ID 4C:D7:C8:C3:CC:A8. This stale line-ID association is causing usage accounting to be attributed incorrectly in the portal.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The subscriber is online and responding, with RX power -20.16 dBm and TX power 2.43 dBm, both within healthy EPON ranges.",
+        "The seven-day optical telemetry is stable: RX remains around -20 dBm, TX around +2.3 dBm, distance is constant at 145, and TX bias remains within the healthy range without a rising trend.",
+        "All observed peers on EPON0/5 are online, so there is no ONU, splitter, PON-port, or shared-infrastructure fault.",
+        "The OLT responds to ping, SNMP, and subtree queries and has healthy CPU, memory, and temperature; the router heartbeat is also healthy.",
+        "The VLAN walk confirms that the expected customer VLAN 1075 is present and correctly assigned.",
+        "The subscriber has only two sessions in 24 hours with long durations, so there is no session flapping or authentication instability.",
+        "RADIUS credentials exist and service is working, but the RADIUS line ID conflicts with CRM: RADIUS contains the superseded ONU B4:64:15:D6:DE:BB while CRM contains the current ONU 4C:D7:C8:C3:CC:A8.",
+        "The explicit complaint about incorrect portal usage history is therefore best explained by the stale RADIUS line-ID/accounting association."
+      ]
+    },
+    "remediation": {
+      "action": "Update the RADIUS radcheck line-ID attribute to 4C:D7:C8:C3:CC:A8, remove the orphaned B4:64:15:D6:DE:BB entry, synchronize RADIUS with CRM, and reauthenticate the subscriber if required. Reconcile or reprocess accounting records so the portal usage history is associated with the correct customer and ONU."
+    },
+    "escalation": {
+      "priority": "Warning"
+    },
+    "monolithic": {
+      "fault_type": "radius_lineid_conflict",
+      "root_cause": "RADIUS still associates username C8:3A:35:26:A9:89 with the superseded ONU line ID B4:64:15:D6:DE:BB, while CRM and the installed ONU use line ID 4C:D7:C8:C3:CC:A8. This stale line-ID association is causing usage accounting to be attributed incorrectly in the portal.",
+      "confidence": 0.99,
+      "severity": "Warning",
+      "affected_scope": "single_customer",
+      "remediation": "Update the RADIUS radcheck line-ID attribute to 4C:D7:C8:C3:CC:A8, remove the orphaned B4:64:15:D6:DE:BB entry, synchronize RADIUS with CRM, and reauthenticate the subscriber if required. Reconcile or reprocess accounting records so the portal usage history is associated with the correct customer and ONU.",
+      "reasoning": [
+        "The subscriber is online and responding, with RX power -20.16 dBm and TX power 2.43 dBm, both within healthy EPON ranges.",
+        "The seven-day optical telemetry is stable: RX remains around -20 dBm, TX around +2.3 dBm, distance is constant at 145, and TX bias remains within the healthy range without a rising trend.",
+        "All observed peers on EPON0/5 are online, so there is no ONU, splitter, PON-port, or shared-infrastructure fault.",
+        "The OLT responds to ping, SNMP, and subtree queries and has healthy CPU, memory, and temperature; the router heartbeat is also healthy.",
+        "The VLAN walk confirms that the expected customer VLAN 1075 is present and correctly assigned.",
+        "The subscriber has only two sessions in 24 hours with long durations, so there is no session flapping or authentication instability.",
+        "RADIUS credentials exist and service is working, but the RADIUS line ID conflicts with CRM: RADIUS contains the superseded ONU B4:64:15:D6:DE:BB while CRM contains the current ONU 4C:D7:C8:C3:CC:A8.",
+        "The explicit complaint about incorrect portal usage history is therefore best explained by the stale RADIUS line-ID/accounting association."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "radius_lineid_conflict",
+    "root_cause": "The ONU was replaced on 30 August. CRM was updated with the new ONU MAC but the RADIUS lineid still carries the superseded one, so accounting records are written against a device that is no longer installed.",
+    "severity": "Warning",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "4C:D7:C8:C3:CC:A8"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The customer reports incorrect usage history while service itself works",
+      "Authentication succeeds because it keys on the CPE MAC, which matches in both systems",
+      "The optical layer is healthy: RX -20.1, TX 2.4, distance constant, peers normal",
+      "crm_user_net.lineid and radcheck.lineid hold different ONU MACs for the same username",
+      "The CRM value is the installed device; the RADIUS value is a superseded one",
+      "Distance has been constant at 145 m throughout, so the physical path did not change with the swap",
+      "Accounting is therefore attributed to a device that no longer exists, which explains the portal discrepancy",
+      "This is a cross-system key mismatch, distinct from two CRM records colliding on one interface",
+      "Automated correction is unsafe here because the wrong row could be rewritten"
+    ],
+    "required_evidence": [
+      "crm_and_radius_lineids_differ",
+      "authentication_still_succeeds",
+      "physical_layer_healthy"
+    ],
+    "expected_remediation": "manual_review",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "provisioning",
+      "requires_human_review": true,
+      "review_reason": "Correcting a RADIUS lineid risks disconnecting the wrong customer and must be done by hand"
+    },
+    "distractors": [
+      "Service works normally, inviting a no_fault conclusion",
+      "The complaint is about a portal display rather than connectivity",
+      "The mismatch resembles a duplicate slot conflict but is cross-system"
+    ]
+  }
+}

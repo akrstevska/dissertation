@@ -1,0 +1,90 @@
+{
+  "scenario_id": "DS-001",
+  "config": "agent",
+  "model": "claude-haiku-4-5-20251001",
+  "seconds": 0.0,
+  "result": {
+    "trigger": "scheduled_scan",
+    "trigger_input": {
+      "scope": "olt",
+      "target": "TK_AZ_OLT-VE05"
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [],
+      "preliminary_severity": "Warning",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        ""
+      ],
+      "olt_id": null,
+      "interface": null,
+      "summary": "stub"
+    },
+    "diagnosis": {
+      "fault_type": "no_fault",
+      "root_cause": "stub",
+      "confidence": 0.5,
+      "affected_scope": "single_customer",
+      "affected_lineids": [],
+      "evidence": [],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "remediation": {
+      "action": "no_action",
+      "automated": false,
+      "reason": "stub",
+      "instructions": "",
+      "alternatives_considered": []
+    },
+    "escalation": {
+      "priority": "Warning",
+      "category": "monitoring",
+      "requires_human_review": false,
+      "review_reason": null,
+      "summary": "stub",
+      "affected_customer_count": 0,
+      "service_impact": false
+    },
+    "trace": []
+  },
+  "ground_truth": {
+    "fault_type": "duplicate_onu_slot",
+    "root_cause": "Two active CRM records place different ONU MACs on EPON0/4:17. A slot holds exactly one ONU, so one record is stale. The live probe returns a single device, and its MAC matches the subject record, identifying the other as the leftover.",
+    "severity": "Warning",
+    "affected_scope": "multi_customer",
+    "affected_lineids": [
+      "4C:D7:C8:93:BA:F1",
+      "4C:D7:C8:7F:0A:B9"
+    ],
+    "affected_customer_count": 2,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The CRM view lists two active customers on EPON0/4:17 with different ONU MACs",
+      "A PON slot holds exactly one ONU, so this state is physically impossible",
+      "The live probe of that slot returns a single responding device",
+      "The probe's optical values match the subject record's cached reading of -20.88 dBm",
+      "RADIUS holds a consistent entry for the subject with normal sessions and traffic",
+      "The second record therefore does not correspond to an installed device and is stale",
+      "The optical layer is healthy and neither customer is experiencing a service fault",
+      "This is a record defect of the same class as the 644 such interfaces in the estate"
+    ],
+    "required_evidence": [
+      "two_crm_records_one_slot",
+      "live_probe_returns_one_device",
+      "probe_identifies_real_occupant"
+    ],
+    "expected_remediation": "manual_review",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "provisioning",
+      "requires_human_review": true,
+      "review_reason": "One of two CRM records on this slot is stale; deleting the wrong one disconnects a live customer"
+    },
+    "distractors": [
+      "Nothing is failing and no customer has complained",
+      "Both records are marked active and look equally legitimate in CRM"
+    ]
+  }
+}

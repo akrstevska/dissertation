@@ -1,0 +1,87 @@
+{
+  "scenario_id": "DC-001",
+  "config": "monolithic_shared_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 6.3,
+  "result": {
+    "diagnosis": {
+      "fault_type": "distance_change",
+      "root_cause": "The recorded ONU distance stepped from 112 to 268 while the physical path should be constant. The accompanying RX change from approximately -19.4 dBm to -22.1 dBm is a consequence of the changed fibre path or an incorrect record, not progressive fibre degradation.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The ONU is currently online and responding, with RX -22.05 dBm and TX 2.37 dBm; both are within normal EPON ranges.",
+        "RX telemetry was stable around -19.4 dBm for most of the window, then stepped to approximately -22.1 dBm rather than declining gradually.",
+        "Distance simultaneously stepped from 112 to 268 and remained at 268, which indicates a changed fibre path or incorrect path record.",
+        "Distance is constant for a customer, so this step is itself the fault; the RX movement is a consequence of the new path.",
+        "TX power and TX bias current remain stable and healthy, ruling against laser degradation.",
+        "All probed peers on EPON0/3 are online with normal optical readings, so there is no evidence of splitter, PON-port, or shared infrastructure failure.",
+        "OLT health, router heartbeat, VLAN assignment, RADIUS state, traffic, and session counts are normal.",
+        "The customer has only 3 sessions in 24 hours with long durations, so there is no session flapping or authentication fault."
+      ]
+    },
+    "remediation": {
+      "action": "Verify the subscriber's fibre route, patching, splitter assignment, and ONU registration against the inventory. Correct any erroneous distance or line/path record, or restore the ONU to its original optical path if it was physically repatched. Recheck distance and optical levels after correction and continue monitoring RX stability."
+    },
+    "escalation": {
+      "priority": "Warning"
+    },
+    "monolithic": {
+      "fault_type": "distance_change",
+      "root_cause": "The recorded ONU distance stepped from 112 to 268 while the physical path should be constant. The accompanying RX change from approximately -19.4 dBm to -22.1 dBm is a consequence of the changed fibre path or an incorrect record, not progressive fibre degradation.",
+      "confidence": 0.99,
+      "severity": "Warning",
+      "affected_scope": "single_customer",
+      "remediation": "Verify the subscriber's fibre route, patching, splitter assignment, and ONU registration against the inventory. Correct any erroneous distance or line/path record, or restore the ONU to its original optical path if it was physically repatched. Recheck distance and optical levels after correction and continue monitoring RX stability.",
+      "reasoning": [
+        "The ONU is currently online and responding, with RX -22.05 dBm and TX 2.37 dBm; both are within normal EPON ranges.",
+        "RX telemetry was stable around -19.4 dBm for most of the window, then stepped to approximately -22.1 dBm rather than declining gradually.",
+        "Distance simultaneously stepped from 112 to 268 and remained at 268, which indicates a changed fibre path or incorrect path record.",
+        "Distance is constant for a customer, so this step is itself the fault; the RX movement is a consequence of the new path.",
+        "TX power and TX bias current remain stable and healthy, ruling against laser degradation.",
+        "All probed peers on EPON0/3 are online with normal optical readings, so there is no evidence of splitter, PON-port, or shared infrastructure failure.",
+        "OLT health, router heartbeat, VLAN assignment, RADIUS state, traffic, and session counts are normal.",
+        "The customer has only 3 sessions in 24 hours with long durations, so there is no session flapping or authentication fault."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "distance_change",
+    "root_cause": "The measured optical distance stepped from 112 m to 268 m two and a half days ago, with a matching 2.7 dB RX drop. The fibre path was physically re-routed, most likely a re-splice or a patch onto a different feeder.",
+    "severity": "Warning",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "4C:46:D1:54:78:1B"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": false,
+    "expected_reasoning": [
+      "RX dropped from -19.4 to -22.1 dBm, which alone would suggest attenuation",
+      "The drop is a single step, not a slope, and RX has been stable at the new level since",
+      "Distance stepped from 112 m to 268 m at the same moment",
+      "Distance is constant per customer in normal operation, so a step means the physical path changed",
+      "The 2.7 dB loss is consistent with 156 m of additional fibre plus a splice",
+      "TX power, bias current and supply voltage are all unchanged, so the ONU is not involved",
+      "RTT timing quantum of 96 corroborates the longer path",
+      "Service is unaffected: sessions and traffic are normal at the new signal level",
+      "This is a recorded path change, not a developing fault"
+    ],
+    "required_evidence": [
+      "distance_step_detected",
+      "rx_step_not_slope",
+      "timing_corroborates_distance"
+    ],
+    "expected_remediation": "verify_physical_path",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "field_service",
+      "requires_human_review": true,
+      "review_reason": "Confirm the re-route was intentional and update plant records"
+    },
+    "distractors": [
+      "The RX drop looks like fibre degradation if distance is not consulted",
+      "The trigger is phrased as an RX threshold breach, pointing at the wrong signal",
+      "Service is unaffected, inviting a no_fault conclusion"
+    ]
+  }
+}

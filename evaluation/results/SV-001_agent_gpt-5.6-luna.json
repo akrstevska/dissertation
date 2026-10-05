@@ -1,0 +1,272 @@
+{
+  "scenario_id": "SV-001",
+  "config": "agent",
+  "model": "gpt-5.6-luna",
+  "seconds": 34.0,
+  "result": {
+    "trigger": "customer_complaint",
+    "trigger_input": {
+      "lineid": "4C:46:D1:09:7C:78",
+      "complaint": "Installed two days ago, still no connection"
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [
+        {
+          "type": "active_line_no_sessions",
+          "value": "active=1, sessions=0 in 24h and 0 in 7d",
+          "threshold": "An active customer line must have held sessions; normal baseline is 2-3 sessions per day"
+        },
+        {
+          "type": "no_customer_traffic",
+          "value": "download=0 MB/day and upload=0 MB/day for all 7 days; monthly averages=0 MB",
+          "threshold": "An active served line should show nonzero customer traffic"
+        },
+        {
+          "type": "rx_power",
+          "value": "-18.92 dBm, cached age 16 minutes",
+          "threshold": "Strong/normal optical power is above -25 dBm; value is within band"
+        },
+        {
+          "type": "tx_power",
+          "value": "2.50 dBm, cached age 16 minutes",
+          "threshold": "Normal TX power is 0 to +5 dBm; value is within band"
+        }
+      ],
+      "preliminary_severity": "Average",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "4C:46:D1:09:7C:78"
+      ],
+      "olt_id": "10231",
+      "interface": "EPON0/6:8",
+      "summary": "The active newly installed line has normal optical readings but has never established a session and has zero traffic, confirming a single-customer service fault."
+    },
+    "diagnosis": {
+      "fault_type": "stuck_provisioning_vlan46",
+      "root_cause": "The ONU is online and authenticated with healthy optical readings, and its RADIUS entry exists and is CRM-consistent, but the customer VLAN is still 46 instead of the expected 1116. VLAN 46 is the factory-default, never-provisioned VLAN, explaining the absence of sessions and traffic.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "4C:46:D1:09:7C:78"
+      ],
+      "evidence": [
+        "Live ONU query shows responds=true, online=1, auth_flag=Auth, and exchange=Finish.",
+        "Live RX power is -18.95 dBm and TX power is 2.51 dBm, both healthy.",
+        "OLT ping, SNMP, and OID subtree queries all succeed, ruling out an OLT failure.",
+        "All observed peer ONUs on EPON0/6 are online, so there is no shared port or splitter outage.",
+        "RADIUS entry exists, is CRM-consistent, and has no mismatches.",
+        "The line has zero sessions in 24 hours and seven days and zero traffic.",
+        "The expected customer VLAN is 1116, but the actual VLAN is 46; VLAN 46 is the factory-default unprovisioned VLAN.",
+        "Optical history is stable: RX change -0.13 dBm, TX change -0.04 dBm, distance unchanged at 52, and TX bias remains within the healthy range."
+      ],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "remediation": {
+      "action": "trigger_acs_provisioning",
+      "automated": true,
+      "reason": "The ONU is online, authenticated, optically healthy, and has a valid CRM-consistent RADIUS entry, but remains on factory-default VLAN 46 instead of the expected customer VLAN 1116. This is a stuck provisioning condition, not an optical, RADIUS, OLT, or infrastructure failure.",
+      "instructions": "Trigger ACS provisioning for lineid 4C:46:D1:09:7C:78 to apply customer VLAN 1116. Verify afterward that the ONU leaves VLAN 46, establishes a session, and passes traffic.",
+      "alternatives_considered": [
+        {
+          "action": "onu_reset",
+          "rejected_because": "The ONU is online and responsive with healthy optical readings; resetting will not correct the missing VLAN provisioning."
+        },
+        {
+          "action": "create_radius_entry",
+          "rejected_because": "The RADIUS entry already exists and is consistent with CRM."
+        },
+        {
+          "action": "dispatch_technician",
+          "rejected_because": "Optical levels, distance, and history are stable, with no evidence of fibre or splitter degradation."
+        },
+        {
+          "action": "escalate_infrastructure",
+          "rejected_because": "OLT connectivity is healthy and peer ONUs on the PON are online, ruling out a shared infrastructure failure."
+        }
+      ]
+    },
+    "escalation": {
+      "priority": "Average",
+      "category": "provisioning",
+      "requires_human_review": false,
+      "review_reason": null,
+      "summary": "A single newly installed customer line is out of service despite healthy optical levels, ONU authentication, OLT connectivity, and a valid CRM-consistent RADIUS entry. The ONU remains on factory-default VLAN 46 instead of the expected customer VLAN 1116, causing no sessions and zero traffic. Trigger ACS provisioning for line 4C:46:D1:09:7C:78, then verify that it leaves VLAN 46, establishes a session, and passes traffic.",
+      "affected_customer_count": 1,
+      "service_impact": true
+    },
+    "trace": [
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "4C:46:D1:09:7C:78"
+        },
+        "result": "{\"customer_id\": 29907, \"lineid\": \"4C:46:D1:09:7C:78\", \"mac\": \"50:0F:F5:EF:94:78\", \"interface\": \"EPON0/6:8\", \"olt_id\": \"10231\", \"olt_host\": \"TK_AZ-OLT_OH_SC-02\", \"olt_ip\": \"10.220.55.3\", \"olt_technology\": \"EPON\", \"olt_model\": \"V1600D\", \"router_id\": 10, \"router_name\": \"TK_AZ_Ohrid_SC\", \"profile\": \"profile_100M\", \"active\": 1, \"deleted\": 0, \"onu_model\": \"Aztech 2GE + WiFi(dual band) + POTs + CATV\", \"onu_type\": \"Router\", \"has_catv\": 1, \"has_voip\": 1, \"catv_service\": 1, \"catv_synced\": 1, \"city\": \"Ohrid\", \"area\": \"SC\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "4C:46:D1:09:7C:78"
+        },
+        "result": "{\"onu_status\": 1, \"rx_power\": \"-18.92\", \"tx_power\": \"2.50\", \"reading_age_minutes\": 16}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "4C:46:D1:09:7C:78"
+        },
+        "result": "{\"count_24h\": 0, \"count_7d\": 0, \"avg_duration_minutes\": 0, \"last_disconnect\": null, \"recent\": []}"
+      },
+      {
+        "tool": "get_traffic",
+        "args": {
+          "lineid": "4C:46:D1:09:7C:78"
+        },
+        "result": "{\"download_mb_daily\": [0, 0, 0, 0, 0, 0, 0], \"upload_mb_daily\": [0, 0, 0, 0, 0, 0, 0], \"monthly_avg_download_mb\": 0, \"monthly_avg_upload_mb\": 0, \"pon_port_traffic\": {\"current_mbps\": 158, \"avg_mbps\": 161, \"peak_mbps\": 470}}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "4C:46:D1:09:7C:78",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 168, \"first\": -18.81, \"last\": -18.94, \"min\": -19.24, \"max\": -18.48, \"mean\": -18.92, \"range\": 0.76, \"change\": -0.13, \"gaps\": 0}, \"tx_power\": {\"available\": true, \"points\": 168, \"first\": 2.38, \"last\": 2.34, \"min\": 2.24, \"max\": 2.46, \"mean\": 2.35, \"range\": 0.22, \"change\": -0.04, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 21.75, \"last\": 21.52, \"min\": 19.74, \"max\": 24.49, \"mean\": 22.01, \"range\": 4.75, \"change\": -0.23, \"gaps\": 0}, \"distance\": {\"available\": true, \"points\": 168, \"first\": 52, \"last\": 52, \"min\": 52, \"max\": 52, \"mean\": 52.0, \"range\": 0, \"change\": 0, \"gaps\": 0}, \"tx_bias_current\": {\"available\": true, \"points\": 168, \"first\": 11.04, \"last\": 11.17, \"min\": 10.86, \"max\": 11.6, \"mean\": 11.2, \"range\": 0.74, \"change\": 0.13, \"gaps\": 0}, \"supply_voltage\": {\"available\": true, \"points\": 168, \"first\": 3.43, \"last\": 3.44, \"min\": 3.4, \"max\": 3.45, \"mean\": 3.43, \"range\": 0.05, \"change\": 0.01, \"gaps\": 0}, \"speed_kbps\": {\"available\": true, \"points\": 168, \"first\": 0.0, \"last\": 0.0, \"min\": 0.0, \"max\": 0.0, \"mean\": 0.0, \"range\": 0.0, \"change\": 0.0, \"gaps\": 0}}}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "10231",
+          "interface": "EPON0/6:8"
+        },
+        "result": "{\"interface_port\": \"EPON0/6\", \"crm_view\": {\"total_on_port\": 18, \"customers\": [{\"lineid\": \"80:F1:A8:B3:B1:DF\", \"interface\": \"EPON0/6:2\", \"onu_status\": 1, \"rx_power\": \"-20.81\", \"active\": 1}, {\"lineid\": \"4C:46:D1:B6:26:F1\", \"interface\": \"EPON0/6:3\", \"onu_status\": 1, \"rx_power\": \"-19.02\", \"active\": 1}, {\"lineid\": \"4C:D7:C8:24:27:B9\", \"interface\": \"EPON0/6:4\", \"onu_status\": 1, \"rx_power\": \"-22.74\", \"active\": 1}, {\"lineid\": \"4C:46:D1:09:7C:78\", \"interface\": \"EPON0/6:8\", \"onu_status\": 1, \"rx_power\": \"-18.92\", \"active\": 1}, {\"lineid\": \"00:A1:07:79:C2:77\", \"interface\": \"EPON0/6:10\", \"onu_status\": 1, \"rx_power\": \"-19.71\", \"active\": 1}, {\"lineid\": \"70:B6:4F:D6:9B:ED\", \"interface\": \"EPON0/6:13\", \"onu_status\": 1, \"rx_power\": \"-19.73\", \"active\": 1}, {\"lineid\": \"4C:46:D1:65:5F:0D\", \"interface\": \"EPON0/6:29\", \"onu_status\": 1, \"rx_power\": \"-22.26\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "get_olt_population",
+        "args": {
+          "olt_id": "10231"
+        },
+        "result": "{\"total_customers\": 192, \"pon_ports_in_use\": 7, \"customers_per_port\": {\"EPON0/1\": 29, \"EPON0/2\": 29, \"EPON0/3\": 29, \"EPON0/4\": 29, \"EPON0/5\": 29, \"EPON0/6\": 18, \"EPON0/7\": 29}, \"onu_online_count\": 181, \"onu_offline_count\": 11}"
+      },
+      {
+        "tool": "get_olt_health",
+        "args": {
+          "olt_id": "10231"
+        },
+        "result": "{\"olt_ip\": \"10.220.55.3\", \"olt_host\": \"TK_AZ-OLT_OH_SC-02\", \"olt_technology\": \"EPON\", \"olt_ext_id\": \"10231\", \"ping_ok\": true, \"snmp_community_ok\": true, \"snmp_response_ok\": true, \"total_pons_tested\": 7, \"healthy_pons\": 7, \"failed_pons_list\": [], \"error_description\": null, \"overall_status\": \"healthy\", \"run_date\": \"2026-09-19\"}"
+      },
+      {
+        "tool": "get_olt_metrics",
+        "args": {
+          "olt_id": "10231"
+        },
+        "result": "{\"cpu_load\": 24, \"memory_usage\": 17, \"temperature\": 41, \"uptime_days\": 31, \"firmware\": \"V2.03.78R\", \"firmware_date\": \"2024-06-11\"}"
+      },
+      {
+        "tool": "get_router_status",
+        "args": {
+          "router_id": 10
+        },
+        "result": "{\"name\": \"TK_AZ_Ohrid_SC\", \"model\": \"CCR2004-1G-12S+2XS\", \"os_version\": \"7.24\", \"last_checkin\": \"2026-09-19T10:02:00Z\", \"hours_since_checkin\": 0.3, \"heartbeat_status\": \"ok\", \"cpu_usage\": 4, \"memory_utilization\": 0, \"temperature\": 38}"
+      },
+      {
+        "tool": "snmp_get_onu",
+        "args": {
+          "lineid": "4C:46:D1:09:7C:78"
+        },
+        "result": "{\"responds\": true, \"online\": 1, \"rx_power\": -18.95, \"tx_power\": 2.51, \"auth_flag\": \"Auth\", \"exchange\": \"Finish\", \"rtt_tq\": 51}"
+      },
+      {
+        "tool": "snmp_probe_olt",
+        "args": {
+          "olt_id": "10231"
+        },
+        "result": "{\"ping_ok\": true, \"snmp_responds\": true, \"sys_uptime_seconds\": 2678400, \"oid_subtree_responds\": true}"
+      },
+      {
+        "tool": "snmp_probe_pon_port",
+        "args": {
+          "olt_id": "10231",
+          "interface": "EPON0/6:8"
+        },
+        "result": "{\"interface_port\": \"EPON0/6\", \"onus\": [{\"onu_index\": 2, \"online\": 1, \"rx_power\": -19.19, \"tx_power\": 2.52, \"responds\": true}, {\"onu_index\": 3, \"online\": 1, \"rx_power\": -21.25, \"tx_power\": 2.41, \"responds\": true}, {\"onu_index\": 4, \"online\": 1, \"rx_power\": -22.0, \"tx_power\": 2.41, \"responds\": true}, {\"onu_index\": 8, \"online\": 1, \"rx_power\": -18.95, \"tx_power\": 2.55, \"responds\": true}, {\"onu_index\": 10, \"online\": 1, \"rx_power\": -19.47, \"tx_power\": 2.24, \"responds\": true}, {\"onu_index\": 13, \"online\": 1, \"rx_power\": -20.76, \"tx_power\": 2.45, \"responds\": true}, {\"onu_index\": 29, \"online\": 1, \"rx_power\": -19.58, \"tx_power\": 2.37, \"responds\": true}]}"
+      },
+      {
+        "tool": "get_radius_status",
+        "args": {
+          "lineid": "4C:46:D1:09:7C:78"
+        },
+        "result": "{\"radcheck_exists\": true, \"username\": \"50:0F:F5:EF:94:78\", \"lineid_in_radius\": \"4C:46:D1:09:7C:78\", \"framed_pool\": null, \"assigned_ip\": null, \"crm_consistent\": true, \"mismatches\": []}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "4C:46:D1:09:7C:78"
+        },
+        "result": "{\"count_24h\": 0, \"count_7d\": 0, \"avg_duration_minutes\": 0, \"last_disconnect\": null, \"recent\": []}"
+      },
+      {
+        "tool": "snmp_walk_vlans",
+        "args": {
+          "olt_id": "10231"
+        },
+        "result": "{\"responds\": true, \"vlans_present\": [1, 46, 100, 1111, 1112, 1113, 1114, 1115, 1116, 1117, 1998, 1999], \"customer_vlan_expected\": 1116, \"customer_vlan_actual\": 46}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "10231",
+          "interface": "EPON0/6:8"
+        },
+        "result": "{\"interface_port\": \"EPON0/6\", \"crm_view\": {\"total_on_port\": 18, \"customers\": [{\"lineid\": \"80:F1:A8:B3:B1:DF\", \"interface\": \"EPON0/6:2\", \"onu_status\": 1, \"rx_power\": \"-20.81\", \"active\": 1}, {\"lineid\": \"4C:46:D1:B6:26:F1\", \"interface\": \"EPON0/6:3\", \"onu_status\": 1, \"rx_power\": \"-19.02\", \"active\": 1}, {\"lineid\": \"4C:D7:C8:24:27:B9\", \"interface\": \"EPON0/6:4\", \"onu_status\": 1, \"rx_power\": \"-22.74\", \"active\": 1}, {\"lineid\": \"4C:46:D1:09:7C:78\", \"interface\": \"EPON0/6:8\", \"onu_status\": 1, \"rx_power\": \"-18.92\", \"active\": 1}, {\"lineid\": \"00:A1:07:79:C2:77\", \"interface\": \"EPON0/6:10\", \"onu_status\": 1, \"rx_power\": \"-19.71\", \"active\": 1}, {\"lineid\": \"70:B6:4F:D6:9B:ED\", \"interface\": \"EPON0/6:13\", \"onu_status\": 1, \"rx_power\": \"-19.73\", \"active\": 1}, {\"lineid\": \"4C:46:D1:65:5F:0D\", \"interface\": \"EPON0/6:29\", \"onu_status\": 1, \"rx_power\": \"-22.26\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "4C:46:D1:09:7C:78",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 168, \"first\": -18.81, \"last\": -18.94, \"min\": -19.24, \"max\": -18.48, \"mean\": -18.92, \"range\": 0.76, \"change\": -0.13, \"gaps\": 0}, \"tx_power\": {\"available\": true, \"points\": 168, \"first\": 2.38, \"last\": 2.34, \"min\": 2.24, \"max\": 2.46, \"mean\": 2.35, \"range\": 0.22, \"change\": -0.04, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 21.75, \"last\": 21.52, \"min\": 19.74, \"max\": 24.49, \"mean\": 22.01, \"range\": 4.75, \"change\": -0.23, \"gaps\": 0}, \"distance\": {\"available\": true, \"points\": 168, \"first\": 52, \"last\": 52, \"min\": 52, \"max\": 52, \"mean\": 52.0, \"range\": 0, \"change\": 0, \"gaps\": 0}, \"tx_bias_current\": {\"available\": true, \"points\": 168, \"first\": 11.04, \"last\": 11.17, \"min\": 10.86, \"max\": 11.6, \"mean\": 11.2, \"range\": 0.74, \"change\": 0.13, \"gaps\": 0}, \"supply_voltage\": {\"available\": true, \"points\": 168, \"first\": 3.43, \"last\": 3.44, \"min\": 3.4, \"max\": 3.45, \"mean\": 3.43, \"range\": 0.05, \"change\": 0.01, \"gaps\": 0}, \"speed_kbps\": {\"available\": true, \"points\": 168, \"first\": 0.0, \"last\": 0.0, \"min\": 0.0, \"max\": 0.0, \"mean\": 0.0, \"range\": 0.0, \"change\": 0.0, \"gaps\": 0}}}"
+      }
+    ]
+  },
+  "ground_truth": {
+    "fault_type": "stuck_provisioning_vlan46",
+    "root_cause": "The CPE is still on VLAN 46, the factory-default management VLAN it ships with. The TR-069 provisioning step that migrates it to VLAN 1999 and its data VLAN never completed, so the device is registered on the fibre but has no path onto the network.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "4C:46:D1:09:7C:78"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "The ONU is online with RX -18.92 and TX 2.50, both excellent",
+      "The live probe confirms the ONU and its peers are responding normally",
+      "The OLT and router are healthy, so the physical layer works end to end",
+      "Despite that, the customer has zero sessions and zero traffic since installation",
+      "A radcheck row does exist for this CPE MAC, so this is not a missing RADIUS entry",
+      "The VLAN walk shows the customer on VLAN 46 where VLAN 1116 is expected",
+      "VLAN 46 is the factory-default management VLAN a CPE ships with",
+      "Provisioning should have migrated it to 1999 and the port's data VLAN, and did not",
+      "The device is present on the fibre and has no path onto the network"
+    ],
+    "required_evidence": [
+      "vlan_walk_shows_46",
+      "radcheck_exists_so_not_missing_entry",
+      "physical_layer_confirmed_healthy"
+    ],
+    "expected_remediation": "trigger_acs_provisioning",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "provisioning",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "Zero sessions with a healthy physical layer is also the RADIUS missing-entry signature",
+      "Excellent optical readings invite a no_fault conclusion on the network side",
+      "The VLAN walk is not an obvious first move"
+    ]
+  }
+}

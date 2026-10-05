@@ -1,0 +1,85 @@
+{
+  "scenario_id": "RU-002",
+  "config": "monolithic_clean_p2",
+  "model": "gpt-5.6-luna",
+  "seconds": 9.8,
+  "result": {
+    "diagnosis": {
+      "fault_type": "router_unreachable",
+      "root_cause": "The router has never reported a heartbeat to monitoring: last_checkin is null and heartbeat_status is \"never\". This indicates a router reachability or monitoring-registration problem, although the subscriber's EPON link and service traffic are currently healthy.",
+      "confidence": 0.9,
+      "affected_scope": "router",
+      "evidence": [
+        "The ONU is online and responding, with RX power -21.9 dBm in the normal band and TX power 2.34 dBm in the normal range.",
+        "The seven-day RX series is stable around -22 dBm, while TX power and TX bias remain stable; there is no fibre or laser degradation.",
+        "Distance is constant at 87, so there is no distance or path-change fault.",
+        "All tested peers on EPON0/4 are online and healthy, ruling out an ONU, splitter, PON-port, or shared OLT fault.",
+        "The OLT responds to ping and SNMP, and its CPU, memory, temperature, and uptime are healthy.",
+        "The VLAN is correctly provisioned as 1124, the RADIUS entry is present and CRM-consistent, and there are only three sessions in 24 hours with normal durations.",
+        "Traffic is active and stable, confirming that subscriber service is currently passing.",
+        "The only abnormal current state is the router heartbeat: last_checkin is null and heartbeat_status is \"never\". Per the calibrated rule, this means no heartbeat record has ever been received and requires router reachability or monitoring-registration investigation."
+      ]
+    },
+    "remediation": {
+      "action": "Verify router management reachability from the monitoring system, confirm the router is correctly registered and configured to send heartbeat/check-in data, and inspect management ACLs, routing, and monitoring credentials. Do not alter the EPON path or OLT configuration; customer service is currently passing normally. Re-run the router probe after correcting monitoring or management access."
+    },
+    "escalation": {
+      "priority": "Warning"
+    },
+    "monolithic": {
+      "fault_type": "router_unreachable",
+      "root_cause": "The router has never reported a heartbeat to monitoring: last_checkin is null and heartbeat_status is \"never\". This indicates a router reachability or monitoring-registration problem, although the subscriber's EPON link and service traffic are currently healthy.",
+      "confidence": 0.9,
+      "severity": "Warning",
+      "affected_scope": "router",
+      "remediation": "Verify router management reachability from the monitoring system, confirm the router is correctly registered and configured to send heartbeat/check-in data, and inspect management ACLs, routing, and monitoring credentials. Do not alter the EPON path or OLT configuration; customer service is currently passing normally. Re-run the router probe after correcting monitoring or management access.",
+      "reasoning": [
+        "The ONU is online and responding, with RX power -21.9 dBm in the normal band and TX power 2.34 dBm in the normal range.",
+        "The seven-day RX series is stable around -22 dBm, while TX power and TX bias remain stable; there is no fibre or laser degradation.",
+        "Distance is constant at 87, so there is no distance or path-change fault.",
+        "All tested peers on EPON0/4 are online and healthy, ruling out an ONU, splitter, PON-port, or shared OLT fault.",
+        "The OLT responds to ping and SNMP, and its CPU, memory, temperature, and uptime are healthy.",
+        "The VLAN is correctly provisioned as 1124, the RADIUS entry is present and CRM-consistent, and there are only three sessions in 24 hours with normal durations.",
+        "Traffic is active and stable, confirming that subscriber service is currently passing.",
+        "The only abnormal current state is the router heartbeat: last_checkin is null and heartbeat_status is \"never\". Per the calibrated rule, this means no heartbeat record has ever been received and requires router reachability or monitoring-registration investigation."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "no_fault",
+    "root_cause": "The router has no check-in record of any kind, which means it was never enrolled in heartbeat monitoring rather than that it stopped responding. Its customers are authenticated, holding long sessions and passing normal traffic.",
+    "severity": "Information",
+    "affected_scope": "none",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The router's heartbeat status is 'never' with a null last_checkin",
+      "That is different from a heartbeat that went stale, which would carry a timestamp and an elapsed time",
+      "No record at all indicates the router was never enrolled in the check-in mechanism",
+      "The ONU behind it is online with RX -21.9 and TX 2.3, both normal",
+      "The live probe confirms the ONU and its peers are all responding normally",
+      "Sessions are active with a 683 minute mean, close to the 11.9 hour network norm",
+      "Daily traffic is steady across all seven days with no interruption",
+      "Customers on this router are being served, so there is no outage",
+      "The finding is a monitoring gap, not a network fault"
+    ],
+    "required_evidence": [
+      "never_checked_in_not_stale",
+      "customers_passing_traffic",
+      "sessions_normal_duration"
+    ],
+    "expected_remediation": "flag_monitoring_defect",
+    "expected_escalation": {
+      "priority": "Information",
+      "category": "monitoring",
+      "requires_human_review": true,
+      "review_reason": "Router is not enrolled in heartbeat monitoring and should be added"
+    },
+    "distractors": [
+      "A null heartbeat looks worse than a stale one and invites a Disaster conclusion",
+      "A scheduled scan targeting the router frames it as the suspect",
+      "The correct answer is that nothing is wrong with the network"
+    ]
+  }
+}

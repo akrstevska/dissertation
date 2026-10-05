@@ -1,0 +1,88 @@
+{
+  "scenario_id": "FD-003",
+  "config": "monolithic_p1",
+  "model": "gpt-5.6-luna",
+  "seconds": 6.4,
+  "result": {
+    "diagnosis": {
+      "fault_type": "fiber_degradation",
+      "root_cause": "Progressive attenuation on this subscriber's optical path has reduced ONU RX power from approximately -19.5 dBm to below -28 dBm, now critical. The ONU remains online but is experiencing frequent re-authentication and service interruptions.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "Current ONU RX power is -28.31 dBm in stored state and -28.94 dBm live, which is critical.",
+        "Seven-day RX telemetry shows a sustained progressive decline from about -19.5 dBm to below -28 dBm rather than normal optical variation.",
+        "TX power remains stable around +2.3 to +2.4 dBm and is within the calibrated normal range.",
+        "TX bias current remains approximately 11.2 to 12.0 mA with no rising trend, so laser degradation is not supported.",
+        "Distance remains constant at 310 m, so there is no evidence of a fibre path or distance change.",
+        "Other ONUs on EPON0/2 have normal RX power, and all tested PONs are healthy, ruling out a PON-port, splitter-wide, OLT, or multi-customer fault.",
+        "The ONU responds and is online, but the customer has 14 sessions in 24 hours with an average duration of only 44 minutes, consistent with signal-related flapping.",
+        "VLAN 1042 is present and correct, the router heartbeat is healthy, and RADIUS is serving the customer; the stale orphan RADIUS row is not consulted and is unrelated.",
+        "OLT, router, power, temperature, and capacity metrics are normal, so the complaint is best explained by the subscriber's degraded optical path."
+      ]
+    },
+    "remediation": {
+      "action": "Dispatch field service to inspect and clean the ONU, drop cable, connectors, patch points, and splitter path; perform OTDR and optical power testing. Repair or replace the damaged connector, splice, drop, or fibre segment causing the loss. Recheck RX power and session stability after repair, and monitor the line for at least 24 hours."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "fiber_degradation",
+      "root_cause": "Progressive attenuation on this subscriber's optical path has reduced ONU RX power from approximately -19.5 dBm to below -28 dBm, now critical. The ONU remains online but is experiencing frequent re-authentication and service interruptions.",
+      "confidence": 0.99,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Dispatch field service to inspect and clean the ONU, drop cable, connectors, patch points, and splitter path; perform OTDR and optical power testing. Repair or replace the damaged connector, splice, drop, or fibre segment causing the loss. Recheck RX power and session stability after repair, and monitor the line for at least 24 hours.",
+      "reasoning": [
+        "Current ONU RX power is -28.31 dBm in stored state and -28.94 dBm live, which is critical.",
+        "Seven-day RX telemetry shows a sustained progressive decline from about -19.5 dBm to below -28 dBm rather than normal optical variation.",
+        "TX power remains stable around +2.3 to +2.4 dBm and is within the calibrated normal range.",
+        "TX bias current remains approximately 11.2 to 12.0 mA with no rising trend, so laser degradation is not supported.",
+        "Distance remains constant at 310 m, so there is no evidence of a fibre path or distance change.",
+        "Other ONUs on EPON0/2 have normal RX power, and all tested PONs are healthy, ruling out a PON-port, splitter-wide, OLT, or multi-customer fault.",
+        "The ONU responds and is online, but the customer has 14 sessions in 24 hours with an average duration of only 44 minutes, consistent with signal-related flapping.",
+        "VLAN 1042 is present and correct, the router heartbeat is healthy, and RADIUS is serving the customer; the stale orphan RADIUS row is not consulted and is unrelated.",
+        "OLT, router, power, temperature, and capacity metrics are normal, so the complaint is best explained by the subscriber's degraded optical path."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "fiber_degradation",
+    "root_cause": "Severe attenuation in the customer's fibre path, now at -28.9 dBm and below the critical threshold. The orphan RADIUS entry is a separate, dormant record defect that does not affect authentication.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "70:B6:4F:0E:34:C4"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "RX has fallen from -19.6 to -28.9 dBm over the last four days and is now below the -28 critical threshold",
+      "Live RX is below cached RX, so degradation has not stabilised",
+      "TX power, bias current, supply voltage and distance are flat, ruling out laser degradation and path change",
+      "Peers on EPON0/2 are normal, bounding the fault to this customer's own path",
+      "Traffic has collapsed from 1180 MB to 31 MB per day in step with the signal loss",
+      "A RADIUS orphan entry exists but references a superseded CPE MAC and is not used for authentication",
+      "The orphan cannot explain progressive optical loss, so it is a coincident record defect and not the cause",
+      "Severity is driven by the optical fault, which has service impact; the record defect has none"
+    ],
+    "required_evidence": [
+      "rx_trend_over_time",
+      "peers_normal_on_same_port",
+      "radius_orphan_ruled_out_as_cause"
+    ],
+    "expected_remediation": "dispatch_technician",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "field_service",
+      "requires_human_review": true,
+      "review_reason": "A separate orphan RADIUS record should be cleaned up independently of the field repair"
+    },
+    "distractors": [
+      "The RADIUS mismatch invites an auth-related diagnosis",
+      "Fourteen sessions in 24h could be read as auth flapping",
+      "Two genuine faults are present and only one has service impact"
+    ]
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "scenario_id": "RA-004",
+  "config": "monolithic_clean_p2",
+  "model": "gpt-5.6-luna",
+  "seconds": 7.0,
+  "result": {
+    "diagnosis": {
+      "fault_type": "radius_replication_lag",
+      "root_cause": "The secondary FreeRADIUS server has a stale radcheck password for this subscriber after the 2026-09-20 profile upgrade. Authentication succeeds when the primary answers and is rejected when the router fails over to the secondary, causing recurring disconnects and short sessions.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The subscriber reports recurring drops, and the session count is 13 in 24 hours with an average duration of only 104 minutes, confirming repeated service interruption.",
+        "The physical link is healthy: current RX is about -21.05 dBm in the normal range, TX is about +2.39 dBm in the normal range, and the seven-day RX and TX variation is within the healthy noise floor.",
+        "Distance is constant at 228, TX bias remains within the healthy range without a rising trend, and supply voltage is stable, so there is no evidence of fibre, distance, or laser degradation.",
+        "All observed peers on EPON0/2 are online with healthy optical readings, while the OLT responds to ping and SNMP and has normal CPU, memory, temperature, and uptime. The router heartbeat is also healthy.",
+        "The customer VLAN is correctly provisioned as VLAN 1102 rather than factory-default VLAN 46, and the ONU is currently online and authenticated.",
+        "The RADIUS detail explicitly shows different password state between primary and secondary servers, with accepted sessions correlating to primary responses and rejected attempts correlating to secondary responses.",
+        "Replication lag is the determining fault before session count is considered, so the 13 sessions should not be classified as session_flapping_auth."
+      ]
+    },
+    "remediation": {
+      "action": "Synchronize or correct the subscriber's radcheck record on the secondary RADIUS server, verify replication health and password consistency for this username, then test authentication through both RADIUS servers and confirm stable session persistence after failover. Review other records changed during the same profile upgrade for similar replication failures."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "radius_replication_lag",
+      "root_cause": "The secondary FreeRADIUS server has a stale radcheck password for this subscriber after the 2026-09-20 profile upgrade. Authentication succeeds when the primary answers and is rejected when the router fails over to the secondary, causing recurring disconnects and short sessions.",
+      "confidence": 0.99,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Synchronize or correct the subscriber's radcheck record on the secondary RADIUS server, verify replication health and password consistency for this username, then test authentication through both RADIUS servers and confirm stable session persistence after failover. Review other records changed during the same profile upgrade for similar replication failures.",
+      "reasoning": [
+        "The subscriber reports recurring drops, and the session count is 13 in 24 hours with an average duration of only 104 minutes, confirming repeated service interruption.",
+        "The physical link is healthy: current RX is about -21.05 dBm in the normal range, TX is about +2.39 dBm in the normal range, and the seven-day RX and TX variation is within the healthy noise floor.",
+        "Distance is constant at 228, TX bias remains within the healthy range without a rising trend, and supply voltage is stable, so there is no evidence of fibre, distance, or laser degradation.",
+        "All observed peers on EPON0/2 are online with healthy optical readings, while the OLT responds to ping and SNMP and has normal CPU, memory, temperature, and uptime. The router heartbeat is also healthy.",
+        "The customer VLAN is correctly provisioned as VLAN 1102 rather than factory-default VLAN 46, and the ONU is currently online and authenticated.",
+        "The RADIUS detail explicitly shows different password state between primary and secondary servers, with accepted sessions correlating to primary responses and rejected attempts correlating to secondary responses.",
+        "Replication lag is the determining fault before session count is considered, so the 13 sessions should not be classified as session_flapping_auth."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "radius_replication_lag",
+    "root_cause": "A password change made during a profile upgrade on 20 September replicated to the primary FreeRADIUS but not the secondary. When the MikroTik fails over, the secondary rejects the customer; when the primary answers, authentication succeeds. The result is repeated disconnection and recovery with no physical cause.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "70:B6:4F:43:CB:C8"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Thirteen sessions in 24 hours against a 2-3 baseline, with a 104 minute mean against an 11.9 hour norm",
+      "RX has been flat at -21.0 dBm for seven days inside the noise floor, and TX, bias, voltage and distance are all stable",
+      "The live probe confirms the ONU is online and healthy, and peers on the port are normal",
+      "The OLT and router are healthy, so no shared infrastructure fault exists",
+      "With the optical layer conclusively clean, the cause must lie in authentication",
+      "The radcheck row on the primary is current, so a single-server check would find nothing wrong",
+      "Comparing both servers shows the secondary holds a stale row from before the 20 September profile change",
+      "Session outcomes correlate with which server answered rather than with any signal or time of day",
+      "The throughput series shows recurring zero windows that match the rejected attempts",
+      "Inconsistent state across replicated servers explains intermittency that no single query reveals"
+    ],
+    "required_evidence": [
+      "optical_layer_confirmed_clean",
+      "both_radius_servers_compared",
+      "session_outcome_correlates_with_server"
+    ],
+    "expected_remediation": "escalate_radius_infrastructure",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "infrastructure",
+      "requires_human_review": true,
+      "review_reason": "Master-slave replication between the FreeRADIUS pair is lagging; other customers changed since 20 September may be affected"
+    },
+    "distractors": [
+      "The session pattern is identical to signal-related flapping",
+      "The primary RADIUS record is entirely correct, so a single-server check finds nothing",
+      "Self-recovering drops suggest an intermittent physical fault",
+      "Traffic alternates between normal and reduced days, which looks like usage variation"
+    ]
+  }
+}

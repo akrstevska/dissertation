@@ -1,0 +1,91 @@
+{
+  "scenario_id": "SF-001",
+  "config": "agent",
+  "model": "claude-haiku-4-5-20251001",
+  "seconds": 0.0,
+  "result": {
+    "trigger": "threshold_breach",
+    "trigger_input": {
+      "signal": "session_disconnect_count",
+      "lineid": "70:B6:4F:E2:C6:47",
+      "value": 16
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [],
+      "preliminary_severity": "Warning",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "70:B6:4F:E2:C6:47"
+      ],
+      "olt_id": null,
+      "interface": null,
+      "summary": "stub"
+    },
+    "diagnosis": {
+      "fault_type": "no_fault",
+      "root_cause": "stub",
+      "confidence": 0.5,
+      "affected_scope": "single_customer",
+      "affected_lineids": [],
+      "evidence": [],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "remediation": {
+      "action": "no_action",
+      "automated": false,
+      "reason": "stub",
+      "instructions": "",
+      "alternatives_considered": []
+    },
+    "escalation": {
+      "priority": "Warning",
+      "category": "monitoring",
+      "requires_human_review": false,
+      "review_reason": null,
+      "summary": "stub",
+      "affected_customer_count": 0,
+      "service_impact": false
+    },
+    "trace": []
+  },
+  "ground_truth": {
+    "fault_type": "session_flapping_signal",
+    "root_cause": "RX power oscillates between roughly -24.4 and -28.2 dBm on an eleven hour cycle, crossing the threshold at which the link stops being usable. The session drops follow the signal excursions.",
+    "severity": "Warning",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "70:B6:4F:E2:C6:47"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Sixteen sessions in 24 hours against a 2-3 baseline, with a 71 minute mean duration",
+      "Cached RX is -26.28 dBm, already in the degraded band",
+      "Telemetry shows RX oscillating between about -24.4 and -28.2 dBm on an eleven hour cycle",
+      "The lower excursions cross -28 dBm, at which point the link becomes unusable",
+      "Live RX of -27.94 confirms the signal is currently near the bottom of that swing",
+      "TX power, bias current, supply voltage and distance are all stable, so the ONU is healthy",
+      "RADIUS is clean with a single consistent entry and no mismatches",
+      "Peers on EPON0/2 read normal, so the fault is in this customer's own path",
+      "The session pattern tracks the signal excursions, so the optical fault explains the flapping"
+    ],
+    "required_evidence": [
+      "rx_oscillates_across_threshold",
+      "radius_confirmed_clean",
+      "session_pattern_tracks_signal"
+    ],
+    "expected_remediation": "dispatch_technician",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "field_service",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "The trigger names the session count, pointing at the auth layer",
+      "Sixteen disconnects is well within the observed flapping tail and could be read as a CPE fault"
+    ]
+  }
+}

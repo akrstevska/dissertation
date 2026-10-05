@@ -1,0 +1,85 @@
+{
+  "scenario_id": "FC-001",
+  "config": "monolithic_clean_p1",
+  "model": "gpt-5.6-luna",
+  "seconds": 9.2,
+  "result": {
+    "diagnosis": {
+      "fault_type": "olt_health_false_critical",
+      "root_cause": "The OLT and customer services are healthy, but the PON/ONU monitoring subtree is not responding. The check interprets uniform ONU probe failures as all seven PONs failed and raises a false critical alarm.",
+      "confidence": 0.99,
+      "affected_scope": "olt",
+      "evidence": [
+        "The OLT responds to ping and SNMP, so this is not an OLT failure.",
+        "The OLT metrics are normal: CPU 22%, memory 19%, temperature 44C, and stable uptime.",
+        "The live ONU probe returns responds:false for every tested ONU, with no online value. This means no ONU answered the probe; it does not prove that the ONUs are offline.",
+        "The OLT PON subtree also fails to respond, directly indicating a monitoring/query failure.",
+        "Stored state and telemetry show the subscriber online with RX -19.84 dBm and TX 2.29 dBm, both healthy, and stable optical readings over seven days.",
+        "Peers on EPON0/2 are predominantly online, the OLT has 174 of 183 ONUs online, and the customer is passing traffic, so there is no evidence of a port-wide, splitter, or OLT outage.",
+        "The customer has only two sessions in 24 hours with normal durations, and RADIUS, VLAN, router heartbeat, and traffic state are consistent.",
+        "All seven PONs being reported failed while the OLT and customers remain operational is a false critical health-check result affecting the OLT monitoring scope."
+      ]
+    },
+    "remediation": {
+      "action": "Repair or restart the OLT PON/ONU SNMP monitoring query, validate the OID and credentials, and suppress/recalculate the health alarm until per-ONU results are available. Do not dispatch for a PON, splitter, or OLT service outage unless live probes return definite online:0 results."
+    },
+    "escalation": {
+      "priority": "Warning"
+    },
+    "monolithic": {
+      "fault_type": "olt_health_false_critical",
+      "root_cause": "The OLT and customer services are healthy, but the PON/ONU monitoring subtree is not responding. The check interprets uniform ONU probe failures as all seven PONs failed and raises a false critical alarm.",
+      "confidence": 0.99,
+      "severity": "Warning",
+      "affected_scope": "olt",
+      "remediation": "Repair or restart the OLT PON/ONU SNMP monitoring query, validate the OID and credentials, and suppress/recalculate the health alarm until per-ONU results are available. Do not dispatch for a PON, splitter, or OLT service outage unless live probes return definite online:0 results.",
+      "reasoning": [
+        "The OLT responds to ping and SNMP, so this is not an OLT failure.",
+        "The OLT metrics are normal: CPU 22%, memory 19%, temperature 44C, and stable uptime.",
+        "The live ONU probe returns responds:false for every tested ONU, with no online value. This means no ONU answered the probe; it does not prove that the ONUs are offline.",
+        "The OLT PON subtree also fails to respond, directly indicating a monitoring/query failure.",
+        "Stored state and telemetry show the subscriber online with RX -19.84 dBm and TX 2.29 dBm, both healthy, and stable optical readings over seven days.",
+        "Peers on EPON0/2 are predominantly online, the OLT has 174 of 183 ONUs online, and the customer is passing traffic, so there is no evidence of a port-wide, splitter, or OLT outage.",
+        "The customer has only two sessions in 24 hours with normal durations, and RADIUS, VLAN, router heartbeat, and traffic state are consistent.",
+        "All seven PONs being reported failed while the OLT and customers remain operational is a false critical health-check result affecting the OLT monitoring scope."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "olt_health_false_critical",
+    "root_cause": "The OLT firmware (V2.04.12R) does not expose the ONU parameter OID subtree the health check reads. Every sampled ONU returns no instance, the check marks all seven PONs failed and writes a critical status, while the OLT and all 183 customers are operating normally.",
+    "severity": "Information",
+    "affected_scope": "none",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "Health check reports critical with all 7 of 7 PONs failed",
+      "OLT ping succeeds and SNMP sysUpTime answers, with 61 days of uptime and no recent reboot",
+      "OLT CPU 22%, memory 19% and temperature 44C are all at healthy baseline",
+      "Live probe returns oid_subtree_responds false, and every ONU on the port returns responds false rather than online 0",
+      "Uniform non-response means nothing answered; it is not a definite negative, so no ONU has been reported down",
+      "CRM shows 174 of 183 ONUs online, and 9 offline matches the 4.85% network baseline",
+      "The representative customer holds a session opened 14 hours ago and is passing normal daily traffic",
+      "Cached optical readings are 22 minutes old and normal, and telemetry has been flat for seven days",
+      "Healthy service with uniform probe non-response indicates an OID or firmware mismatch in the monitoring tool, not a network outage"
+    ],
+    "required_evidence": [
+      "olt_uptime_confirms_no_reboot",
+      "oid_subtree_non_response_is_uniform",
+      "customers_online_and_passing_traffic"
+    ],
+    "expected_remediation": "flag_monitoring_defect",
+    "expected_escalation": {
+      "priority": "Information",
+      "category": "monitoring",
+      "requires_human_review": true,
+      "review_reason": "Health check produces false criticals on firmware V2.04.12R; the OID subtree it reads is absent on this version"
+    },
+    "distractors": [
+      "The critical alarm invites an olt_failure or pon_port_failure diagnosis",
+      "Nine genuinely offline ONUs on the OLT are unrelated background noise at the normal rate",
+      "Firmware V2.04.12R differs from the estate norm V2.03.78R, which is the discriminator rather than a fault in itself"
+    ]
+  }
+}

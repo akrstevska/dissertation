@@ -1,0 +1,85 @@
+{
+  "scenario_id": "RU-001",
+  "config": "monolithic_clean_p2",
+  "model": "gpt-5.6-luna",
+  "seconds": 8.3,
+  "result": {
+    "diagnosis": {
+      "fault_type": "router_unreachable",
+      "root_cause": "The subscriber router has not checked in for 7.4 hours, exceeding the danger threshold. The EPON ONU, optical levels, VLAN, authentication, OLT, and PON peers are healthy, so the fault is isolated to the router or its router-side connectivity.",
+      "confidence": 0.98,
+      "affected_scope": "router",
+      "evidence": [
+        "The router heartbeat is stale by 7.4 hours, which is in the danger state because it exceeds the 4-hour threshold.",
+        "The ONU is online and responding, with RX power of -20.61 dBm and TX power of 2.40 dBm, both within healthy EPON ranges.",
+        "The seven-day RX and TX telemetry is stable; RX variation is within the healthy noise range and TX bias remains stable around 11 mA, ruling out fibre or laser degradation.",
+        "Distance is constant at 152, so there is no distance or fibre-path change.",
+        "All tested peer ONUs on EPON0/2 are online, and the OLT responds to both ping and SNMP with healthy CPU, memory, and temperature.",
+        "The customer VLAN is correctly provisioned as VLAN 1062, and RADIUS data is present and CRM-consistent.",
+        "There is only one session in the last 24 hours with a normal long duration, so this is not session flapping or an authentication fault.",
+        "Current PON traffic is zero and the router's last check-in coincides with the last disconnect, supporting loss of router availability rather than a PON or ONU outage."
+      ]
+    },
+    "remediation": {
+      "action": "Check reachability, power, WAN/uplink link, and management access for router TK_AZ_Bitola_Jadranska01. Restore or reboot the router if necessary, then verify heartbeat recovery and subscriber traffic. Do not replace the ONU or investigate the OLT/PON as the primary fault."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "router_unreachable",
+      "root_cause": "The subscriber router has not checked in for 7.4 hours, exceeding the danger threshold. The EPON ONU, optical levels, VLAN, authentication, OLT, and PON peers are healthy, so the fault is isolated to the router or its router-side connectivity.",
+      "confidence": 0.98,
+      "severity": "High",
+      "affected_scope": "router",
+      "remediation": "Check reachability, power, WAN/uplink link, and management access for router TK_AZ_Bitola_Jadranska01. Restore or reboot the router if necessary, then verify heartbeat recovery and subscriber traffic. Do not replace the ONU or investigate the OLT/PON as the primary fault.",
+      "reasoning": [
+        "The router heartbeat is stale by 7.4 hours, which is in the danger state because it exceeds the 4-hour threshold.",
+        "The ONU is online and responding, with RX power of -20.61 dBm and TX power of 2.40 dBm, both within healthy EPON ranges.",
+        "The seven-day RX and TX telemetry is stable; RX variation is within the healthy noise range and TX bias remains stable around 11 mA, ruling out fibre or laser degradation.",
+        "Distance is constant at 152, so there is no distance or fibre-path change.",
+        "All tested peer ONUs on EPON0/2 are online, and the OLT responds to both ping and SNMP with healthy CPU, memory, and temperature.",
+        "The customer VLAN is correctly provisioned as VLAN 1062, and RADIUS data is present and CRM-consistent.",
+        "There is only one session in the last 24 hours with a normal long duration, so this is not session flapping or an authentication fault.",
+        "Current PON traffic is zero and the router's last check-in coincides with the last disconnect, supporting loss of router availability rather than a PON or ONU outage."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "router_unreachable",
+    "root_cause": "The BNG TK_AZ_Bitola_Jadranska01 stopped checking in 7.4 hours ago. Customers behind it lost their sessions at the same moment. The optical plant is entirely unaffected: ONUs remain registered and are returning normal signal readings.",
+    "severity": "Disaster",
+    "affected_scope": "router",
+    "affected_lineids": [],
+    "affected_customer_count": 271,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Router heartbeat is 7.4 hours stale, past the 4 hour danger threshold",
+      "The ONU is online with RX -20.6 and TX 2.4, both normal, and the live probe confirms it",
+      "Every peer on the port is also online with normal optical readings",
+      "OLT ping, SNMP and device metrics are all healthy",
+      "So the optical layer is working and the fault is not in the fibre plant",
+      "Sessions across customers on this router ended together 7.4 hours ago",
+      "Throughput fell to zero at the same moment while the ONUs stayed registered",
+      "Healthy ONUs with dead sessions is the router signature: the optical layer carries no traffic without the BNG",
+      "The blast radius follows the router, not the OLT, so every customer it serves is affected"
+    ],
+    "required_evidence": [
+      "heartbeat_past_danger_threshold",
+      "onus_online_and_optically_healthy",
+      "sessions_ended_together"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "Disaster",
+      "category": "infrastructure",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "ONU status is online everywhere, inviting a no_fault conclusion",
+      "The OLT health check reports healthy, which is correct but irrelevant",
+      "Optical readings are perfect, which points away from where the fault is"
+    ]
+  }
+}

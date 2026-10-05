@@ -1,0 +1,91 @@
+{
+  "scenario_id": "LD-002",
+  "config": "agent",
+  "model": "claude-haiku-4-5-20251001",
+  "seconds": 0.0,
+  "result": {
+    "trigger": "customer_complaint",
+    "trigger_input": {
+      "lineid": "78:88:8A:C4:98:64",
+      "complaint": "Connection has been getting steadily worse over the last week"
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [],
+      "preliminary_severity": "Warning",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "78:88:8A:C4:98:64"
+      ],
+      "olt_id": null,
+      "interface": null,
+      "summary": "stub"
+    },
+    "diagnosis": {
+      "fault_type": "no_fault",
+      "root_cause": "stub",
+      "confidence": 0.5,
+      "affected_scope": "single_customer",
+      "affected_lineids": [],
+      "evidence": [],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "remediation": {
+      "action": "no_action",
+      "automated": false,
+      "reason": "stub",
+      "instructions": "",
+      "alternatives_considered": []
+    },
+    "escalation": {
+      "priority": "Warning",
+      "category": "monitoring",
+      "requires_human_review": false,
+      "review_reason": null,
+      "summary": "stub",
+      "affected_customer_count": 0,
+      "service_impact": false
+    },
+    "trace": []
+  },
+  "ground_truth": {
+    "fault_type": "laser_degradation",
+    "root_cause": "The ONU transmit laser is at end of life. Bias current has risen from 11.4 to 15.1 mA and, over the last two days, output power has begun to fall despite it, meaning compensation is now failing.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "78:88:8A:C4:98:64"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "The customer reports progressive worsening, which fits both fibre degradation and laser degradation",
+      "RX sits at -23.9 dBm in the low-normal band and is noisier than the usual floor, but it is flat with no downward trend",
+      "TX bias current has climbed from 11.4 to 15.1 mA, well past the 13.0 mA ceiling",
+      "TX power held at 2.42 dBm while bias rose, then began falling to 2.05 dBm in the last two days",
+      "Falling output despite maximum bias means the laser can no longer compensate",
+      "Supply voltage has drifted from 3.45 to 3.36 V, consistent with a failing transmitter",
+      "Distance is constant, so there has been no change to the fibre path",
+      "Peers on EPON0/7 are normal, so shared infrastructure is not involved",
+      "Flat RX with collapsing TX is a transmitter fault, not path attenuation"
+    ],
+    "required_evidence": [
+      "bias_current_rising",
+      "tx_power_now_falling",
+      "rx_flat_not_trending"
+    ],
+    "expected_remediation": "schedule_onu_replacement",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "field_service",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "RX in the low-normal band with extra noise invites a fibre degradation diagnosis",
+      "Steadily declining traffic fits either fault equally well",
+      "The complaint wording matches the fibre degradation pattern almost exactly"
+    ]
+  }
+}

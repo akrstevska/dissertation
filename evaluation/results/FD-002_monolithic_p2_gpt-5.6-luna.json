@@ -1,0 +1,88 @@
+{
+  "scenario_id": "FD-002",
+  "config": "monolithic_p2",
+  "model": "gpt-5.6-luna",
+  "seconds": 10.8,
+  "result": {
+    "diagnosis": {
+      "fault_type": "fiber_degradation",
+      "root_cause": "Intermittent degradation in the subscriber's optical path is causing large RX-power swings. RX has varied from approximately -22 to -27 dBm over seven days, exceeding the healthy +/-0.3 dBm noise floor and repeatedly entering the degraded range. TX power, TX bias, distance, ONU power supply, OLT, router, VLAN, and RADIUS state are normal, indicating a downstream fibre/path or connector/ splice issue rather than ONU laser, provisioning, or core equipment failure.",
+      "confidence": 0.96,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The ONU is online and responsive, so this is not a sustained ONU-offline or total PON failure.",
+        "The subscriber RX telemetry ranges from about -22 to -27 dBm, with repeated degraded readings below -25 dBm and variation far wider than the healthy +/-0.3 dBm optical noise floor.",
+        "The live ONU RX reading is -26.88 dBm, confirming the current degraded optical condition despite an older stored reading of -22.41 dBm.",
+        "TX power remains tightly stable around 2.3-2.5 dBm and TX bias current remains within the healthy 9.5-13.0 mA range, so laser degradation is not supported.",
+        "Distance remains constant at 203 m, ruling out a changed fibre path or distance-change fault.",
+        "Peer ONUs on EPON0/6 are online with generally normal RX levels, so the evidence is localized to this customer rather than a PON-port, splitter, or OLT-wide fault.",
+        "The OLT and router are healthy, and all eight tested PONs are healthy, ruling out OLT, router, and broad infrastructure failure.",
+        "VLAN 1036 is present and correct, while RADIUS records are consistent, ruling out provisioning and authentication database faults.",
+        "The customer has 7 sessions in 24 hours and an average duration of only 186 minutes, elevated relative to the normal baseline and consistent with intermittent signal impairment, though below the 8-session flapping threshold."
+      ]
+    },
+    "remediation": {
+      "action": "Dispatch fibre access maintenance for this subscriber. Inspect and clean/reseat ONU and OLT-side connectors, inspect the drop fibre, splice closures, and splitter path, and perform an OTDR and optical power test while flexing or checking suspected joints. Repair or replace the degraded drop/splice/connector as indicated. Monitor RX stability and session frequency after repair; escalate to splitter or PON-port investigation only if other ONUs begin showing correlated optical changes."
+    },
+    "escalation": {
+      "priority": "Average"
+    },
+    "monolithic": {
+      "fault_type": "fiber_degradation",
+      "root_cause": "Intermittent degradation in the subscriber's optical path is causing large RX-power swings. RX has varied from approximately -22 to -27 dBm over seven days, exceeding the healthy +/-0.3 dBm noise floor and repeatedly entering the degraded range. TX power, TX bias, distance, ONU power supply, OLT, router, VLAN, and RADIUS state are normal, indicating a downstream fibre/path or connector/ splice issue rather than ONU laser, provisioning, or core equipment failure.",
+      "confidence": 0.96,
+      "severity": "Average",
+      "affected_scope": "single_customer",
+      "remediation": "Dispatch fibre access maintenance for this subscriber. Inspect and clean/reseat ONU and OLT-side connectors, inspect the drop fibre, splice closures, and splitter path, and perform an OTDR and optical power test while flexing or checking suspected joints. Repair or replace the degraded drop/splice/connector as indicated. Monitor RX stability and session frequency after repair; escalate to splitter or PON-port investigation only if other ONUs begin showing correlated optical changes.",
+      "reasoning": [
+        "The ONU is online and responsive, so this is not a sustained ONU-offline or total PON failure.",
+        "The subscriber RX telemetry ranges from about -22 to -27 dBm, with repeated degraded readings below -25 dBm and variation far wider than the healthy +/-0.3 dBm optical noise floor.",
+        "The live ONU RX reading is -26.88 dBm, confirming the current degraded optical condition despite an older stored reading of -22.41 dBm.",
+        "TX power remains tightly stable around 2.3-2.5 dBm and TX bias current remains within the healthy 9.5-13.0 mA range, so laser degradation is not supported.",
+        "Distance remains constant at 203 m, ruling out a changed fibre path or distance-change fault.",
+        "Peer ONUs on EPON0/6 are online with generally normal RX levels, so the evidence is localized to this customer rather than a PON-port, splitter, or OLT-wide fault.",
+        "The OLT and router are healthy, and all eight tested PONs are healthy, ruling out OLT, router, and broad infrastructure failure.",
+        "VLAN 1036 is present and correct, while RADIUS records are consistent, ruling out provisioning and authentication database faults.",
+        "The customer has 7 sessions in 24 hours and an average duration of only 186 minutes, elevated relative to the normal baseline and consistent with intermittent signal impairment, though below the 8-session flapping threshold."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "fiber_degradation",
+    "root_cause": "Intermittent attenuation in the customer's fibre path, most consistent with a marginal connector or a bend that moves with temperature; the link crosses in and out of usable signal.",
+    "severity": "Warning",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "80:F1:A8:7E:95:BD"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Cached RX of -22.41 dBm is inside the normal band and on its own looks fine",
+      "The cached reading is 141 minutes old, so it may not represent current state",
+      "Live RX of -26.88 dBm is 4.5 dB worse than cached, a gap far outside the +/-0.3 dBm noise floor",
+      "Telemetry shows RX oscillating between roughly -22 and -27 dBm on a sub-daily cycle",
+      "TX power, bias current, supply voltage and distance are all flat, so the ONU is healthy",
+      "Peers on EPON0/6 read normal, so the PON port and splitter are not involved",
+      "Seven sessions in 24h is elevated above the 2-3 baseline and tracks the signal excursions",
+      "An oscillating marginal link points to a physical fault that moves, not a fixed loss"
+    ],
+    "required_evidence": [
+      "rx_series_oscillation",
+      "cached_live_discrepancy",
+      "peers_normal_on_same_port"
+    ],
+    "expected_remediation": "dispatch_technician",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "field_service",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "The cached RX reading is inside the normal band and invites a no_fault conclusion",
+      "Seven sessions is elevated but sits inside the 2.9% of customers who do 4-7 normally",
+      "Erratic traffic could be read as ordinary usage variation"
+    ]
+  }
+}

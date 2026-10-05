@@ -1,0 +1,89 @@
+{
+  "scenario_id": "FC-004",
+  "config": "monolithic_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 7.9,
+  "result": {
+    "diagnosis": {
+      "fault_type": "olt_health_false_critical",
+      "root_cause": "The all-PONs-failed alarm is a false critical caused by an inaccurate or stale health-check result. The OLT and PONs are operational, with normal live SNMP responses, normal ONU availability, and no subscriber-impacting fault.",
+      "confidence": 0.99,
+      "affected_scope": "olt",
+      "evidence": [
+        "The OLT responds to ping and SNMP, and its OID subtree is available.",
+        "OLT CPU, memory, temperature, and uptime are normal, matching the healthy baseline.",
+        "The live probe finds all sampled ONUs on EPON0/5 online and responding, including the affected customer.",
+        "The customer ONU has normal RX power of about -19.7 dBm and TX power of about +2.4 dBm.",
+        "Seven-day RX and TX telemetry is stable within the healthy optical noise limits; distance is constant at 124 and TX bias remains within the healthy range.",
+        "The OLT has 207 of 214 ONUs online; seven offline is below the expected background level of approximately 10 based on the 4.85% baseline.",
+        "The customer has normal authentication and session behavior, with two sessions in 24 hours, 16 in seven days, and an average duration near the network mean.",
+        "RADIUS records, line ID, assigned IP, CRM state, and customer VLAN 1035 are consistent.",
+        "The router is reachable with a healthy heartbeat and normal resource usage.",
+        "The alarm claims all eight PONs failed, but live evidence contradicts it, so the alarm itself is the fault rather than an OLT or access-network outage."
+      ]
+    },
+    "remediation": {
+      "action": "Suppress or clear the false alarm, validate and repair the health-check logic or data source, and investigate the timestamp discrepancy between the health-check run date and current telemetry. Do not dispatch for fibre, ONU, PON, router, or RADIUS repair unless a subsequent live check shows a real failure."
+    },
+    "escalation": {
+      "priority": "Information"
+    },
+    "monolithic": {
+      "fault_type": "olt_health_false_critical",
+      "root_cause": "The all-PONs-failed alarm is a false critical caused by an inaccurate or stale health-check result. The OLT and PONs are operational, with normal live SNMP responses, normal ONU availability, and no subscriber-impacting fault.",
+      "confidence": 0.99,
+      "severity": "Information",
+      "affected_scope": "olt",
+      "remediation": "Suppress or clear the false alarm, validate and repair the health-check logic or data source, and investigate the timestamp discrepancy between the health-check run date and current telemetry. Do not dispatch for fibre, ONU, PON, router, or RADIUS repair unless a subsequent live check shows a real failure.",
+      "reasoning": [
+        "The OLT responds to ping and SNMP, and its OID subtree is available.",
+        "OLT CPU, memory, temperature, and uptime are normal, matching the healthy baseline.",
+        "The live probe finds all sampled ONUs on EPON0/5 online and responding, including the affected customer.",
+        "The customer ONU has normal RX power of about -19.7 dBm and TX power of about +2.4 dBm.",
+        "Seven-day RX and TX telemetry is stable within the healthy optical noise limits; distance is constant at 124 and TX bias remains within the healthy range.",
+        "The OLT has 207 of 214 ONUs online; seven offline is below the expected background level of approximately 10 based on the 4.85% baseline.",
+        "The customer has normal authentication and session behavior, with two sessions in 24 hours, 16 in seven days, and an average duration near the network mean.",
+        "RADIUS records, line ID, assigned IP, CRM state, and customer VLAN 1035 are consistent.",
+        "The router is reachable with a healthy heartbeat and normal resource usage.",
+        "The alarm claims all eight PONs failed, but live evidence contradicts it, so the alarm itself is the fault rather than an OLT or access-network outage."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "olt_health_false_critical",
+    "root_cause": "The stored health record carries a run_date of 2025-11-11, ten months before the current date. The health check has not run since. The OLT has 58 days of uptime, answers every probe normally and is serving all its customers; the alarm describes a condition that no longer exists, if it ever did.",
+    "severity": "Information",
+    "affected_scope": "none",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The health record reports critical with all eight PONs failed",
+      "Its run_date is 2025-11-11, ten months before the scenario's capture time",
+      "A stored record that old describes history, not current state",
+      "The live probe answers normally: the ONU is online with RX -19.71 and TX 2.42",
+      "OLT ping and SNMP succeed, oid_subtree_responds is true and uptime is 58 days",
+      "58 days of uptime postdates the stored record, so the device has restarted since it was written",
+      "CPU 24, memory 18 and temperature 42 are all at healthy baseline",
+      "Customers are authenticated with normal sessions and seven days of steady traffic",
+      "The finding is not an outage but that OLT health monitoring has not run for ten months"
+    ],
+    "required_evidence": [
+      "record_age_checked",
+      "live_probe_contradicts_record",
+      "uptime_postdates_record"
+    ],
+    "expected_remediation": "flag_monitoring_defect",
+    "expected_escalation": {
+      "priority": "Information",
+      "category": "monitoring",
+      "requires_human_review": true,
+      "review_reason": "OLT health checks have not run since 2025-11-11; the schedule is not active"
+    },
+    "distractors": [
+      "The alarm text is identical to a genuine critical",
+      "The record is internally consistent and only its date betrays it",
+      "Nothing in the alarm payload signals that it is stale"
+    ]
+  }
+}

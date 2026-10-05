@@ -1,0 +1,90 @@
+{
+  "scenario_id": "FD-001",
+  "config": "monolithic_clean_p2",
+  "model": "gpt-5.6-luna",
+  "seconds": 6.9,
+  "result": {
+    "diagnosis": {
+      "fault_type": "fiber_degradation",
+      "root_cause": "Progressive optical receive-power loss on this customer's fibre path, with RX falling from the normal range (approximately -19.2 dBm) to the degraded range (approximately -26.4 to -27.1 dBm) while distance remains constant and TX bias/current and TX power remain healthy.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The customer's RX power declined steadily from about -19.17 dBm, which is normal, to -26.45 dBm, which is degraded, over the seven-day window.",
+        "This meets the defined declining-link pattern: the trend began in the normal band and ended in the degraded band.",
+        "The current live ONU reading is still online but degraded at -27.1 dBm, so this is not currently an ONU-offline fault.",
+        "TX power is normal at approximately +2.28 to +2.31 dBm, and TX bias current remains stable around 11 mA; this rules against laser degradation.",
+        "Distance remains constant at 188, ruling out a path or record distance change.",
+        "Peers on EPON0/3 have healthy RX readings, so the fault is isolated to this customer's own fibre path rather than the PON port, splitter, or shared infrastructure.",
+        "The OLT responds to ping and SNMP, has normal CPU, memory, and temperature, and all tested PONs are healthy; an OLT or OLT-port failure is not supported.",
+        "The customer's elevated session count of 9 in 24 hours and short average duration are symptoms of the degrading optical link; the trend takes precedence over the session count.",
+        "RADIUS records match CRM, the VLAN is correctly provisioned as 1013 rather than factory-default VLAN 46, and the router heartbeat is healthy, so authentication, provisioning, VLAN, and router faults are not indicated.",
+        "The one offline peer is a separate ONU with healthy peers around it and is consistent with the network's normal offline background, not evidence of a shared failure."
+      ]
+    },
+    "remediation": {
+      "action": "Dispatch field service to inspect and clean all customer-side and distribution fibre connectors, check the drop and patching for bends, damage, moisture, or high loss, and perform OTDR/power-meter testing. Repair or replace the degraded fibre segment or connector, then verify RX returns to the normal range and monitor optical power and session stability. Do not replace the OLT, PON port, splitter, or router based on the current evidence."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "fiber_degradation",
+      "root_cause": "Progressive optical receive-power loss on this customer's fibre path, with RX falling from the normal range (approximately -19.2 dBm) to the degraded range (approximately -26.4 to -27.1 dBm) while distance remains constant and TX bias/current and TX power remain healthy.",
+      "confidence": 0.99,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Dispatch field service to inspect and clean all customer-side and distribution fibre connectors, check the drop and patching for bends, damage, moisture, or high loss, and perform OTDR/power-meter testing. Repair or replace the degraded fibre segment or connector, then verify RX returns to the normal range and monitor optical power and session stability. Do not replace the OLT, PON port, splitter, or router based on the current evidence.",
+      "reasoning": [
+        "The customer's RX power declined steadily from about -19.17 dBm, which is normal, to -26.45 dBm, which is degraded, over the seven-day window.",
+        "This meets the defined declining-link pattern: the trend began in the normal band and ended in the degraded band.",
+        "The current live ONU reading is still online but degraded at -27.1 dBm, so this is not currently an ONU-offline fault.",
+        "TX power is normal at approximately +2.28 to +2.31 dBm, and TX bias current remains stable around 11 mA; this rules against laser degradation.",
+        "Distance remains constant at 188, ruling out a path or record distance change.",
+        "Peers on EPON0/3 have healthy RX readings, so the fault is isolated to this customer's own fibre path rather than the PON port, splitter, or shared infrastructure.",
+        "The OLT responds to ping and SNMP, has normal CPU, memory, and temperature, and all tested PONs are healthy; an OLT or OLT-port failure is not supported.",
+        "The customer's elevated session count of 9 in 24 hours and short average duration are symptoms of the degrading optical link; the trend takes precedence over the session count.",
+        "RADIUS records match CRM, the VLAN is correctly provisioned as 1013 rather than factory-default VLAN 46, and the router heartbeat is healthy, so authentication, provisioning, VLAN, and router faults are not indicated.",
+        "The one offline peer is a separate ONU with healthy peers around it and is consistent with the network's normal offline background, not evidence of a shared failure."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "fiber_degradation",
+    "root_cause": "Progressive attenuation in the fibre path between the splitter and this customer's ONU, consistent with a bend, damaged connector or degrading splice on the drop.",
+    "severity": "Warning",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "4C:D7:C8:A1:3F:02"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Cached RX of -26.40 dBm sits in the degraded band (-25 to -28)",
+      "Telemetry shows RX falling from -19.2 to -26.4 dBm over six days against a +/-0.3 dBm noise floor, so this is a trend and not a spot reading",
+      "Live RX of -27.10 is below the cached -26.40, so degradation is still progressing",
+      "TX power, TX bias current, supply voltage and distance are all flat, so the ONU laser and the fibre geometry are unchanged",
+      "Port neighbours on EPON0/3 read -19 to -22 dBm, so the PON port, feeder and splitter are healthy",
+      "The fault is therefore downstream of the splitter, in this customer's own fibre path",
+      "Nine sessions in 24h against a 2-3 baseline is a symptom of the marginal link, not an independent auth fault",
+      "Declining daily traffic is consistent with intermittent connectivity"
+    ],
+    "required_evidence": [
+      "rx_trend_over_time",
+      "peers_normal_on_same_port",
+      "tx_and_bias_stable"
+    ],
+    "expected_remediation": "dispatch_technician",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "field_service",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "Elevated session count invites a session_flapping_auth diagnosis",
+      "Declining traffic alone could suggest congestion",
+      "One neighbour (EPON0/3:21) is offline for unrelated reasons, at the 4.85% network baseline"
+    ]
+  }
+}

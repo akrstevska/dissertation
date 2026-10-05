@@ -1,0 +1,88 @@
+{
+  "scenario_id": "OF-001",
+  "config": "monolithic_p2",
+  "model": "gpt-5.6-luna",
+  "seconds": 5.4,
+  "result": {
+    "diagnosis": {
+      "fault_type": "olt_failure",
+      "root_cause": "The OLT TK_AZ-OLT_SK-Madzari-01 is unreachable by both ping and SNMP, and all 139 ONUs across all six PON ports are unavailable. This indicates an OLT-wide failure or loss of OLT power/uplink rather than a subscriber, fibre, or single-PON fault.",
+      "confidence": 0.99,
+      "affected_scope": "olt",
+      "evidence": [
+        "The health alarm reports the OLT unreachable, with ping failed.",
+        "Live probing independently confirms that both ping and SNMP to the OLT fail.",
+        "All 139 customers on the OLT are currently reported offline, including customers on every PON port.",
+        "Every tested ONU on EPON0/3 fails to respond, ruling out an isolated ONU or subscriber fault.",
+        "The OLT population shows zero online and 139 offline, far above the normal network offline baseline.",
+        "The subscriber's zero RX/TX values are unavailable readings caused by the unreachable OLT, not evidence of strong or critical optical power.",
+        "Historical ONU optical power, TX power, distance, bias current, temperature, and supply voltage are stable and healthy, providing no evidence of fibre degradation, laser degradation, or distance change.",
+        "The router heartbeat is healthy, so the associated router is not the failed element.",
+        "Subscriber authentication and session behavior are normal, with one current session and no RADIUS mismatch or flapping pattern.",
+        "The failure affects the entire OLT rather than one customer or one PON port, so olt_failure with OLT-wide scope is the closest diagnosis."
+      ]
+    },
+    "remediation": {
+      "action": "Escalate as an OLT outage immediately. Check the OLT power supply, cabinet power, uplink, management-path switching, and upstream routing; dispatch onsite support if power or hardware failure is suspected. Restore or replace the OLT as required, then verify ping/SNMP access, OLT health metrics, PON status, ONU registrations, VLAN forwarding, and subscriber sessions before closing the incident."
+    },
+    "escalation": {
+      "priority": "Disaster"
+    },
+    "monolithic": {
+      "fault_type": "olt_failure",
+      "root_cause": "The OLT TK_AZ-OLT_SK-Madzari-01 is unreachable by both ping and SNMP, and all 139 ONUs across all six PON ports are unavailable. This indicates an OLT-wide failure or loss of OLT power/uplink rather than a subscriber, fibre, or single-PON fault.",
+      "confidence": 0.99,
+      "severity": "Disaster",
+      "affected_scope": "olt",
+      "remediation": "Escalate as an OLT outage immediately. Check the OLT power supply, cabinet power, uplink, management-path switching, and upstream routing; dispatch onsite support if power or hardware failure is suspected. Restore or replace the OLT as required, then verify ping/SNMP access, OLT health metrics, PON status, ONU registrations, VLAN forwarding, and subscriber sessions before closing the incident.",
+      "reasoning": [
+        "The health alarm reports the OLT unreachable, with ping failed.",
+        "Live probing independently confirms that both ping and SNMP to the OLT fail.",
+        "All 139 customers on the OLT are currently reported offline, including customers on every PON port.",
+        "Every tested ONU on EPON0/3 fails to respond, ruling out an isolated ONU or subscriber fault.",
+        "The OLT population shows zero online and 139 offline, far above the normal network offline baseline.",
+        "The subscriber's zero RX/TX values are unavailable readings caused by the unreachable OLT, not evidence of strong or critical optical power.",
+        "Historical ONU optical power, TX power, distance, bias current, temperature, and supply voltage are stable and healthy, providing no evidence of fibre degradation, laser degradation, or distance change.",
+        "The router heartbeat is healthy, so the associated router is not the failed element.",
+        "Subscriber authentication and session behavior are normal, with one current session and no RADIUS mismatch or flapping pattern.",
+        "The failure affects the entire OLT rather than one customer or one PON port, so olt_failure with OLT-wide scope is the closest diagnosis."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "olt_failure",
+    "root_cause": "The OLT is not reachable by ICMP and does not answer SNMP. All 139 customers behind it lost service two hours ago. The device is down, powered off, or isolated from the management and transport network.",
+    "severity": "Disaster",
+    "affected_scope": "olt",
+    "affected_lineids": [],
+    "affected_customer_count": 139,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Ping to the OLT fails, so the health check stopped before any SNMP test was attempted",
+      "The live probe confirms neither ICMP nor SNMP answers",
+      "No ONU on the OLT responds, and no probe returns a definite online or offline state",
+      "This differs from the firmware mismatch case, where ping and SNMP both succeed",
+      "All 139 customers on the OLT are offline and sessions ended together two hours ago",
+      "Optical readings are stale by 118 minutes, consistent with polling stopping when the device went down",
+      "The upstream router is still checking in normally, so the fault is the OLT and not the router",
+      "Traffic through the OLT has fallen to zero",
+      "Unreachable by both ICMP and SNMP with total customer loss is a device or transport failure"
+    ],
+    "required_evidence": [
+      "ping_and_snmp_both_fail",
+      "all_customers_affected",
+      "router_still_reachable"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "Disaster",
+      "category": "infrastructure",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "Zero values in olt_metrics could be read as healthy low utilisation",
+      "Stale cached readings might be mistaken for current state"
+    ]
+  }
+}

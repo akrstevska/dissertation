@@ -1,0 +1,313 @@
+{
+  "scenario_id": "DS-002",
+  "config": "agent",
+  "model": "gpt-5.6-luna",
+  "seconds": 50.2,
+  "result": {
+    "trigger": "scheduled_scan",
+    "trigger_input": {
+      "scope": "olt",
+      "target": "TK_AZ-OLT_BT_Jad-04"
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [
+        {
+          "type": "duplicate_slot_conflict",
+          "value": "3 active CRM records on EPON0/8:41; none of their ONU MACs matches the live probe MAC",
+          "threshold": "1 active CRM record per ONU slot and live ONU MAC must match"
+        },
+        {
+          "type": "onu_mapping_mismatch",
+          "value": "Lineids 4C:46:D1:D5:AE:51, 70:B6:4F:AA:21:98, and B4:64:15:0B:B5:85 share EPON0/8:41; two records return not_held and the cached optical values are identical",
+          "threshold": "Each active line must resolve to its own CRM record and distinct valid ONU mapping"
+        },
+        {
+          "type": "onu_offline_population",
+          "value": "16 of 271 customers offline (5.9%)",
+          "threshold": "Network baseline 4.85%; approximately 14 offline customers is normal background on a 300-customer OLT, not an outage"
+        },
+        {
+          "type": "sampled_optical_status",
+          "value": "EPON0/8:41 sampled RX -23.58 dBm and TX 2.33 dBm, cached age 31 minutes",
+          "threshold": "RX normal -20 to -25 dBm; TX normal 0 to +5 dBm; readings are present and current"
+        }
+      ],
+      "preliminary_severity": "Warning",
+      "affected_scope": "pon_port",
+      "affected_lineids": [
+        "4C:46:D1:D5:AE:51",
+        "70:B6:4F:AA:21:98",
+        "B4:64:15:0B:B5:85"
+      ],
+      "olt_id": "TK_AZ-OLT_BT_Jad-04",
+      "interface": "EPON0/8:41",
+      "summary": "The OLT and sampled optical service are within normal bands, but EPON0/8:41 has three active CRM records with an ONU-slot and live-MAC mapping conflict."
+    },
+    "diagnosis": {
+      "fault_type": "duplicate_onu_slot",
+      "root_cause": "Three active CRM records are incorrectly mapped to the same ONU slot EPON0/8:41. Live queries for all three lineids return the same online ONU and reported lineid 78:88:8A:45:13:CE, which matches none of the CRM records; the conflict is a record-to-ONU mapping defect rather than an optical or OLT outage.",
+      "confidence": 0.99,
+      "affected_scope": "multi_customer",
+      "affected_lineids": [
+        "4C:46:D1:D5:AE:51",
+        "70:B6:4F:AA:21:98",
+        "B4:64:15:0B:B5:85"
+      ],
+      "evidence": [
+        "The OLT responds to ping and SNMP, so this is not an OLT failure.",
+        "The live EPON0/8 port probe shows ONU index 41 online with normal RX and TX power, and other ONUs on the port are also online.",
+        "CRM contains three active records assigned to EPON0/8:41, violating the one-active-record-per-slot rule.",
+        "Live probes for all three lineids respond online with identical optical readings and the same reported lineid, 78:88:8A:45:13:CE.",
+        "None of the three CRM lineids matches the live reported lineid.",
+        "The CRM record for B4:64:15:0B:B5:85 says offline with RX 0, but its live probe is online with RX -23.61 dBm and TX 2.34 dBm; zero is therefore a missing cached reading, not a signal reading.",
+        "The OLT-wide offline population is 16 of 271, close to the normal background baseline and does not indicate an outage."
+      ],
+      "cached_vs_live_discrepancy": true,
+      "discrepancy_detail": "CRM has three active records on one slot and marks B4:64:15:0B:B5:85 offline with RX 0, while live probes show all three records resolving to the same online ONU with normal optics and reported lineid 78:88:8A:45:13:CE, matching none of the CRM lineids."
+    },
+    "remediation": {
+      "action": "manual_review",
+      "automated": false,
+      "reason": "Three active CRM records are mapped to the same ONU slot, and live data identifies a different lineid than any of those records. This is a lineid/slot mapping conflict, not an optical, ONU, OLT, or router failure.",
+      "instructions": "Place the affected records and slot EPON0/8:41 into manual review. Verify the physical ONU and customer identity, reconcile the live lineid 78:88:8A:45:13:CE against CRM and provisioning records, then correct the duplicate assignments so only the valid customer record remains mapped to the slot. Recheck service and cached status after correction.",
+      "alternatives_considered": [
+        {
+          "action": "onu_reset",
+          "rejected_because": "The ONU is online with normal optical readings; resetting it would not correct the record-to-ONU mapping conflict."
+        },
+        {
+          "action": "dispatch_technician",
+          "rejected_because": "There is no evidence of fibre degradation, distance change, splitter trouble, or an optical fault."
+        },
+        {
+          "action": "escalate_infrastructure",
+          "rejected_because": "The OLT and PON port are responding normally, and other ONUs are online."
+        },
+        {
+          "action": "schedule_onu_replacement",
+          "rejected_because": "The evidence does not indicate laser ageing or ONU hardware failure."
+        }
+      ]
+    },
+    "escalation": {
+      "priority": "High",
+      "category": "provisioning",
+      "requires_human_review": true,
+      "review_reason": "CRM/provisioning records have a duplicate ONU-slot assignment and do not match the live ONU lineid. This is a system record and mapping defect that network remediation cannot clear; reconcile the CRM and provisioning records for EPON0/8:41 and live lineid 78:88:8A:45:13:CE.",
+      "summary": "Three active CRM records are mapped to EPON0/8:41, while the live probe finds one online ONU with normal RX/TX levels and a different lineid that matches none of the records. The OLT, PON port, and sampled optical service are healthy, and the offline population is within normal background. Manually verify the customer and physical ONU, reconcile CRM/provisioning mappings, retain only the valid record on the slot, and then recheck cached status.",
+      "affected_customer_count": 3,
+      "service_impact": false
+    },
+    "trace": [
+      {
+        "tool": "get_olt_health",
+        "args": {
+          "olt_id": "TK_AZ-OLT_BT_Jad-04"
+        },
+        "result": "{\"olt_ip\": \"10.220.39.9\", \"olt_host\": \"TK_AZ-OLT_BT_Jad-04\", \"olt_technology\": \"EPON\", \"olt_ext_id\": \"10203\", \"ping_ok\": true, \"snmp_community_ok\": true, \"snmp_response_ok\": true, \"total_pons_tested\": 8, \"healthy_pons\": 8, \"failed_pons_list\": [], \"error_description\": null, \"overall_status\": \"healthy\", \"run_date\": \"2026-09-23\"}"
+      },
+      {
+        "tool": "get_olt_metrics",
+        "args": {
+          "olt_id": "TK_AZ-OLT_BT_Jad-04"
+        },
+        "result": "{\"cpu_load\": 25, \"memory_usage\": 18, \"temperature\": 43, \"uptime_days\": 73, \"firmware\": \"V2.03.78R\", \"firmware_date\": \"2024-06-11\"}"
+      },
+      {
+        "tool": "get_olt_population",
+        "args": {
+          "olt_id": "TK_AZ-OLT_BT_Jad-04"
+        },
+        "result": "{\"total_customers\": 271, \"pon_ports_in_use\": 8, \"customers_per_port\": {\"EPON0/1\": 33, \"EPON0/2\": 33, \"EPON0/3\": 33, \"EPON0/4\": 33, \"EPON0/5\": 33, \"EPON0/6\": 33, \"EPON0/7\": 38, \"EPON0/8\": 35}, \"onu_online_count\": 255, \"onu_offline_count\": 16}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "TK_AZ-OLT_BT_Jad-04",
+          "interface": ""
+        },
+        "result": "{\"interface_port\": \"EPON0/8\", \"crm_view\": {\"total_on_port\": 35, \"customers\": [{\"lineid\": \"B4:64:15:00:AB:16\", \"interface\": \"EPON0/8:10\", \"onu_status\": 1, \"rx_power\": \"-20.87\", \"active\": 1}, {\"lineid\": \"80:F1:A8:ED:B4:D9\", \"interface\": \"EPON0/8:13\", \"onu_status\": 1, \"rx_power\": \"-21.91\", \"active\": 1}, {\"lineid\": \"78:88:8A:C3:75:58\", \"interface\": \"EPON0/8:15\", \"onu_status\": 1, \"rx_power\": \"-21.08\", \"active\": 1}, {\"lineid\": \"4C:46:D1:D5:AE:51\", \"interface\": \"EPON0/8:41\", \"onu_status\": 1, \"rx_power\": \"-23.58\", \"active\": 1}, {\"lineid\": \"70:B6:4F:AA:21:98\", \"interface\": \"EPON0/8:41\", \"onu_status\": 1, \"rx_power\": \"-23.58\", \"active\": 1}, {\"lineid\": \"B4:64:15:0B:B5:85\", \"interface\": \"EPON0/8:41\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"4C:46:D1:87:E9:FE\", \"interface\": \"EPON0/8:51\", \"onu_status\": 1, \"rx_power\": \"-20.48\", \"active\": 1}, {\"lineid\": \"78:88:8A:19:CB:B6\", \"interface\": \"EPON0/8:53\", \"onu_status\": 1, \"rx_power\": \"-22.63\", \"active\": 1}, {\"lineid\": \"4C:D7:C8:F7:1A:1A\", \"interface\": \"EPON0/8:62\", \"onu_status\": 1, \"rx_power\": \"-22.58\", \"active\": 1}]}, \"duplicate_slot_conflict\": {\"interface\": \"EPON0/8:41\", \"lineids\": [\"4C:46:D1:D5:AE:51\", \"70:B6:4F:AA:21:98\", \"B4:64:15:0B:B5:85\"], \"detail\": \"Three active CRM records occupy one slot. None of the three ONU MACs matches the MAC the live probe reports.\"}}"
+      },
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "B4:64:15:0B:B5:85"
+        },
+        "result": "{\"error\": \"not_held\", \"lineid_in_scope\": \"4C:46:D1:D5:AE:51\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "B4:64:15:0B:B5:85"
+        },
+        "result": "{\"onu_status\": 1, \"rx_power\": \"-23.58\", \"tx_power\": \"2.33\", \"reading_age_minutes\": 31}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "B4:64:15:0B:B5:85",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 168, \"first\": -23.3, \"last\": -23.65, \"min\": -23.97, \"max\": -23.23, \"mean\": -23.6, \"range\": 0.74, \"change\": -0.35, \"gaps\": 0}, \"tx_power\": {\"available\": true, \"points\": 168, \"first\": 2.36, \"last\": 2.35, \"min\": 2.25, \"max\": 2.47, \"mean\": 2.35, \"range\": 0.22, \"change\": -0.01, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 22.09, \"last\": 22.02, \"min\": 19.41, \"max\": 24.3, \"mean\": 21.96, \"range\": 4.89, \"change\": -0.07, \"gaps\": 0}, \"distance\": {\"available\": true, \"points\": 168, \"first\": 256, \"last\": 256, \"min\": 256, \"max\": 256, \"mean\": 256.0, \"range\": 0, \"change\": 0, \"gaps\": 0}, \"tx_bias_current\": {\"available\": true, \"points\": 168, \"first\": 11.38, \"last\": 11.15, \"min\": 10.71, \"max\": 11.67, \"mean\": 11.2, \"range\": 0.96, \"change\": -0.23, \"gaps\": 0}, \"supply_voltage\": {\"available\": true, \"points\": 168, \"first\": 3.43, \"last\": 3.44, \"min\": 3.4, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.06, \"change\": 0.01, \"gaps\": 0}, \"speed_kbps\": {\"available\": true, \"points\": 168, \"first\": 4.03, \"last\": 6.26, \"min\": 0.2, \"max\": 11.82, \"mean\": 5.72, \"range\": 11.62, \"change\": 2.23, \"gaps\": 0}}}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "B4:64:15:0B:B5:85"
+        },
+        "result": "{\"count_24h\": 2, \"count_7d\": 15, \"avg_duration_minutes\": 688, \"last_disconnect\": \"2026-09-22T21:06:00Z\", \"recent\": [{\"start\": \"2026-09-22T21:06:00Z\", \"end\": null, \"duration_s\": 48212, \"ip\": \"10.5.50.199\"}, {\"start\": \"2026-09-22T07:36:31Z\", \"end\": \"2026-09-22T18:33:51Z\", \"duration_s\": 39440, \"ip\": \"10.5.50.199\"}, {\"start\": \"2026-09-21T20:35:54Z\", \"end\": \"2026-09-22T06:12:09Z\", \"duration_s\": 34575, \"ip\": \"10.5.50.199\"}]}"
+      },
+      {
+        "tool": "get_traffic",
+        "args": {
+          "lineid": "B4:64:15:0B:B5:85"
+        },
+        "result": "{\"download_mb_daily\": [1010, 990, 1040, 1000, 1020, 980, 1030], \"upload_mb_daily\": [5938, 5930, 6094, 5897, 6124, 5955, 6205], \"monthly_avg_download_mb\": 1010, \"monthly_avg_upload_mb\": 6020, \"pon_port_traffic\": {\"current_mbps\": 209, \"avg_mbps\": 214, \"peak_mbps\": 660}}"
+      },
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "4C:46:D1:D5:AE:51"
+        },
+        "result": "{\"customer_id\": 10823, \"lineid\": \"4C:46:D1:D5:AE:51\", \"mac\": \"00:EB:D8:B7:6E:55\", \"interface\": \"EPON0/8:41\", \"olt_id\": \"10203\", \"olt_host\": \"TK_AZ-OLT_BT_Jad-04\", \"olt_ip\": \"10.220.39.9\", \"olt_technology\": \"EPON\", \"olt_model\": \"V1600D\", \"router_id\": 12, \"router_name\": \"TK_AZ_Bitola_Jadranska01\", \"profile\": \"profile_40M\", \"active\": 1, \"deleted\": 0, \"onu_model\": \"Infel 1G + CATV\", \"onu_type\": \"Bridge\", \"has_catv\": 1, \"has_voip\": 0, \"catv_service\": 1, \"catv_synced\": 1, \"city\": \"Bitola\", \"area\": \"Jadranska\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "4C:46:D1:D5:AE:51"
+        },
+        "result": "{\"onu_status\": 1, \"rx_power\": \"-23.58\", \"tx_power\": \"2.33\", \"reading_age_minutes\": 31}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "4C:46:D1:D5:AE:51",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 168, \"first\": -23.3, \"last\": -23.65, \"min\": -23.97, \"max\": -23.23, \"mean\": -23.6, \"range\": 0.74, \"change\": -0.35, \"gaps\": 0}, \"tx_power\": {\"available\": true, \"points\": 168, \"first\": 2.36, \"last\": 2.35, \"min\": 2.25, \"max\": 2.47, \"mean\": 2.35, \"range\": 0.22, \"change\": -0.01, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 22.09, \"last\": 22.02, \"min\": 19.41, \"max\": 24.3, \"mean\": 21.96, \"range\": 4.89, \"change\": -0.07, \"gaps\": 0}, \"distance\": {\"available\": true, \"points\": 168, \"first\": 256, \"last\": 256, \"min\": 256, \"max\": 256, \"mean\": 256.0, \"range\": 0, \"change\": 0, \"gaps\": 0}, \"tx_bias_current\": {\"available\": true, \"points\": 168, \"first\": 11.38, \"last\": 11.15, \"min\": 10.71, \"max\": 11.67, \"mean\": 11.2, \"range\": 0.96, \"change\": -0.23, \"gaps\": 0}, \"supply_voltage\": {\"available\": true, \"points\": 168, \"first\": 3.43, \"last\": 3.44, \"min\": 3.4, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.06, \"change\": 0.01, \"gaps\": 0}, \"speed_kbps\": {\"available\": true, \"points\": 168, \"first\": 4.03, \"last\": 6.26, \"min\": 0.2, \"max\": 11.82, \"mean\": 5.72, \"range\": 11.62, \"change\": 2.23, \"gaps\": 0}}}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "4C:46:D1:D5:AE:51"
+        },
+        "result": "{\"count_24h\": 2, \"count_7d\": 15, \"avg_duration_minutes\": 688, \"last_disconnect\": \"2026-09-22T21:06:00Z\", \"recent\": [{\"start\": \"2026-09-22T21:06:00Z\", \"end\": null, \"duration_s\": 48212, \"ip\": \"10.5.50.199\"}, {\"start\": \"2026-09-22T07:36:31Z\", \"end\": \"2026-09-22T18:33:51Z\", \"duration_s\": 39440, \"ip\": \"10.5.50.199\"}, {\"start\": \"2026-09-21T20:35:54Z\", \"end\": \"2026-09-22T06:12:09Z\", \"duration_s\": 34575, \"ip\": \"10.5.50.199\"}]}"
+      },
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "70:B6:4F:AA:21:98"
+        },
+        "result": "{\"error\": \"not_held\", \"lineid_in_scope\": \"4C:46:D1:D5:AE:51\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "70:B6:4F:AA:21:98"
+        },
+        "result": "{\"onu_status\": 1, \"rx_power\": \"-23.58\", \"tx_power\": \"2.33\", \"reading_age_minutes\": 31}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "70:B6:4F:AA:21:98",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 168, \"first\": -23.3, \"last\": -23.65, \"min\": -23.97, \"max\": -23.23, \"mean\": -23.6, \"range\": 0.74, \"change\": -0.35, \"gaps\": 0}, \"tx_power\": {\"available\": true, \"points\": 168, \"first\": 2.36, \"last\": 2.35, \"min\": 2.25, \"max\": 2.47, \"mean\": 2.35, \"range\": 0.22, \"change\": -0.01, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 22.09, \"last\": 22.02, \"min\": 19.41, \"max\": 24.3, \"mean\": 21.96, \"range\": 4.89, \"change\": -0.07, \"gaps\": 0}, \"distance\": {\"available\": true, \"points\": 168, \"first\": 256, \"last\": 256, \"min\": 256, \"max\": 256, \"mean\": 256.0, \"range\": 0, \"change\": 0, \"gaps\": 0}, \"tx_bias_current\": {\"available\": true, \"points\": 168, \"first\": 11.38, \"last\": 11.15, \"min\": 10.71, \"max\": 11.67, \"mean\": 11.2, \"range\": 0.96, \"change\": -0.23, \"gaps\": 0}, \"supply_voltage\": {\"available\": true, \"points\": 168, \"first\": 3.43, \"last\": 3.44, \"min\": 3.4, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.06, \"change\": 0.01, \"gaps\": 0}, \"speed_kbps\": {\"available\": true, \"points\": 168, \"first\": 4.03, \"last\": 6.26, \"min\": 0.2, \"max\": 11.82, \"mean\": 5.72, \"range\": 11.62, \"change\": 2.23, \"gaps\": 0}}}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "70:B6:4F:AA:21:98"
+        },
+        "result": "{\"count_24h\": 2, \"count_7d\": 15, \"avg_duration_minutes\": 688, \"last_disconnect\": \"2026-09-22T21:06:00Z\", \"recent\": [{\"start\": \"2026-09-22T21:06:00Z\", \"end\": null, \"duration_s\": 48212, \"ip\": \"10.5.50.199\"}, {\"start\": \"2026-09-22T07:36:31Z\", \"end\": \"2026-09-22T18:33:51Z\", \"duration_s\": 39440, \"ip\": \"10.5.50.199\"}, {\"start\": \"2026-09-21T20:35:54Z\", \"end\": \"2026-09-22T06:12:09Z\", \"duration_s\": 34575, \"ip\": \"10.5.50.199\"}]}"
+      },
+      {
+        "tool": "snmp_probe_olt",
+        "args": {
+          "olt_id": "TK_AZ-OLT_BT_Jad-04"
+        },
+        "result": "{\"ping_ok\": true, \"snmp_responds\": true, \"sys_uptime_seconds\": 6307200, \"oid_subtree_responds\": true}"
+      },
+      {
+        "tool": "snmp_probe_pon_port",
+        "args": {
+          "olt_id": "TK_AZ-OLT_BT_Jad-04",
+          "interface": "EPON0/8:41"
+        },
+        "result": "{\"interface_port\": \"EPON0/8\", \"onus\": [{\"onu_index\": 10, \"online\": 1, \"rx_power\": -20.41, \"tx_power\": 2.37, \"responds\": true}, {\"onu_index\": 13, \"online\": 1, \"rx_power\": -19.48, \"tx_power\": 2.35, \"responds\": true}, {\"onu_index\": 15, \"online\": 1, \"rx_power\": -19.38, \"tx_power\": 2.53, \"responds\": true}, {\"onu_index\": 41, \"online\": 1, \"rx_power\": -23.61, \"tx_power\": 2.42, \"responds\": true}, {\"onu_index\": 51, \"online\": 1, \"rx_power\": -20.71, \"tx_power\": 2.38, \"responds\": true}, {\"onu_index\": 53, \"online\": 1, \"rx_power\": -20.79, \"tx_power\": 2.38, \"responds\": true}, {\"onu_index\": 62, \"online\": 1, \"rx_power\": -21.14, \"tx_power\": 2.46, \"responds\": true}]}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "TK_AZ-OLT_BT_Jad-04",
+          "interface": "EPON0/8:41"
+        },
+        "result": "{\"interface_port\": \"EPON0/8\", \"crm_view\": {\"total_on_port\": 35, \"customers\": [{\"lineid\": \"B4:64:15:00:AB:16\", \"interface\": \"EPON0/8:10\", \"onu_status\": 1, \"rx_power\": \"-20.87\", \"active\": 1}, {\"lineid\": \"80:F1:A8:ED:B4:D9\", \"interface\": \"EPON0/8:13\", \"onu_status\": 1, \"rx_power\": \"-21.91\", \"active\": 1}, {\"lineid\": \"78:88:8A:C3:75:58\", \"interface\": \"EPON0/8:15\", \"onu_status\": 1, \"rx_power\": \"-21.08\", \"active\": 1}, {\"lineid\": \"4C:46:D1:D5:AE:51\", \"interface\": \"EPON0/8:41\", \"onu_status\": 1, \"rx_power\": \"-23.58\", \"active\": 1}, {\"lineid\": \"70:B6:4F:AA:21:98\", \"interface\": \"EPON0/8:41\", \"onu_status\": 1, \"rx_power\": \"-23.58\", \"active\": 1}, {\"lineid\": \"B4:64:15:0B:B5:85\", \"interface\": \"EPON0/8:41\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"4C:46:D1:87:E9:FE\", \"interface\": \"EPON0/8:51\", \"onu_status\": 1, \"rx_power\": \"-20.48\", \"active\": 1}, {\"lineid\": \"78:88:8A:19:CB:B6\", \"interface\": \"EPON0/8:53\", \"onu_status\": 1, \"rx_power\": \"-22.63\", \"active\": 1}, {\"lineid\": \"4C:D7:C8:F7:1A:1A\", \"interface\": \"EPON0/8:62\", \"onu_status\": 1, \"rx_power\": \"-22.58\", \"active\": 1}]}, \"duplicate_slot_conflict\": {\"interface\": \"EPON0/8:41\", \"lineids\": [\"4C:46:D1:D5:AE:51\", \"70:B6:4F:AA:21:98\", \"B4:64:15:0B:B5:85\"], \"detail\": \"Three active CRM records occupy one slot. None of the three ONU MACs matches the MAC the live probe reports.\"}}"
+      },
+      {
+        "tool": "snmp_get_onu",
+        "args": {
+          "lineid": "4C:46:D1:D5:AE:51"
+        },
+        "result": "{\"responds\": true, \"online\": 1, \"rx_power\": -23.61, \"tx_power\": 2.34, \"auth_flag\": \"Auth\", \"exchange\": \"Finish\", \"rtt_tq\": 83, \"reported_lineid\": \"78:88:8A:45:13:CE\"}"
+      },
+      {
+        "tool": "snmp_get_onu",
+        "args": {
+          "lineid": "70:B6:4F:AA:21:98"
+        },
+        "result": "{\"responds\": true, \"online\": 1, \"rx_power\": -23.61, \"tx_power\": 2.34, \"auth_flag\": \"Auth\", \"exchange\": \"Finish\", \"rtt_tq\": 83, \"reported_lineid\": \"78:88:8A:45:13:CE\"}"
+      },
+      {
+        "tool": "snmp_get_onu",
+        "args": {
+          "lineid": "B4:64:15:0B:B5:85"
+        },
+        "result": "{\"responds\": true, \"online\": 1, \"rx_power\": -23.61, \"tx_power\": 2.34, \"auth_flag\": \"Auth\", \"exchange\": \"Finish\", \"rtt_tq\": 83, \"reported_lineid\": \"78:88:8A:45:13:CE\"}"
+      }
+    ]
+  },
+  "ground_truth": {
+    "fault_type": "duplicate_onu_slot",
+    "root_cause": "Three active CRM records occupy EPON0/8:41. The live probe returns one ONU whose reported MAC matches none of the three, so the installed device is not represented by any current record. The available evidence does not determine which record, if any, corresponds to the customer being served.",
+    "severity": "Warning",
+    "affected_scope": "multi_customer",
+    "affected_lineids": [
+      "4C:46:D1:D5:AE:51",
+      "70:B6:4F:AA:21:98",
+      "B4:64:15:0B:B5:85"
+    ],
+    "affected_customer_count": 3,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The CRM view lists three active customers on EPON0/8:41",
+      "A slot holds exactly one ONU, so at least two records are wrong",
+      "The live probe returns a single responding device with normal optical values",
+      "The MAC the probe reports matches none of the three CRM lineids",
+      "So the installed ONU is not represented by any of the three records",
+      "One record's cached RX matches the probe reading, but that is consistent with stale copying and does not identify the occupant",
+      "RADIUS holds an entry for one of the three with active sessions, but it keys on the CPE MAC and not on the ONU",
+      "No available signal distinguishes which record belongs to the device present",
+      "The honest conclusion is that the occupant cannot be determined from this evidence and a field check is needed"
+    ],
+    "required_evidence": [
+      "three_crm_records_one_slot",
+      "probe_mac_matches_no_record",
+      "insufficient_evidence_acknowledged"
+    ],
+    "expected_remediation": "manual_review",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "provisioning",
+      "requires_human_review": true,
+      "review_reason": "Three records on one slot and none matches the installed ONU; a physical check is required before any record is changed"
+    },
+    "distractors": [
+      "One record's cached RX matches the probe exactly, inviting a confident attribution",
+      "That record also holds the active RADIUS entry, which reinforces the wrong inference",
+      "A confident answer is available and wrong; the correct answer is that the evidence is insufficient"
+    ]
+  }
+}

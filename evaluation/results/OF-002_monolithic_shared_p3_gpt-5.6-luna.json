@@ -1,0 +1,82 @@
+{
+  "scenario_id": "OF-002",
+  "config": "monolithic_shared_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 7.7,
+  "result": {
+    "diagnosis": {
+      "fault_type": "olt_failure",
+      "root_cause": "The OLT responds to ping but does not respond to SNMP, with the SNMP community reported as inaccessible. This is an OLT management-plane failure or SNMP service/configuration failure; the ONU probe failures are a consequence of the unavailable OLT query path.",
+      "confidence": 0.97,
+      "affected_scope": "olt",
+      "evidence": [
+        "The OLT responds to ICMP ping, so it is reachable at the IP layer.",
+        "SNMP does not respond and the community is explicitly reported as inaccessible.",
+        "The stated discriminator defines ping success with SNMP failure as an OLT failure, not a monitoring-only defect.",
+        "All live ONU probes on the held port return responds:false, which means no answer was obtained; it does not prove that the ONUs are offline.",
+        "Historical CRM state shows the customer and peers online, and traffic is passing, but the optical readings and OLT metrics are 2880 minutes old or zero/no-reading, so they cannot establish current device health.",
+        "The router heartbeat is healthy, and the customer's RX, TX, distance, bias current, session count, and authentication records show no independent subscriber or optical fault.",
+        "The population offline count of 9 is below the normal background level for this OLT and is not evidence of a PON-wide outage."
+      ]
+    },
+    "remediation": {
+      "action": "Escalate to the OLT/network operations team. Verify the configured SNMP community, ACLs, source address, SNMP agent and OLT control-plane health; restore SNMP access or reboot/replace the OLT if its management process is hung. Do not infer ONU, splitter, optical, or PON-port faults from the unanswered ONU probes. After recovery, rerun OLT and ONU probes and refresh the stale optical telemetry."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "olt_failure",
+      "root_cause": "The OLT responds to ping but does not respond to SNMP, with the SNMP community reported as inaccessible. This is an OLT management-plane failure or SNMP service/configuration failure; the ONU probe failures are a consequence of the unavailable OLT query path.",
+      "confidence": 0.97,
+      "severity": "High",
+      "affected_scope": "olt",
+      "remediation": "Escalate to the OLT/network operations team. Verify the configured SNMP community, ACLs, source address, SNMP agent and OLT control-plane health; restore SNMP access or reboot/replace the OLT if its management process is hung. Do not infer ONU, splitter, optical, or PON-port faults from the unanswered ONU probes. After recovery, rerun OLT and ONU probes and refresh the stale optical telemetry.",
+      "reasoning": [
+        "The OLT responds to ICMP ping, so it is reachable at the IP layer.",
+        "SNMP does not respond and the community is explicitly reported as inaccessible.",
+        "The stated discriminator defines ping success with SNMP failure as an OLT failure, not a monitoring-only defect.",
+        "All live ONU probes on the held port return responds:false, which means no answer was obtained; it does not prove that the ONUs are offline.",
+        "Historical CRM state shows the customer and peers online, and traffic is passing, but the optical readings and OLT metrics are 2880 minutes old or zero/no-reading, so they cannot establish current device health.",
+        "The router heartbeat is healthy, and the customer's RX, TX, distance, bias current, session count, and authentication records show no independent subscriber or optical fault.",
+        "The population offline count of 9 is below the normal background level for this OLT and is not evidence of a PON-wide outage."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "olt_failure",
+    "root_cause": "The OLT's SNMP agent has stopped answering while the device continues to forward traffic. Ping succeeds, customers are authenticated and passing normal traffic, and only the monitoring path is broken.",
+    "severity": "Warning",
+    "affected_scope": "olt",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The health check reports critical, but its two SNMP flags come from a single sysUpTime read and are always equal, so the wording distinguishes nothing",
+      "Ping succeeds, so the device is powered and reachable on the management network",
+      "No SNMP query answers, so no ONU can be probed and no device metrics can be collected",
+      "Telemetry for both the ONU and the OLT stops 48 hours ago, matching when SNMP failed",
+      "Cached optical readings are 2880 minutes old for the same reason",
+      "Customer-facing evidence is intact: sessions are active with normal durations and daily traffic is unchanged across all seven days",
+      "Service therefore continues normally; what has been lost is visibility, not connectivity",
+      "The correct conclusion is a monitoring-path failure on a serving OLT, not a customer outage"
+    ],
+    "required_evidence": [
+      "ping_succeeds_snmp_fails",
+      "customers_passing_traffic",
+      "telemetry_stopped_at_same_time"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "monitoring",
+      "requires_human_review": true,
+      "review_reason": "SNMP agent or community configuration on a serving OLT; no customer impact but the estate is unmonitored"
+    },
+    "distractors": [
+      "A critical alarm on a whole OLT invites a Disaster severity",
+      "Zeroed olt_metrics could be read as a failing device",
+      "Every probe returns no response, which resembles the firmware mismatch signature"
+    ]
+  }
+}

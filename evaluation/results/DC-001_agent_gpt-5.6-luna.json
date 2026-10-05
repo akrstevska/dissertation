@@ -1,0 +1,234 @@
+{
+  "scenario_id": "DC-001",
+  "config": "agent",
+  "model": "gpt-5.6-luna",
+  "seconds": 45.2,
+  "result": {
+    "trigger": "threshold_breach",
+    "trigger_input": {
+      "signal": "rx_power_change",
+      "lineid": "4C:46:D1:54:78:1B",
+      "value": -22.08
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [
+        {
+          "type": "rx_power_change",
+          "value": "-2.67 dBm over 168 hours; current -22.08 dBm",
+          "threshold": "Healthy optical RX variation is within +/-0.3 dBm over 24 hours; current RX power is normal from -20 to -25 dBm"
+        }
+      ],
+      "preliminary_severity": "Warning",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "4C:46:D1:54:78:1B"
+      ],
+      "olt_id": "10087",
+      "interface": "EPON0/3:17",
+      "summary": "The customer's RX power remains in the normal band but changed by -2.67 dBm over the 7-day trend, exceeding the healthy optical variation threshold."
+    },
+    "diagnosis": {
+      "fault_type": "distance_change",
+      "root_cause": "The recorded fibre distance stepped abruptly from 112 m to 268 m during the 168-hour window. The RX reduction occurred with this path change, while TX power and TX bias remained healthy; the evidence does not settle whether the physical path changed or the record began pointing to a different path.",
+      "confidence": 0.98,
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "4C:46:D1:54:78:1B"
+      ],
+      "evidence": [
+        "The distance series is stable at 112 m for 96 samples and then steps to 268 m for the remaining samples, rather than drifting gradually.",
+        "RX power changed from -19.36 dBm to -22.03 dBm in the same window but remains in the normal -20 to -25 dBm band at the live reading of -22.05 dBm.",
+        "TX power stayed healthy and stable at approximately 2.35 dBm, and TX bias remained healthy at approximately 11.21 mA with only a 0.21 mA change.",
+        "The ONU is online and authenticated, with 3 sessions in 24 hours and an average duration of 658 minutes, so there is no session-flapping indication.",
+        "All seven probed ONUs on EPON0/3 are online and responding, so peers are not affected and there is no shared port or splitter failure.",
+        "The OLT responds to ping and SNMP, ruling out an OLT failure.",
+        "The live SNMP RX reading of -22.05 dBm closely matches the stored CRM value of -22.08 dBm."
+      ],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "remediation": {
+      "action": "dispatch_technician",
+      "automated": false,
+      "reason": "The abrupt fibre distance change from 112 m to 268 m, accompanied by reduced RX power, indicates possible physical path alteration or incorrect path association. Physical fibre, splitter, and records need on-site verification. An ONU reset is not appropriate because the ONU is online, authenticated, and stable; shared infrastructure failure is unlikely because peers and the OLT are healthy.",
+      "instructions": "Inspect and test the customer's fibre path, connectors, splitter assignment, and termination; verify the actual distance and optical levels end to end. Confirm that the recorded line ID and physical path correspond to this ONU, and correct the network records if the path association is wrong.",
+      "alternatives_considered": [
+        {
+          "action": "onu_reset",
+          "rejected_because": "The ONU is online, authenticated, and not showing session flapping or a reset-related fault."
+        },
+        {
+          "action": "escalate_infrastructure",
+          "rejected_because": "All probed ONUs on EPON0/3 are online and the OLT is responding, so there is no evidence of a shared PON, OLT, or router failure."
+        },
+        {
+          "action": "no_action",
+          "rejected_because": "The abrupt distance step and associated RX reduction require physical and record verification despite the ONU remaining within the normal live RX range."
+        }
+      ]
+    },
+    "escalation": {
+      "priority": "Warning",
+      "category": "field_service",
+      "requires_human_review": true,
+      "review_reason": "The evidence is ambiguous between a physical fibre-path change and an incorrect CRM/network path-association record. A technician must verify the physical path and determine whether the CRM or provisioning record requires correction.",
+      "summary": "A single ONU on EPON0/3:17 experienced a 2.67 dBm RX decrease after the recorded fibre distance stepped from 112 m to 268 m. The live RX level remains normal at approximately -22.05 dBm, TX power and bias are healthy, the ONU is online and stable, all peers are healthy, and there is no service impact. Dispatch a technician to verify the fibre path, connectors, splitter assignment, termination, optical levels, and line-ID/path association; correct the CRM or provisioning record if it is wrong.",
+      "affected_customer_count": 1,
+      "service_impact": false
+    },
+    "trace": [
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "4C:46:D1:54:78:1B"
+        },
+        "result": "{\"customer_id\": 10122, \"lineid\": \"4C:46:D1:54:78:1B\", \"mac\": \"80:AF:CA:76:77:B6\", \"interface\": \"EPON0/3:17\", \"olt_id\": \"10087\", \"olt_host\": \"TK_AF-OLT_SR01\", \"olt_ip\": \"10.220.1.3\", \"olt_technology\": \"EPON\", \"olt_model\": \"V1600D\", \"router_id\": 35, \"router_name\": \"TK_Router_SR01\", \"profile\": \"profile_20M\", \"active\": 1, \"deleted\": 0, \"onu_model\": \"Aztech 1G\", \"onu_type\": \"Bridge\", \"has_catv\": 0, \"has_voip\": 0, \"catv_service\": 0, \"catv_synced\": 1, \"city\": \"Strumica\", \"area\": \"SR\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "4C:46:D1:54:78:1B"
+        },
+        "result": "{\"onu_status\": 1, \"rx_power\": \"-22.08\", \"tx_power\": \"2.36\", \"reading_age_minutes\": 58}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "4C:46:D1:54:78:1B",
+          "signal": "rx_power"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 168, \"first\": -19.36, \"last\": -22.03, \"min\": -22.5, \"max\": -19.08, \"mean\": -20.43, \"range\": 3.42, \"change\": -2.67, \"gaps\": 0}}}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "4C:46:D1:54:78:1B"
+        },
+        "result": "{\"count_24h\": 3, \"count_7d\": 17, \"avg_duration_minutes\": 658, \"last_disconnect\": \"2026-09-15T22:24:00Z\", \"recent\": [{\"start\": \"2026-09-15T22:24:00Z\", \"end\": null, \"duration_s\": 36559, \"ip\": \"10.5.50.77\"}, {\"start\": \"2026-09-15T12:13:17Z\", \"end\": \"2026-09-16T01:01:56Z\", \"duration_s\": 46119, \"ip\": \"10.5.50.77\"}, {\"start\": \"2026-09-14T23:23:09Z\", \"end\": \"2026-09-15T11:50:49Z\", \"duration_s\": 44860, \"ip\": \"10.5.50.77\"}]}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "10087",
+          "interface": "EPON0/3:17"
+        },
+        "result": "{\"interface_port\": \"EPON0/3\", \"crm_view\": {\"total_on_port\": 21, \"customers\": [{\"lineid\": \"78:88:8A:76:4F:05\", \"interface\": \"EPON0/3:6\", \"onu_status\": 1, \"rx_power\": \"-21.13\", \"active\": 1}, {\"lineid\": \"4C:D7:C8:1A:EA:D9\", \"interface\": \"EPON0/3:10\", \"onu_status\": 1, \"rx_power\": \"-22.94\", \"active\": 1}, {\"lineid\": \"4C:46:D1:5B:BF:E6\", \"interface\": \"EPON0/3:16\", \"onu_status\": 1, \"rx_power\": \"-19.41\", \"active\": 1}, {\"lineid\": \"4C:46:D1:54:78:1B\", \"interface\": \"EPON0/3:17\", \"onu_status\": 1, \"rx_power\": \"-22.08\", \"active\": 1}, {\"lineid\": \"B4:64:15:72:90:96\", \"interface\": \"EPON0/3:20\", \"onu_status\": 1, \"rx_power\": \"-19.86\", \"active\": 1}, {\"lineid\": \"00:A1:07:DE:96:3E\", \"interface\": \"EPON0/3:28\", \"onu_status\": 1, \"rx_power\": \"-18.72\", \"active\": 1}, {\"lineid\": \"4C:D7:C8:EE:E1:F2\", \"interface\": \"EPON0/3:33\", \"onu_status\": 1, \"rx_power\": \"-23.07\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "get_olt_health",
+        "args": {
+          "olt_id": "10087"
+        },
+        "result": "{\"olt_ip\": \"10.220.1.3\", \"olt_host\": \"TK_AF-OLT_SR01\", \"olt_technology\": \"EPON\", \"olt_ext_id\": \"10087\", \"ping_ok\": true, \"snmp_community_ok\": true, \"snmp_response_ok\": true, \"total_pons_tested\": 6, \"healthy_pons\": 6, \"failed_pons_list\": [], \"error_description\": null, \"overall_status\": \"healthy\", \"run_date\": \"2026-09-16\"}"
+      },
+      {
+        "tool": "get_olt_population",
+        "args": {
+          "olt_id": "10087"
+        },
+        "result": "{\"total_customers\": 148, \"pon_ports_in_use\": 6, \"customers_per_port\": {\"EPON0/1\": 25, \"EPON0/2\": 25, \"EPON0/3\": 21, \"EPON0/4\": 25, \"EPON0/5\": 25, \"EPON0/6\": 27}, \"onu_online_count\": 139, \"onu_offline_count\": 9}"
+      },
+      {
+        "tool": "get_traffic",
+        "args": {
+          "lineid": "4C:46:D1:54:78:1B"
+        },
+        "result": "{\"download_mb_daily\": [1040, 995, 1080, 1010, 960, 1030, 1000], \"upload_mb_daily\": [6332, 6014, 6369, 5866, 5884, 6120, 6161], \"monthly_avg_download_mb\": 1016, \"monthly_avg_upload_mb\": 6106, \"pon_port_traffic\": {\"current_mbps\": 161, \"avg_mbps\": 158, \"peak_mbps\": 470}}"
+      },
+      {
+        "tool": "snmp_get_onu",
+        "args": {
+          "lineid": "4C:46:D1:54:78:1B"
+        },
+        "result": "{\"responds\": true, \"online\": 1, \"rx_power\": -22.05, \"tx_power\": 2.37, \"auth_flag\": \"Auth\", \"exchange\": \"Finish\", \"rtt_tq\": 96}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "4C:46:D1:54:78:1B",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 168, \"first\": -19.36, \"last\": -22.03, \"min\": -22.5, \"max\": -19.08, \"mean\": -20.43, \"range\": 3.42, \"change\": -2.67, \"gaps\": 0}, \"tx_power\": {\"available\": true, \"points\": 168, \"first\": 2.33, \"last\": 2.36, \"min\": 2.21, \"max\": 2.44, \"mean\": 2.35, \"range\": 0.23, \"change\": 0.03, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 22.78, \"last\": 21.65, \"min\": 19.82, \"max\": 24.03, \"mean\": 22.01, \"range\": 4.21, \"change\": -1.13, \"gaps\": 0}, \"distance\": {\"available\": true, \"points\": 168, \"first\": 112, \"last\": 268, \"min\": 112, \"max\": 268, \"mean\": 171.43, \"range\": 156, \"change\": 156, \"gaps\": 0}, \"tx_bias_current\": {\"available\": true, \"points\": 168, \"first\": 11.17, \"last\": 11.38, \"min\": 10.74, \"max\": 11.48, \"mean\": 11.21, \"range\": 0.74, \"change\": 0.21, \"gaps\": 0}, \"supply_voltage\": {\"available\": true, \"points\": 168, \"first\": 3.43, \"last\": 3.43, \"min\": 3.4, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.06, \"change\": 0.0, \"gaps\": 0}, \"speed_kbps\": {\"available\": true, \"points\": 168, \"first\": 7.47, \"last\": 9.18, \"min\": 0.05, \"max\": 10.94, \"mean\": 5.34, \"range\": 10.89, \"change\": 1.71, \"gaps\": 0}}}"
+      },
+      {
+        "tool": "snmp_probe_pon_port",
+        "args": {
+          "olt_id": "10087",
+          "interface": "EPON0/3:17"
+        },
+        "result": "{\"interface_port\": \"EPON0/3\", \"onus\": [{\"onu_index\": 6, \"online\": 1, \"rx_power\": -22.63, \"tx_power\": 2.29, \"responds\": true}, {\"onu_index\": 10, \"online\": 1, \"rx_power\": -22.93, \"tx_power\": 2.29, \"responds\": true}, {\"onu_index\": 16, \"online\": 1, \"rx_power\": -20.04, \"tx_power\": 2.46, \"responds\": true}, {\"onu_index\": 17, \"online\": 1, \"rx_power\": -22.05, \"tx_power\": 2.42, \"responds\": true}, {\"onu_index\": 20, \"online\": 1, \"rx_power\": -21.24, \"tx_power\": 2.55, \"responds\": true}, {\"onu_index\": 28, \"online\": 1, \"rx_power\": -21.67, \"tx_power\": 2.44, \"responds\": true}, {\"onu_index\": 33, \"online\": 1, \"rx_power\": -21.31, \"tx_power\": 2.48, \"responds\": true}]}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "10087",
+          "interface": "EPON0/3:17"
+        },
+        "result": "{\"interface_port\": \"EPON0/3\", \"crm_view\": {\"total_on_port\": 21, \"customers\": [{\"lineid\": \"78:88:8A:76:4F:05\", \"interface\": \"EPON0/3:6\", \"onu_status\": 1, \"rx_power\": \"-21.13\", \"active\": 1}, {\"lineid\": \"4C:D7:C8:1A:EA:D9\", \"interface\": \"EPON0/3:10\", \"onu_status\": 1, \"rx_power\": \"-22.94\", \"active\": 1}, {\"lineid\": \"4C:46:D1:5B:BF:E6\", \"interface\": \"EPON0/3:16\", \"onu_status\": 1, \"rx_power\": \"-19.41\", \"active\": 1}, {\"lineid\": \"4C:46:D1:54:78:1B\", \"interface\": \"EPON0/3:17\", \"onu_status\": 1, \"rx_power\": \"-22.08\", \"active\": 1}, {\"lineid\": \"B4:64:15:72:90:96\", \"interface\": \"EPON0/3:20\", \"onu_status\": 1, \"rx_power\": \"-19.86\", \"active\": 1}, {\"lineid\": \"00:A1:07:DE:96:3E\", \"interface\": \"EPON0/3:28\", \"onu_status\": 1, \"rx_power\": \"-18.72\", \"active\": 1}, {\"lineid\": \"4C:D7:C8:EE:E1:F2\", \"interface\": \"EPON0/3:33\", \"onu_status\": 1, \"rx_power\": \"-23.07\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "snmp_probe_olt",
+        "args": {
+          "olt_id": "10087"
+        },
+        "result": "{\"ping_ok\": true, \"snmp_responds\": true, \"sys_uptime_seconds\": 7862400, \"oid_subtree_responds\": true}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "4C:46:D1:54:78:1B"
+        },
+        "result": "{\"count_24h\": 3, \"count_7d\": 17, \"avg_duration_minutes\": 658, \"last_disconnect\": \"2026-09-15T22:24:00Z\", \"recent\": [{\"start\": \"2026-09-15T22:24:00Z\", \"end\": null, \"duration_s\": 36559, \"ip\": \"10.5.50.77\"}, {\"start\": \"2026-09-15T12:13:17Z\", \"end\": \"2026-09-16T01:01:56Z\", \"duration_s\": 46119, \"ip\": \"10.5.50.77\"}, {\"start\": \"2026-09-14T23:23:09Z\", \"end\": \"2026-09-15T11:50:49Z\", \"duration_s\": 44860, \"ip\": \"10.5.50.77\"}]}"
+      },
+      {
+        "tool": "get_optical_series_raw",
+        "args": {
+          "lineid": "4C:46:D1:54:78:1B",
+          "signal": "distance",
+          "last_n": 168
+        },
+        "result": "{\"signal\": \"distance\", \"values\": [112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 112, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268]}"
+      }
+    ]
+  },
+  "ground_truth": {
+    "fault_type": "distance_change",
+    "root_cause": "The measured optical distance stepped from 112 m to 268 m two and a half days ago, with a matching 2.7 dB RX drop. The fibre path was physically re-routed, most likely a re-splice or a patch onto a different feeder.",
+    "severity": "Warning",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "4C:46:D1:54:78:1B"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": false,
+    "expected_reasoning": [
+      "RX dropped from -19.4 to -22.1 dBm, which alone would suggest attenuation",
+      "The drop is a single step, not a slope, and RX has been stable at the new level since",
+      "Distance stepped from 112 m to 268 m at the same moment",
+      "Distance is constant per customer in normal operation, so a step means the physical path changed",
+      "The 2.7 dB loss is consistent with 156 m of additional fibre plus a splice",
+      "TX power, bias current and supply voltage are all unchanged, so the ONU is not involved",
+      "RTT timing quantum of 96 corroborates the longer path",
+      "Service is unaffected: sessions and traffic are normal at the new signal level",
+      "This is a recorded path change, not a developing fault"
+    ],
+    "required_evidence": [
+      "distance_step_detected",
+      "rx_step_not_slope",
+      "timing_corroborates_distance"
+    ],
+    "expected_remediation": "verify_physical_path",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "field_service",
+      "requires_human_review": true,
+      "review_reason": "Confirm the re-route was intentional and update plant records"
+    },
+    "distractors": [
+      "The RX drop looks like fibre degradation if distance is not consulted",
+      "The trigger is phrased as an RX threshold breach, pointing at the wrong signal",
+      "Service is unaffected, inviting a no_fault conclusion"
+    ]
+  }
+}

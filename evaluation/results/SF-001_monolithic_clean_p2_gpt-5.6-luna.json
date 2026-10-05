@@ -1,0 +1,88 @@
+{
+  "scenario_id": "SF-001",
+  "config": "monolithic_clean_p2",
+  "model": "gpt-5.6-luna",
+  "seconds": 7.8,
+  "result": {
+    "diagnosis": {
+      "fault_type": "session_flapping_signal",
+      "root_cause": "Marginal, oscillating RX optical power on this customer's fibre path. RX remains in the degraded band and repeatedly reaches critical levels, while TX power, TX bias, distance, peers, OLT, router, authentication, and VLAN provisioning are healthy. The 16 sessions in 24 hours with short durations are signal-induced flapping.",
+      "confidence": 0.98,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The ONU is currently online and responding, so this is not an ONU-offline fault.",
+        "The customer's current RX power is -27.94 dBm, in the degraded band and close to critical; telemetry repeatedly swings between approximately -24 dBm and below -28 dBm.",
+        "The telemetry starts and ends in the degraded band, so under the stated discriminator this is not classified as a declining link; it is a marginal link oscillating in and out of usable range.",
+        "There are 16 sessions in 24 hours, above the 8-session flapping threshold, and the 71-minute average duration is far below the 11.9-hour network mean.",
+        "TX power stays near the healthy mean of +2.3 dBm and TX bias remains stable around 11 mA, ruling out laser degradation.",
+        "Distance remains constant at 302 m, ruling out a distance or fibre-path reassignment event.",
+        "All tested peers on EPON0/2 are online with materially better RX levels, so the fault is isolated to this customer's path rather than the PON port or splitter.",
+        "The OLT responds to ping and SNMP, has normal CPU, memory, temperature, and all seven tested PONs are healthy; the router heartbeat is also healthy.",
+        "RADIUS records are present and CRM-consistent, the expected VLAN 1092 is active, and the customer is passing traffic, so authentication and provisioning are not the presenting fault."
+      ]
+    },
+    "remediation": {
+      "action": "Dispatch field support to inspect and clean the ONU, connectors, patching, splitter/drop termination, and customer fibre path; measure optical loss and repair or replace the degraded segment as necessary. Recheck RX stability and session count after repair. Do not replace the OLT, router, or RADIUS configuration based on the current evidence."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "session_flapping_signal",
+      "root_cause": "Marginal, oscillating RX optical power on this customer's fibre path. RX remains in the degraded band and repeatedly reaches critical levels, while TX power, TX bias, distance, peers, OLT, router, authentication, and VLAN provisioning are healthy. The 16 sessions in 24 hours with short durations are signal-induced flapping.",
+      "confidence": 0.98,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Dispatch field support to inspect and clean the ONU, connectors, patching, splitter/drop termination, and customer fibre path; measure optical loss and repair or replace the degraded segment as necessary. Recheck RX stability and session count after repair. Do not replace the OLT, router, or RADIUS configuration based on the current evidence.",
+      "reasoning": [
+        "The ONU is currently online and responding, so this is not an ONU-offline fault.",
+        "The customer's current RX power is -27.94 dBm, in the degraded band and close to critical; telemetry repeatedly swings between approximately -24 dBm and below -28 dBm.",
+        "The telemetry starts and ends in the degraded band, so under the stated discriminator this is not classified as a declining link; it is a marginal link oscillating in and out of usable range.",
+        "There are 16 sessions in 24 hours, above the 8-session flapping threshold, and the 71-minute average duration is far below the 11.9-hour network mean.",
+        "TX power stays near the healthy mean of +2.3 dBm and TX bias remains stable around 11 mA, ruling out laser degradation.",
+        "Distance remains constant at 302 m, ruling out a distance or fibre-path reassignment event.",
+        "All tested peers on EPON0/2 are online with materially better RX levels, so the fault is isolated to this customer's path rather than the PON port or splitter.",
+        "The OLT responds to ping and SNMP, has normal CPU, memory, temperature, and all seven tested PONs are healthy; the router heartbeat is also healthy.",
+        "RADIUS records are present and CRM-consistent, the expected VLAN 1092 is active, and the customer is passing traffic, so authentication and provisioning are not the presenting fault."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "session_flapping_signal",
+    "root_cause": "RX power oscillates between roughly -24.4 and -28.2 dBm on an eleven hour cycle, crossing the threshold at which the link stops being usable. The session drops follow the signal excursions.",
+    "severity": "Warning",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "70:B6:4F:E2:C6:47"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Sixteen sessions in 24 hours against a 2-3 baseline, with a 71 minute mean duration",
+      "Cached RX is -26.28 dBm, already in the degraded band",
+      "Telemetry shows RX oscillating between about -24.4 and -28.2 dBm on an eleven hour cycle",
+      "The lower excursions cross -28 dBm, at which point the link becomes unusable",
+      "Live RX of -27.94 confirms the signal is currently near the bottom of that swing",
+      "TX power, bias current, supply voltage and distance are all stable, so the ONU is healthy",
+      "RADIUS is clean with a single consistent entry and no mismatches",
+      "Peers on EPON0/2 read normal, so the fault is in this customer's own path",
+      "The session pattern tracks the signal excursions, so the optical fault explains the flapping"
+    ],
+    "required_evidence": [
+      "rx_oscillates_across_threshold",
+      "radius_confirmed_clean",
+      "session_pattern_tracks_signal"
+    ],
+    "expected_remediation": "dispatch_technician",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "field_service",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "The trigger names the session count, pointing at the auth layer",
+      "Sixteen disconnects is well within the observed flapping tail and could be read as a CPE fault"
+    ]
+  }
+}

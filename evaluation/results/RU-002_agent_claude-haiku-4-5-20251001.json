@@ -1,0 +1,89 @@
+{
+  "scenario_id": "RU-002",
+  "config": "agent",
+  "model": "claude-haiku-4-5-20251001",
+  "seconds": 0.0,
+  "result": {
+    "trigger": "scheduled_scan",
+    "trigger_input": {
+      "scope": "router",
+      "target": "TK_Skopje15-Madzari01"
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [],
+      "preliminary_severity": "Warning",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        ""
+      ],
+      "olt_id": null,
+      "interface": null,
+      "summary": "stub"
+    },
+    "diagnosis": {
+      "fault_type": "no_fault",
+      "root_cause": "stub",
+      "confidence": 0.5,
+      "affected_scope": "single_customer",
+      "affected_lineids": [],
+      "evidence": [],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "remediation": {
+      "action": "no_action",
+      "automated": false,
+      "reason": "stub",
+      "instructions": "",
+      "alternatives_considered": []
+    },
+    "escalation": {
+      "priority": "Warning",
+      "category": "monitoring",
+      "requires_human_review": false,
+      "review_reason": null,
+      "summary": "stub",
+      "affected_customer_count": 0,
+      "service_impact": false
+    },
+    "trace": []
+  },
+  "ground_truth": {
+    "fault_type": "no_fault",
+    "root_cause": "The router has no check-in record of any kind, which means it was never enrolled in heartbeat monitoring rather than that it stopped responding. Its customers are authenticated, holding long sessions and passing normal traffic.",
+    "severity": "Information",
+    "affected_scope": "none",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The router's heartbeat status is 'never' with a null last_checkin",
+      "That is different from a heartbeat that went stale, which would carry a timestamp and an elapsed time",
+      "No record at all indicates the router was never enrolled in the check-in mechanism",
+      "The ONU behind it is online with RX -21.9 and TX 2.3, both normal",
+      "The live probe confirms the ONU and its peers are all responding normally",
+      "Sessions are active with a 683 minute mean, close to the 11.9 hour network norm",
+      "Daily traffic is steady across all seven days with no interruption",
+      "Customers on this router are being served, so there is no outage",
+      "The finding is a monitoring gap, not a network fault"
+    ],
+    "required_evidence": [
+      "never_checked_in_not_stale",
+      "customers_passing_traffic",
+      "sessions_normal_duration"
+    ],
+    "expected_remediation": "flag_monitoring_defect",
+    "expected_escalation": {
+      "priority": "Information",
+      "category": "monitoring",
+      "requires_human_review": true,
+      "review_reason": "Router is not enrolled in heartbeat monitoring and should be added"
+    },
+    "distractors": [
+      "A null heartbeat looks worse than a stale one and invites a Disaster conclusion",
+      "A scheduled scan targeting the router frames it as the suspect",
+      "The correct answer is that nothing is wrong with the network"
+    ]
+  }
+}

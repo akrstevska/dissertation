@@ -1,0 +1,87 @@
+{
+  "scenario_id": "SV-001",
+  "config": "monolithic_shared_p1",
+  "model": "gpt-5.6-luna",
+  "seconds": 5.5,
+  "result": {
+    "diagnosis": {
+      "fault_type": "stuck_provisioning_vlan46",
+      "root_cause": "The ONU is online with healthy optical levels and authentication, but the customer service is still assigned to VLAN 46, the factory-default/unprovisioned VLAN, instead of the expected customer VLAN 1116. This prevents normal Internet service from being established.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The ONU is currently online and responding, with Auth/Finish state, so this is not an ONU-offline or PON fault.",
+        "Current RX power is -18.95 dBm and TX power is 2.51 dBm, both healthy for EPON.",
+        "Seven days of RX, TX, bias current, distance, voltage, and temperature telemetry are stable; there is no fibre, laser, or distance-change signature.",
+        "All probed peers on EPON0/6 are online, and the OLT and router are healthy, ruling out shared PON, splitter, port, OLT, and router failures.",
+        "The RADIUS entry exists and is CRM-consistent, so this is not a missing-entry, suspended-service, line-ID conflict, duplicate-slot, or replication problem.",
+        "There are zero sessions and zero customer traffic, consistent with service not being provisioned rather than a session-flapping condition.",
+        "The VLAN walk shows customer VLAN 1116 expected but VLAN 46 actually assigned; VLAN 46 is explicitly the factory-default, never-provisioned VLAN.",
+        "The fault is therefore localized to this customer's provisioning and is best classified as stuck_provisioning_vlan46."
+      ]
+    },
+    "remediation": {
+      "action": "Correct the subscriber's service provisioning to assign VLAN 1116 rather than VLAN 46, apply or reload the ONU/line configuration, then verify that a RADIUS session is established, an IP address is assigned, and customer traffic passes. Confirm that VLAN 46 is no longer used for this subscriber."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "stuck_provisioning_vlan46",
+      "root_cause": "The ONU is online with healthy optical levels and authentication, but the customer service is still assigned to VLAN 46, the factory-default/unprovisioned VLAN, instead of the expected customer VLAN 1116. This prevents normal Internet service from being established.",
+      "confidence": 0.99,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Correct the subscriber's service provisioning to assign VLAN 1116 rather than VLAN 46, apply or reload the ONU/line configuration, then verify that a RADIUS session is established, an IP address is assigned, and customer traffic passes. Confirm that VLAN 46 is no longer used for this subscriber.",
+      "reasoning": [
+        "The ONU is currently online and responding, with Auth/Finish state, so this is not an ONU-offline or PON fault.",
+        "Current RX power is -18.95 dBm and TX power is 2.51 dBm, both healthy for EPON.",
+        "Seven days of RX, TX, bias current, distance, voltage, and temperature telemetry are stable; there is no fibre, laser, or distance-change signature.",
+        "All probed peers on EPON0/6 are online, and the OLT and router are healthy, ruling out shared PON, splitter, port, OLT, and router failures.",
+        "The RADIUS entry exists and is CRM-consistent, so this is not a missing-entry, suspended-service, line-ID conflict, duplicate-slot, or replication problem.",
+        "There are zero sessions and zero customer traffic, consistent with service not being provisioned rather than a session-flapping condition.",
+        "The VLAN walk shows customer VLAN 1116 expected but VLAN 46 actually assigned; VLAN 46 is explicitly the factory-default, never-provisioned VLAN.",
+        "The fault is therefore localized to this customer's provisioning and is best classified as stuck_provisioning_vlan46."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "stuck_provisioning_vlan46",
+    "root_cause": "The CPE is still on VLAN 46, the factory-default management VLAN it ships with. The TR-069 provisioning step that migrates it to VLAN 1999 and its data VLAN never completed, so the device is registered on the fibre but has no path onto the network.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "4C:46:D1:09:7C:78"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "The ONU is online with RX -18.92 and TX 2.50, both excellent",
+      "The live probe confirms the ONU and its peers are responding normally",
+      "The OLT and router are healthy, so the physical layer works end to end",
+      "Despite that, the customer has zero sessions and zero traffic since installation",
+      "A radcheck row does exist for this CPE MAC, so this is not a missing RADIUS entry",
+      "The VLAN walk shows the customer on VLAN 46 where VLAN 1116 is expected",
+      "VLAN 46 is the factory-default management VLAN a CPE ships with",
+      "Provisioning should have migrated it to 1999 and the port's data VLAN, and did not",
+      "The device is present on the fibre and has no path onto the network"
+    ],
+    "required_evidence": [
+      "vlan_walk_shows_46",
+      "radcheck_exists_so_not_missing_entry",
+      "physical_layer_confirmed_healthy"
+    ],
+    "expected_remediation": "trigger_acs_provisioning",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "provisioning",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "Zero sessions with a healthy physical layer is also the RADIUS missing-entry signature",
+      "Excellent optical readings invite a no_fault conclusion on the network side",
+      "The VLAN walk is not an obvious first move"
+    ]
+  }
+}

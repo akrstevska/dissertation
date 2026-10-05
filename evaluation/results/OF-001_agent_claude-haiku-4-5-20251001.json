@@ -1,0 +1,89 @@
+{
+  "scenario_id": "OF-001",
+  "config": "agent",
+  "model": "claude-haiku-4-5-20251001",
+  "seconds": 0.0,
+  "result": {
+    "trigger": "health_check_alarm",
+    "trigger_input": {
+      "olt_host": "TK_AZ-OLT_SK-Madzari-01",
+      "overall_status": "offline",
+      "error_description": "OLT is not reachable (ping failed)"
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [],
+      "preliminary_severity": "Warning",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        ""
+      ],
+      "olt_id": null,
+      "interface": null,
+      "summary": "stub"
+    },
+    "diagnosis": {
+      "fault_type": "no_fault",
+      "root_cause": "stub",
+      "confidence": 0.5,
+      "affected_scope": "single_customer",
+      "affected_lineids": [],
+      "evidence": [],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "remediation": {
+      "action": "no_action",
+      "automated": false,
+      "reason": "stub",
+      "instructions": "",
+      "alternatives_considered": []
+    },
+    "escalation": {
+      "priority": "Warning",
+      "category": "monitoring",
+      "requires_human_review": false,
+      "review_reason": null,
+      "summary": "stub",
+      "affected_customer_count": 0,
+      "service_impact": false
+    },
+    "trace": []
+  },
+  "ground_truth": {
+    "fault_type": "olt_failure",
+    "root_cause": "The OLT is not reachable by ICMP and does not answer SNMP. All 139 customers behind it lost service two hours ago. The device is down, powered off, or isolated from the management and transport network.",
+    "severity": "Disaster",
+    "affected_scope": "olt",
+    "affected_lineids": [],
+    "affected_customer_count": 139,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Ping to the OLT fails, so the health check stopped before any SNMP test was attempted",
+      "The live probe confirms neither ICMP nor SNMP answers",
+      "No ONU on the OLT responds, and no probe returns a definite online or offline state",
+      "This differs from the firmware mismatch case, where ping and SNMP both succeed",
+      "All 139 customers on the OLT are offline and sessions ended together two hours ago",
+      "Optical readings are stale by 118 minutes, consistent with polling stopping when the device went down",
+      "The upstream router is still checking in normally, so the fault is the OLT and not the router",
+      "Traffic through the OLT has fallen to zero",
+      "Unreachable by both ICMP and SNMP with total customer loss is a device or transport failure"
+    ],
+    "required_evidence": [
+      "ping_and_snmp_both_fail",
+      "all_customers_affected",
+      "router_still_reachable"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "Disaster",
+      "category": "infrastructure",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "Zero values in olt_metrics could be read as healthy low utilisation",
+      "Stale cached readings might be mistaken for current state"
+    ]
+  }
+}

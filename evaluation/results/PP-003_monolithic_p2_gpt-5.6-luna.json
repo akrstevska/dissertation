@@ -1,0 +1,90 @@
+{
+  "scenario_id": "PP-003",
+  "config": "monolithic_p2",
+  "model": "gpt-5.6-luna",
+  "seconds": 7.6,
+  "result": {
+    "diagnosis": {
+      "fault_type": "olt_failure",
+      "root_cause": "OLT-wide PON service failure, likely following a recent OLT reboot or failure of its PON subsystem. The OLT management plane remains reachable, but all eight PON ports have lost ONU service.",
+      "confidence": 0.98,
+      "affected_scope": "olt",
+      "evidence": [
+        "The alarm reports all 8 of 8 PONs failed.",
+        "Live probing confirms every tested ONU on EPON0/3 is offline, unauthenticated, and in MPCP deregistration, so the alarm is not merely a monitoring false positive.",
+        "The OLT population shows 224 of 236 customers offline, far beyond the normal background offline level and consistent with an OLT-wide outage.",
+        "All eight PON ports are affected, which rules against a single ONU, single fibre, splitter, or isolated PON-port fault.",
+        "The OLT management plane responds to ping and SNMP, so this is a PON-service failure rather than total OLT management-plane unreachability.",
+        "The OLT uptime is only 2820 seconds and recent ONU telemetry has stopped, indicating a recent reboot or OLT service interruption.",
+        "Historical optical readings were healthy: RX was approximately -20.2 to -20.8 dBm, TX approximately +2.3 dBm, distance stayed at 176 m, and TX bias remained within the healthy range.",
+        "The router heartbeat is healthy, and CPU, memory, and temperature do not indicate a router or severe OLT resource exhaustion problem.",
+        "The customer VLAN is present and matches the expected VLAN, and RADIUS records and session behavior are consistent; authentication is not the cause.",
+        "The affected scope is the entire OLT, making this a disaster-level service impact."
+      ]
+    },
+    "remediation": {
+      "action": "Escalate as an OLT outage. Check OLT reboot and system logs, power supply, firmware, PON chipset and interface state; attempt a controlled service/PON subsystem restart if safe, then verify ONU registration on all eight ports. If service does not recover, replace or fail over the OLT and validate all affected subscribers. Do not dispatch for individual fibre faults before restoring the OLT-wide service."
+    },
+    "escalation": {
+      "priority": "Disaster"
+    },
+    "monolithic": {
+      "fault_type": "olt_failure",
+      "root_cause": "OLT-wide PON service failure, likely following a recent OLT reboot or failure of its PON subsystem. The OLT management plane remains reachable, but all eight PON ports have lost ONU service.",
+      "confidence": 0.98,
+      "severity": "Disaster",
+      "affected_scope": "olt",
+      "remediation": "Escalate as an OLT outage. Check OLT reboot and system logs, power supply, firmware, PON chipset and interface state; attempt a controlled service/PON subsystem restart if safe, then verify ONU registration on all eight ports. If service does not recover, replace or fail over the OLT and validate all affected subscribers. Do not dispatch for individual fibre faults before restoring the OLT-wide service.",
+      "reasoning": [
+        "The alarm reports all 8 of 8 PONs failed.",
+        "Live probing confirms every tested ONU on EPON0/3 is offline, unauthenticated, and in MPCP deregistration, so the alarm is not merely a monitoring false positive.",
+        "The OLT population shows 224 of 236 customers offline, far beyond the normal background offline level and consistent with an OLT-wide outage.",
+        "All eight PON ports are affected, which rules against a single ONU, single fibre, splitter, or isolated PON-port fault.",
+        "The OLT management plane responds to ping and SNMP, so this is a PON-service failure rather than total OLT management-plane unreachability.",
+        "The OLT uptime is only 2820 seconds and recent ONU telemetry has stopped, indicating a recent reboot or OLT service interruption.",
+        "Historical optical readings were healthy: RX was approximately -20.2 to -20.8 dBm, TX approximately +2.3 dBm, distance stayed at 176 m, and TX bias remained within the healthy range.",
+        "The router heartbeat is healthy, and CPU, memory, and temperature do not indicate a router or severe OLT resource exhaustion problem.",
+        "The customer VLAN is present and matches the expected VLAN, and RADIUS records and session behavior are consistent; authentication is not the cause.",
+        "The affected scope is the entire OLT, making this a disaster-level service impact."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "pon_port_failure",
+    "root_cause": "The OLT rebooted 47 minutes ago and its PON ports have not brought subscribers back. All ports are genuinely down: every ONU answers the probe with a definite offline state, sessions ended together at the reboot, and traffic has stopped.",
+    "severity": "Disaster",
+    "affected_scope": "olt",
+    "affected_lineids": [],
+    "affected_customer_count": 224,
+    "service_impact": true,
+    "expected_reasoning": [
+      "The health record wording is identical to the known false-critical signature, so it cannot be trusted either way",
+      "The live probe is decisive: every ONU returns responds true with online 0",
+      "That is a definite negative from the OLT, not an absence of response, so the OID subtree is present and answering",
+      "oid_subtree_responds is true, which rules out the firmware mismatch mechanism",
+      "OLT sys_uptime is 2820 seconds, meaning it rebooted 47 minutes ago",
+      "CRM shows only 12 of 236 ONUs online, far outside the 4.85% background rate",
+      "Sessions across the OLT ended together at the reboot and traffic has fallen to near zero",
+      "This is a genuine OLT-wide outage that happens to produce the same health record as the false positive",
+      "The discriminator is the probe response type, not the alarm text"
+    ],
+    "required_evidence": [
+      "definite_offline_not_no_response",
+      "oid_subtree_responds_true",
+      "olt_recently_rebooted",
+      "customers_not_passing_traffic"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "Disaster",
+      "category": "infrastructure",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "The alarm text is word for word the same as the known false critical",
+      "Ping and SNMP both succeed, which is also true in the false-critical case",
+      "A pipeline that has learned to distrust this alarm will dismiss a real outage"
+    ]
+  }
+}

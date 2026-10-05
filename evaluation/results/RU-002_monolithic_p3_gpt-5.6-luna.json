@@ -1,0 +1,85 @@
+{
+  "scenario_id": "RU-002",
+  "config": "monolithic_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 11.1,
+  "result": {
+    "diagnosis": {
+      "fault_type": "router_unreachable",
+      "root_cause": "The router has never produced a heartbeat record, causing the scheduled router scan to flag it, but this is a monitoring/enrollment or management-plane visibility issue rather than a confirmed service outage. The router is demonstrably serving the subscriber.",
+      "confidence": 0.86,
+      "affected_scope": "router",
+      "evidence": [
+        "The router heartbeat status is \"never\", which means no heartbeat record has ever been collected; it does not establish that the router is currently unreachable.",
+        "The subscriber ONU is online, responds to SNMP, completes authentication, and has normal optical readings: RX -21.9 dBm and TX 2.34 dBm.",
+        "The customer's VLAN is correct: expected and actual customer VLAN are both 1124.",
+        "RADIUS data is present and consistent with CRM, with an active assigned IP and no mismatches.",
+        "The subscriber has three sessions in 24 hours and 17 in seven days, with approximately normal duration, so there is no evidence of session flapping or authentication failure.",
+        "The OLT and EPON0/4 are healthy: all tested ONUs respond, the OLT is reachable, and CPU, memory, and temperature are near baseline.",
+        "The PON has normal traffic and the customer has sustained daily traffic, proving the service path is functioning.",
+        "Because the only material anomaly is the absence of any router heartbeat record, the closest allowed fault classification is router_unreachable, with low operational impact and a monitoring-focused remediation."
+      ]
+    },
+    "remediation": {
+      "action": "Verify the router's monitoring enrollment, management IP, credentials, reachability, and heartbeat agent/configuration. Create or restore the heartbeat record and rerun the router probe. Do not replace the ONU, alter the PON, or dispatch for fibre work unless an independent router reachability test fails."
+    },
+    "escalation": {
+      "priority": "Information"
+    },
+    "monolithic": {
+      "fault_type": "router_unreachable",
+      "root_cause": "The router has never produced a heartbeat record, causing the scheduled router scan to flag it, but this is a monitoring/enrollment or management-plane visibility issue rather than a confirmed service outage. The router is demonstrably serving the subscriber.",
+      "confidence": 0.86,
+      "severity": "Information",
+      "affected_scope": "router",
+      "remediation": "Verify the router's monitoring enrollment, management IP, credentials, reachability, and heartbeat agent/configuration. Create or restore the heartbeat record and rerun the router probe. Do not replace the ONU, alter the PON, or dispatch for fibre work unless an independent router reachability test fails.",
+      "reasoning": [
+        "The router heartbeat status is \"never\", which means no heartbeat record has ever been collected; it does not establish that the router is currently unreachable.",
+        "The subscriber ONU is online, responds to SNMP, completes authentication, and has normal optical readings: RX -21.9 dBm and TX 2.34 dBm.",
+        "The customer's VLAN is correct: expected and actual customer VLAN are both 1124.",
+        "RADIUS data is present and consistent with CRM, with an active assigned IP and no mismatches.",
+        "The subscriber has three sessions in 24 hours and 17 in seven days, with approximately normal duration, so there is no evidence of session flapping or authentication failure.",
+        "The OLT and EPON0/4 are healthy: all tested ONUs respond, the OLT is reachable, and CPU, memory, and temperature are near baseline.",
+        "The PON has normal traffic and the customer has sustained daily traffic, proving the service path is functioning.",
+        "Because the only material anomaly is the absence of any router heartbeat record, the closest allowed fault classification is router_unreachable, with low operational impact and a monitoring-focused remediation."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "no_fault",
+    "root_cause": "The router has no check-in record of any kind, which means it was never enrolled in heartbeat monitoring rather than that it stopped responding. Its customers are authenticated, holding long sessions and passing normal traffic.",
+    "severity": "Information",
+    "affected_scope": "none",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The router's heartbeat status is 'never' with a null last_checkin",
+      "That is different from a heartbeat that went stale, which would carry a timestamp and an elapsed time",
+      "No record at all indicates the router was never enrolled in the check-in mechanism",
+      "The ONU behind it is online with RX -21.9 and TX 2.3, both normal",
+      "The live probe confirms the ONU and its peers are all responding normally",
+      "Sessions are active with a 683 minute mean, close to the 11.9 hour network norm",
+      "Daily traffic is steady across all seven days with no interruption",
+      "Customers on this router are being served, so there is no outage",
+      "The finding is a monitoring gap, not a network fault"
+    ],
+    "required_evidence": [
+      "never_checked_in_not_stale",
+      "customers_passing_traffic",
+      "sessions_normal_duration"
+    ],
+    "expected_remediation": "flag_monitoring_defect",
+    "expected_escalation": {
+      "priority": "Information",
+      "category": "monitoring",
+      "requires_human_review": true,
+      "review_reason": "Router is not enrolled in heartbeat monitoring and should be added"
+    },
+    "distractors": [
+      "A null heartbeat looks worse than a stale one and invites a Disaster conclusion",
+      "A scheduled scan targeting the router frames it as the suspect",
+      "The correct answer is that nothing is wrong with the network"
+    ]
+  }
+}

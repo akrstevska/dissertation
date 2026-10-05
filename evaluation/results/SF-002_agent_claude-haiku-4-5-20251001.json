@@ -1,0 +1,91 @@
+{
+  "scenario_id": "SF-002",
+  "config": "agent",
+  "model": "claude-haiku-4-5-20251001",
+  "seconds": 0.0,
+  "result": {
+    "trigger": "threshold_breach",
+    "trigger_input": {
+      "signal": "session_disconnect_count",
+      "lineid": "00:A1:07:C4:1D:88",
+      "value": 19
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [],
+      "preliminary_severity": "Warning",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "00:A1:07:C4:1D:88"
+      ],
+      "olt_id": null,
+      "interface": null,
+      "summary": "stub"
+    },
+    "diagnosis": {
+      "fault_type": "no_fault",
+      "root_cause": "stub",
+      "confidence": 0.5,
+      "affected_scope": "single_customer",
+      "affected_lineids": [],
+      "evidence": [],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "remediation": {
+      "action": "no_action",
+      "automated": false,
+      "reason": "stub",
+      "instructions": "",
+      "alternatives_considered": []
+    },
+    "escalation": {
+      "priority": "Warning",
+      "category": "monitoring",
+      "requires_human_review": false,
+      "review_reason": null,
+      "summary": "stub",
+      "affected_customer_count": 0,
+      "service_impact": false
+    },
+    "trace": []
+  },
+  "ground_truth": {
+    "fault_type": "session_flapping_auth",
+    "root_cause": "Two radcheck rows exist for the same username. FreeRADIUS resolves inconsistently between them, so authentication succeeds or fails depending on which row is matched, producing repeated short sessions and two alternating IP assignments.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "00:A1:07:C4:1D:88"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "19 sessions in 24h against a 2-3 baseline, with a 38 minute mean duration against an 11.9 hour norm",
+      "RX has been flat at -20.6 dBm for seven days inside the +/-0.3 dBm noise floor, so signal is not the cause",
+      "TX power, bias current, supply voltage and distance are all stable",
+      "Port neighbours are normal and the OLT is healthy, so no shared infrastructure fault",
+      "With no optical explanation available, the search moves to the authentication layer",
+      "RADIUS holds two radcheck rows for username 30:16:9D:A2:5F:03, one of them an orphan with a different lineid",
+      "Recent sessions alternate between two IP addresses, consistent with inconsistent row resolution",
+      "Traffic is erratic rather than declining, which fits intermittent authentication rather than a degrading link"
+    ],
+    "required_evidence": [
+      "optical_layer_confirmed_clean",
+      "duplicate_radcheck_identified",
+      "alternating_ip_assignment"
+    ],
+    "expected_remediation": "manual_review",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "provisioning",
+      "requires_human_review": true,
+      "review_reason": "Duplicate RADIUS rows must be resolved by hand; deleting the wrong row disconnects the customer"
+    },
+    "distractors": [
+      "The session pattern is identical to signal-related flapping and invites that diagnosis",
+      "Zero-throughput windows in the speed series look like link loss but coincide with rejected auth",
+      "ONU is a Router type, inviting a CPE-fault explanation"
+    ]
+  }
+}

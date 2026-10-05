@@ -1,0 +1,248 @@
+{
+  "scenario_id": "OF-001",
+  "config": "agent",
+  "model": "gpt-5.6-luna",
+  "seconds": 37.7,
+  "result": {
+    "trigger": "health_check_alarm",
+    "trigger_input": {
+      "olt_host": "TK_AZ-OLT_SK-Madzari-01",
+      "overall_status": "offline",
+      "error_description": "OLT is not reachable (ping failed)"
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [
+        {
+          "type": "olt_reachability",
+          "value": "ping_ok=false; snmp_community_ok=false; snmp_response_ok=false",
+          "threshold": "OLT reachable and responsive; ping and SNMP should be successful"
+        },
+        {
+          "type": "olt_status",
+          "value": "overall_status=offline",
+          "threshold": "OLT operational status should not be offline"
+        },
+        {
+          "type": "onu_offline_population",
+          "value": "139 of 139 customers offline (100%)",
+          "threshold": "network baseline 4.85% offline; approximately 14 of 300 customers is normal background"
+        },
+        {
+          "type": "sampled_cached_optical_reading",
+          "value": "rx_power=0 dBm and tx_power=0 dBm for sampled lines; reading age=118 minutes",
+          "threshold": "0 means no reading, not a measured optical value; cached reading is stale"
+        },
+        {
+          "type": "sampled_optical_trend",
+          "value": "7-day RX last=-21.38 dBm, TX last=2.33 dBm",
+          "threshold": "RX normal -20 to -25 dBm; TX normal 0 to +5 dBm"
+        }
+      ],
+      "preliminary_severity": "Disaster",
+      "affected_scope": "olt",
+      "affected_lineids": [
+        "78:88:8A:57:26:A0",
+        "B4:64:15:7E:87:85"
+      ],
+      "olt_id": "TK_AZ-OLT_SK-Madzari-01",
+      "interface": null,
+      "summary": "The OLT is unreachable and all 139 served customers are currently reported offline, exceeding the 4.85% network baseline despite historically normal sampled optical trends."
+    },
+    "diagnosis": {
+      "fault_type": "olt_failure",
+      "root_cause": "The OLT is currently unreachable: both ping and SNMP fail, and all 139 customers on its six active PON ports are reported offline. The sampled cached optical values are stale/no-reading values and cannot indicate an optical fault.",
+      "confidence": 0.99,
+      "affected_scope": "olt",
+      "affected_lineids": [
+        "78:88:8A:57:26:A0",
+        "B4:64:15:7E:87:85"
+      ],
+      "evidence": [
+        "Live OLT probe returned ping_ok=false and snmp_responds=false.",
+        "The OLT population query reports 139 of 139 customers offline across all six active PON ports.",
+        "Both sampled ONU probes returned responds=false, meaning nothing answered rather than a definite ONU-offline response.",
+        "The stored overall status of offline agrees with the live reachability failure.",
+        "Cached rx_power=0 and tx_power=0 values are stale/no-reading values, while the historical 7-day optical trend was within normal ranges and does not establish an optical fault."
+      ],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "escalation": {
+      "priority": "Disaster",
+      "category": "infrastructure",
+      "requires_human_review": false,
+      "review_reason": null,
+      "summary": "The TK_AZ-OLT_SK-Madzari-01 OLT is unreachable: ping and SNMP both fail, and all 139 served customers across six active PON ports are reported offline. This is a confirmed OLT-level outage, not an optical-power fault; cached zero optical readings are stale/no-reading values, while historical RX and TX trends were normal. Restore or replace the OLT and verify power, uplinks, and service recovery.",
+      "affected_customer_count": 139,
+      "service_impact": true
+    },
+    "trace": [
+      {
+        "tool": "get_olt_health",
+        "args": {
+          "olt_id": "TK_AZ-OLT_SK-Madzari-01"
+        },
+        "result": "{\"olt_ip\": \"10.220.121.4\", \"olt_host\": \"TK_AZ-OLT_SK-Madzari-01\", \"olt_technology\": \"EPON\", \"olt_ext_id\": \"10444\", \"ping_ok\": false, \"snmp_community_ok\": false, \"snmp_response_ok\": false, \"total_pons_tested\": 0, \"healthy_pons\": 0, \"failed_pons_list\": [], \"error_description\": \"OLT is not reachable (ping failed)\", \"overall_status\": \"offline\", \"run_date\": \"2026-09-22\"}"
+      },
+      {
+        "tool": "get_olt_metrics",
+        "args": {
+          "olt_id": "TK_AZ-OLT_SK-Madzari-01"
+        },
+        "result": "{\"cpu_load\": 0, \"memory_usage\": 0, \"temperature\": 0, \"uptime_days\": 0, \"firmware\": \"V2.03.78R\", \"firmware_date\": \"2024-06-11\"}"
+      },
+      {
+        "tool": "get_olt_population",
+        "args": {
+          "olt_id": "TK_AZ-OLT_SK-Madzari-01"
+        },
+        "result": "{\"total_customers\": 139, \"pon_ports_in_use\": 6, \"customers_per_port\": {\"EPON0/1\": 23, \"EPON0/2\": 23, \"EPON0/3\": 23, \"EPON0/4\": 23, \"EPON0/5\": 23, \"EPON0/6\": 24}, \"onu_online_count\": 0, \"onu_offline_count\": 139}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "TK_AZ-OLT_SK-Madzari-01",
+          "interface": ""
+        },
+        "result": "{\"interface_port\": \"EPON0/3\", \"crm_view\": {\"total_on_port\": 23, \"customers\": [{\"lineid\": \"78:88:8A:57:26:A0\", \"interface\": \"EPON0/3:7\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"00:A1:07:E5:C8:C0\", \"interface\": \"EPON0/3:8\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"00:A1:07:54:BC:1C\", \"interface\": \"EPON0/3:10\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"B4:64:15:7E:87:85\", \"interface\": \"EPON0/3:11\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"70:B6:4F:87:B7:6C\", \"interface\": \"EPON0/3:12\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"4C:46:D1:9C:50:FE\", \"interface\": \"EPON0/3:31\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"70:B6:4F:DF:E0:E6\", \"interface\": \"EPON0/3:33\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "78:88:8A:57:26:A0"
+        },
+        "result": "{\"error\": \"not_held\", \"lineid_in_scope\": \"B4:64:15:7E:87:85\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "78:88:8A:57:26:A0"
+        },
+        "result": "{\"onu_status\": 0, \"rx_power\": \"0\", \"tx_power\": \"0\", \"reading_age_minutes\": 118}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "78:88:8A:57:26:A0",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 166, \"first\": -21.37, \"last\": -21.38, \"min\": -21.52, \"max\": -20.78, \"mean\": -21.1, \"range\": 0.74, \"change\": -0.01, \"gaps\": 2}, \"tx_power\": {\"available\": true, \"points\": 166, \"first\": 2.27, \"last\": 2.33, \"min\": 2.23, \"max\": 2.44, \"mean\": 2.35, \"range\": 0.21, \"change\": 0.06, \"gaps\": 2}, \"temperature\": {\"available\": true, \"points\": 166, \"first\": 21.83, \"last\": 21.0, \"min\": 19.86, \"max\": 24.32, \"mean\": 22.0, \"range\": 4.46, \"change\": -0.83, \"gaps\": 2}, \"distance\": {\"available\": true, \"points\": 166, \"first\": 119, \"last\": 119, \"min\": 119, \"max\": 119, \"mean\": 119.0, \"range\": 0, \"change\": 0, \"gaps\": 2}, \"tx_bias_current\": {\"available\": true, \"points\": 166, \"first\": 10.99, \"last\": 11.21, \"min\": 10.84, \"max\": 11.51, \"mean\": 11.18, \"range\": 0.67, \"change\": 0.22, \"gaps\": 2}, \"supply_voltage\": {\"available\": true, \"points\": 166, \"first\": 3.42, \"last\": 3.44, \"min\": 3.4, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.06, \"change\": 0.02, \"gaps\": 2}, \"speed_kbps\": {\"available\": true, \"points\": 166, \"first\": 6.6, \"last\": 5.3, \"min\": 0.05, \"max\": 11.9, \"mean\": 5.45, \"range\": 11.85, \"change\": -1.3, \"gaps\": 2}}}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "78:88:8A:57:26:A0"
+        },
+        "result": "{\"count_24h\": 1, \"count_7d\": 14, \"avg_duration_minutes\": 704, \"last_disconnect\": \"2026-09-22T02:15:00Z\", \"recent\": [{\"start\": \"2026-09-22T02:15:00Z\", \"end\": null, \"duration_s\": 38443, \"ip\": \"10.5.50.102\"}, {\"start\": \"2026-09-21T15:32:20Z\", \"end\": \"2026-09-22T02:26:24Z\", \"duration_s\": 39244, \"ip\": \"10.5.50.102\"}]}"
+      },
+      {
+        "tool": "get_traffic",
+        "args": {
+          "lineid": "78:88:8A:57:26:A0"
+        },
+        "result": "{\"download_mb_daily\": [990, 1040, 960, 1010, 980, 1020, 190], \"upload_mb_daily\": [5975, 6083, 5878, 6166, 5872, 5971, 1108], \"monthly_avg_download_mb\": 884, \"monthly_avg_upload_mb\": 5293, \"pon_port_traffic\": {\"current_mbps\": 0, \"avg_mbps\": 141, \"peak_mbps\": 420}}"
+      },
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "B4:64:15:7E:87:85"
+        },
+        "result": "{\"customer_id\": 14929, \"lineid\": \"B4:64:15:7E:87:85\", \"mac\": \"C8:3A:35:E3:FA:FA\", \"interface\": \"EPON0/3:11\", \"olt_id\": \"10444\", \"olt_host\": \"TK_AZ-OLT_SK-Madzari-01\", \"olt_ip\": \"10.220.121.4\", \"olt_technology\": \"EPON\", \"olt_model\": \"V1600D\", \"router_id\": 40, \"router_name\": \"TK_Skopje15-Madzari01\", \"profile\": \"profile_20M\", \"active\": 1, \"deleted\": 0, \"onu_model\": \"Aztech 1G + CATV\", \"onu_type\": \"Bridge\", \"has_catv\": 1, \"has_voip\": 0, \"catv_service\": 1, \"catv_synced\": 1, \"city\": \"Skopje\", \"area\": \"Madzari\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "B4:64:15:7E:87:85"
+        },
+        "result": "{\"onu_status\": 0, \"rx_power\": \"0\", \"tx_power\": \"0\", \"reading_age_minutes\": 118}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "B4:64:15:7E:87:85",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 166, \"first\": -21.37, \"last\": -21.38, \"min\": -21.52, \"max\": -20.78, \"mean\": -21.1, \"range\": 0.74, \"change\": -0.01, \"gaps\": 2}, \"tx_power\": {\"available\": true, \"points\": 166, \"first\": 2.27, \"last\": 2.33, \"min\": 2.23, \"max\": 2.44, \"mean\": 2.35, \"range\": 0.21, \"change\": 0.06, \"gaps\": 2}, \"temperature\": {\"available\": true, \"points\": 166, \"first\": 21.83, \"last\": 21.0, \"min\": 19.86, \"max\": 24.32, \"mean\": 22.0, \"range\": 4.46, \"change\": -0.83, \"gaps\": 2}, \"distance\": {\"available\": true, \"points\": 166, \"first\": 119, \"last\": 119, \"min\": 119, \"max\": 119, \"mean\": 119.0, \"range\": 0, \"change\": 0, \"gaps\": 2}, \"tx_bias_current\": {\"available\": true, \"points\": 166, \"first\": 10.99, \"last\": 11.21, \"min\": 10.84, \"max\": 11.51, \"mean\": 11.18, \"range\": 0.67, \"change\": 0.22, \"gaps\": 2}, \"supply_voltage\": {\"available\": true, \"points\": 166, \"first\": 3.42, \"last\": 3.44, \"min\": 3.4, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.06, \"change\": 0.02, \"gaps\": 2}, \"speed_kbps\": {\"available\": true, \"points\": 166, \"first\": 6.6, \"last\": 5.3, \"min\": 0.05, \"max\": 11.9, \"mean\": 5.45, \"range\": 11.85, \"change\": -1.3, \"gaps\": 2}}}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "B4:64:15:7E:87:85"
+        },
+        "result": "{\"count_24h\": 1, \"count_7d\": 14, \"avg_duration_minutes\": 704, \"last_disconnect\": \"2026-09-22T02:15:00Z\", \"recent\": [{\"start\": \"2026-09-22T02:15:00Z\", \"end\": null, \"duration_s\": 38443, \"ip\": \"10.5.50.102\"}, {\"start\": \"2026-09-21T15:32:20Z\", \"end\": \"2026-09-22T02:26:24Z\", \"duration_s\": 39244, \"ip\": \"10.5.50.102\"}]}"
+      },
+      {
+        "tool": "get_traffic",
+        "args": {
+          "lineid": "B4:64:15:7E:87:85"
+        },
+        "result": "{\"download_mb_daily\": [990, 1040, 960, 1010, 980, 1020, 190], \"upload_mb_daily\": [5975, 6083, 5878, 6166, 5872, 5971, 1108], \"monthly_avg_download_mb\": 884, \"monthly_avg_upload_mb\": 5293, \"pon_port_traffic\": {\"current_mbps\": 0, \"avg_mbps\": 141, \"peak_mbps\": 420}}"
+      },
+      {
+        "tool": "snmp_probe_olt",
+        "args": {
+          "olt_id": "TK_AZ-OLT_SK-Madzari-01"
+        },
+        "result": "{\"ping_ok\": false, \"snmp_responds\": false, \"sys_uptime_seconds\": null, \"oid_subtree_responds\": null}"
+      },
+      {
+        "tool": "get_olt_population",
+        "args": {
+          "olt_id": "TK_AZ-OLT_SK-Madzari-01"
+        },
+        "result": "{\"total_customers\": 139, \"pon_ports_in_use\": 6, \"customers_per_port\": {\"EPON0/1\": 23, \"EPON0/2\": 23, \"EPON0/3\": 23, \"EPON0/4\": 23, \"EPON0/5\": 23, \"EPON0/6\": 24}, \"onu_online_count\": 0, \"onu_offline_count\": 139}"
+      },
+      {
+        "tool": "snmp_get_onu",
+        "args": {
+          "lineid": "78:88:8A:57:26:A0"
+        },
+        "result": "{\"responds\": false, \"online\": null, \"rx_power\": null, \"tx_power\": null, \"auth_flag\": null, \"exchange\": null, \"rtt_tq\": null}"
+      },
+      {
+        "tool": "snmp_get_onu",
+        "args": {
+          "lineid": "B4:64:15:7E:87:85"
+        },
+        "result": "{\"responds\": false, \"online\": null, \"rx_power\": null, \"tx_power\": null, \"auth_flag\": null, \"exchange\": null, \"rtt_tq\": null}"
+      }
+    ]
+  },
+  "ground_truth": {
+    "fault_type": "olt_failure",
+    "root_cause": "The OLT is not reachable by ICMP and does not answer SNMP. All 139 customers behind it lost service two hours ago. The device is down, powered off, or isolated from the management and transport network.",
+    "severity": "Disaster",
+    "affected_scope": "olt",
+    "affected_lineids": [],
+    "affected_customer_count": 139,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Ping to the OLT fails, so the health check stopped before any SNMP test was attempted",
+      "The live probe confirms neither ICMP nor SNMP answers",
+      "No ONU on the OLT responds, and no probe returns a definite online or offline state",
+      "This differs from the firmware mismatch case, where ping and SNMP both succeed",
+      "All 139 customers on the OLT are offline and sessions ended together two hours ago",
+      "Optical readings are stale by 118 minutes, consistent with polling stopping when the device went down",
+      "The upstream router is still checking in normally, so the fault is the OLT and not the router",
+      "Traffic through the OLT has fallen to zero",
+      "Unreachable by both ICMP and SNMP with total customer loss is a device or transport failure"
+    ],
+    "required_evidence": [
+      "ping_and_snmp_both_fail",
+      "all_customers_affected",
+      "router_still_reachable"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "Disaster",
+      "category": "infrastructure",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "Zero values in olt_metrics could be read as healthy low utilisation",
+      "Stale cached readings might be mistaken for current state"
+    ]
+  }
+}

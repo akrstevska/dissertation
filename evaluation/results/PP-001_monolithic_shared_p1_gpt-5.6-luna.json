@@ -1,0 +1,93 @@
+{
+  "scenario_id": "PP-001",
+  "config": "monolithic_shared_p1",
+  "model": "gpt-5.6-luna",
+  "seconds": 9.4,
+  "result": {
+    "diagnosis": {
+      "fault_type": "pon_port_failure",
+      "root_cause": "EPON0/2 is down for the customers visible in the live port probe. All eight probed ONUs return definite offline answers (responds=true, online=0), while the OLT itself responds to ping and SNMP and the other tested PONs are healthy. The OLT health record also identifies a failed PON but incorrectly reports the overall status as healthy.",
+      "confidence": 0.98,
+      "affected_scope": "pon_port",
+      "evidence": [
+        "The live ONU probe gives definite offline results because each ONU responds but reports online=0; this is a real outage, not a monitoring timeout.",
+        "All eight ONUs visible on EPON0/2 are offline, so the failure is shared across the PON port rather than limited to customer 31035.",
+        "The OLT ping, SNMP, and OID subtree all respond, with normal CPU, memory, temperature, and uptime; therefore this is not an OLT-wide failure.",
+        "The other two tested PONs are marked healthy, further localizing the fault to EPON0/2.",
+        "The OLT population has 27 offline customers, which is close to the 24 customers assigned to EPON0/2 and far above the normal background level; this supports a port-scale outage.",
+        "Historical optical telemetry was stable and normal before the outage: RX was approximately -21 dBm, TX approximately +2.3 dBm, distance remained 157, and TX bias stayed healthy. There is no evidence of fibre, laser, distance, or authentication degradation causing the current outage.",
+        "The customer has a valid, CRM-consistent RADIUS entry, the expected VLAN 1082 is present, and the router is healthy, so provisioning, authentication, VLAN, and router faults are not indicated.",
+        "The overall OLT health label is contradictory because the detail identifies a failed PON; the genuine underlying service fault remains the PON port failure."
+      ]
+    },
+    "remediation": {
+      "action": "Escalate to access-network operations to inspect and restore EPON0/2, including the OLT port, uplink optics, patching, and associated splitter/feed. Verify all 24 customers on EPON0/2 after repair and confirm ONU registration and optical readings. Correct the OLT health-check aggregation so a failed PON cannot produce an overall healthy status."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "pon_port_failure",
+      "root_cause": "EPON0/2 is down for the customers visible in the live port probe. All eight probed ONUs return definite offline answers (responds=true, online=0), while the OLT itself responds to ping and SNMP and the other tested PONs are healthy. The OLT health record also identifies a failed PON but incorrectly reports the overall status as healthy.",
+      "confidence": 0.98,
+      "severity": "High",
+      "affected_scope": "pon_port",
+      "remediation": "Escalate to access-network operations to inspect and restore EPON0/2, including the OLT port, uplink optics, patching, and associated splitter/feed. Verify all 24 customers on EPON0/2 after repair and confirm ONU registration and optical readings. Correct the OLT health-check aggregation so a failed PON cannot produce an overall healthy status.",
+      "reasoning": [
+        "The live ONU probe gives definite offline results because each ONU responds but reports online=0; this is a real outage, not a monitoring timeout.",
+        "All eight ONUs visible on EPON0/2 are offline, so the failure is shared across the PON port rather than limited to customer 31035.",
+        "The OLT ping, SNMP, and OID subtree all respond, with normal CPU, memory, temperature, and uptime; therefore this is not an OLT-wide failure.",
+        "The other two tested PONs are marked healthy, further localizing the fault to EPON0/2.",
+        "The OLT population has 27 offline customers, which is close to the 24 customers assigned to EPON0/2 and far above the normal background level; this supports a port-scale outage.",
+        "Historical optical telemetry was stable and normal before the outage: RX was approximately -21 dBm, TX approximately +2.3 dBm, distance remained 157, and TX bias stayed healthy. There is no evidence of fibre, laser, distance, or authentication degradation causing the current outage.",
+        "The customer has a valid, CRM-consistent RADIUS entry, the expected VLAN 1082 is present, and the router is healthy, so provisioning, authentication, VLAN, and router faults are not indicated.",
+        "The overall OLT health label is contradictory because the detail identifies a failed PON; the genuine underlying service fault remains the PON port failure."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "pon_port_failure",
+    "root_cause": "All 24 customers on EPON0/2 lost service within the same minute. The OLT is healthy and its other two ports are serving normally, so the fault is confined to this PON port: the port optics, the feeder fibre or the primary splitter.",
+    "severity": "High",
+    "affected_scope": "pon_port",
+    "affected_lineids": [
+      "78:88:8A:C7:2E:96",
+      "70:B6:4F:B0:ED:D9",
+      "80:F1:A8:D5:C0:23",
+      "00:A1:07:8C:25:2F",
+      "78:88:8A:F0:21:DA",
+      "4C:46:D1:BC:0D:34",
+      "70:B6:4F:C7:6A:3B",
+      "B4:64:15:09:D1:BA"
+    ],
+    "affected_customer_count": 8,
+    "service_impact": true,
+    "expected_reasoning": [
+      "The subject ONU is offline with responds true and online 0",
+      "Probing the rest of EPON0/2 shows every ONU returning the same definite offline answer",
+      "All of them stopped within the same minute, which rules out coincidence",
+      "OLT ping and SNMP succeed, uptime is 77 days, and CPU, memory and temperature are at baseline",
+      "The other two PON ports on this OLT are serving customers normally",
+      "The failure boundary follows the port exactly, so the fault is the port and not the OLT",
+      "Signal history on the subject was flat and healthy until the cut-off, so this is not progressive degradation",
+      "PON port traffic has collapsed from its usual level to near zero",
+      "A whole port failing at once points to port optics, the feeder or the primary splitter"
+    ],
+    "required_evidence": [
+      "all_onus_on_port_offline",
+      "other_ports_healthy",
+      "simultaneous_dropout"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "High",
+      "category": "infrastructure",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "The health check still reports the OLT healthy because two of three ports pass",
+      "A single-customer complaint would frame this as an individual fault"
+    ]
+  }
+}

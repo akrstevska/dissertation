@@ -1,0 +1,91 @@
+{
+  "scenario_id": "PP-003",
+  "config": "agent",
+  "model": "claude-haiku-4-5-20251001",
+  "seconds": 0.0,
+  "result": {
+    "trigger": "health_check_alarm",
+    "trigger_input": {
+      "olt_host": "TK_AF-OLT_PP03",
+      "overall_status": "critical",
+      "error_description": "All PONs failed (8/8)"
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [],
+      "preliminary_severity": "Warning",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        ""
+      ],
+      "olt_id": null,
+      "interface": null,
+      "summary": "stub"
+    },
+    "diagnosis": {
+      "fault_type": "no_fault",
+      "root_cause": "stub",
+      "confidence": 0.5,
+      "affected_scope": "single_customer",
+      "affected_lineids": [],
+      "evidence": [],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "remediation": {
+      "action": "no_action",
+      "automated": false,
+      "reason": "stub",
+      "instructions": "",
+      "alternatives_considered": []
+    },
+    "escalation": {
+      "priority": "Warning",
+      "category": "monitoring",
+      "requires_human_review": false,
+      "review_reason": null,
+      "summary": "stub",
+      "affected_customer_count": 0,
+      "service_impact": false
+    },
+    "trace": []
+  },
+  "ground_truth": {
+    "fault_type": "pon_port_failure",
+    "root_cause": "The OLT rebooted 47 minutes ago and its PON ports have not brought subscribers back. All ports are genuinely down: every ONU answers the probe with a definite offline state, sessions ended together at the reboot, and traffic has stopped.",
+    "severity": "Disaster",
+    "affected_scope": "olt",
+    "affected_lineids": [],
+    "affected_customer_count": 224,
+    "service_impact": true,
+    "expected_reasoning": [
+      "The health record wording is identical to the known false-critical signature, so it cannot be trusted either way",
+      "The live probe is decisive: every ONU returns responds true with online 0",
+      "That is a definite negative from the OLT, not an absence of response, so the OID subtree is present and answering",
+      "oid_subtree_responds is true, which rules out the firmware mismatch mechanism",
+      "OLT sys_uptime is 2820 seconds, meaning it rebooted 47 minutes ago",
+      "CRM shows only 12 of 236 ONUs online, far outside the 4.85% background rate",
+      "Sessions across the OLT ended together at the reboot and traffic has fallen to near zero",
+      "This is a genuine OLT-wide outage that happens to produce the same health record as the false positive",
+      "The discriminator is the probe response type, not the alarm text"
+    ],
+    "required_evidence": [
+      "definite_offline_not_no_response",
+      "oid_subtree_responds_true",
+      "olt_recently_rebooted",
+      "customers_not_passing_traffic"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "Disaster",
+      "category": "infrastructure",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "The alarm text is word for word the same as the known false critical",
+      "Ping and SNMP both succeed, which is also true in the false-critical case",
+      "A pipeline that has learned to distrust this alarm will dismiss a real outage"
+    ]
+  }
+}

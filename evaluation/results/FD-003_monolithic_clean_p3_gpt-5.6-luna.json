@@ -1,0 +1,86 @@
+{
+  "scenario_id": "FD-003",
+  "config": "monolithic_clean_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 7.0,
+  "result": {
+    "diagnosis": {
+      "fault_type": "fiber_degradation",
+      "root_cause": "The customer's optical receive signal has steadily degraded from -19.57 dBm (normal) to approximately -28.8 dBm (critical) over seven days while distance remained constant, indicating degradation on the customer's fibre path. TX power and TX bias remain stable and peers on the same PON port are healthy, ruling out laser, shared PON, splitter, and OLT faults. The elevated session count and short sessions are consequences of the failing optical link.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "Current ONU and all tested peers respond and are online, so this is not an ONU offline, PON port, splitter, or OLT outage.",
+        "The customer's current RX power is approximately -28.94 dBm, which is critical, while all peers on EPON0/2 have normal or strong RX levels.",
+        "The seven-day RX trend starts in the normal band near -19.6 dBm and declines continuously into the critical band near -28.8 dBm; this meets the defined declining-link criterion.",
+        "Distance remains constant at 310, so there is no fibre-path step change or distance-change fault.",
+        "TX power remains around +2.3 to +2.4 dBm and TX bias remains around 11.3 to 12.0 mA, both healthy and stable; this rules out laser degradation.",
+        "The 14 sessions in 24 hours and 44-minute average duration indicate flapping, but the physical RX decline takes precedence and the sessions are a symptom of the degrading link.",
+        "The OLT responds to ping and SNMP, has normal CPU, memory, and temperature, and all tested PONs are healthy.",
+        "The customer VLAN is correctly provisioned as 1042, authentication is valid, and the stale orphan RADIUS row is not consulted, so neither VLAN nor RADIUS is the primary fault."
+      ]
+    },
+    "remediation": {
+      "action": "Dispatch field support to inspect and test the subscriber's fibre path, including the ONU connector, drop fibre, patch panel, splitter connection, and splice points. Clean or reseat connectors and repair or replace damaged fibre or faulty splices as required. Verify RX power returns to the normal range, then monitor optical levels and session stability. Do not replace the ONU for laser failure unless TX power or bias later becomes abnormal."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "fiber_degradation",
+      "root_cause": "The customer's optical receive signal has steadily degraded from -19.57 dBm (normal) to approximately -28.8 dBm (critical) over seven days while distance remained constant, indicating degradation on the customer's fibre path. TX power and TX bias remain stable and peers on the same PON port are healthy, ruling out laser, shared PON, splitter, and OLT faults. The elevated session count and short sessions are consequences of the failing optical link.",
+      "confidence": 0.99,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Dispatch field support to inspect and test the subscriber's fibre path, including the ONU connector, drop fibre, patch panel, splitter connection, and splice points. Clean or reseat connectors and repair or replace damaged fibre or faulty splices as required. Verify RX power returns to the normal range, then monitor optical levels and session stability. Do not replace the ONU for laser failure unless TX power or bias later becomes abnormal.",
+      "reasoning": [
+        "Current ONU and all tested peers respond and are online, so this is not an ONU offline, PON port, splitter, or OLT outage.",
+        "The customer's current RX power is approximately -28.94 dBm, which is critical, while all peers on EPON0/2 have normal or strong RX levels.",
+        "The seven-day RX trend starts in the normal band near -19.6 dBm and declines continuously into the critical band near -28.8 dBm; this meets the defined declining-link criterion.",
+        "Distance remains constant at 310, so there is no fibre-path step change or distance-change fault.",
+        "TX power remains around +2.3 to +2.4 dBm and TX bias remains around 11.3 to 12.0 mA, both healthy and stable; this rules out laser degradation.",
+        "The 14 sessions in 24 hours and 44-minute average duration indicate flapping, but the physical RX decline takes precedence and the sessions are a symptom of the degrading link.",
+        "The OLT responds to ping and SNMP, has normal CPU, memory, and temperature, and all tested PONs are healthy.",
+        "The customer VLAN is correctly provisioned as 1042, authentication is valid, and the stale orphan RADIUS row is not consulted, so neither VLAN nor RADIUS is the primary fault."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "fiber_degradation",
+    "root_cause": "Severe attenuation in the customer's fibre path, now at -28.9 dBm and below the critical threshold. The orphan RADIUS entry is a separate, dormant record defect that does not affect authentication.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "70:B6:4F:0E:34:C4"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "RX has fallen from -19.6 to -28.9 dBm over the last four days and is now below the -28 critical threshold",
+      "Live RX is below cached RX, so degradation has not stabilised",
+      "TX power, bias current, supply voltage and distance are flat, ruling out laser degradation and path change",
+      "Peers on EPON0/2 are normal, bounding the fault to this customer's own path",
+      "Traffic has collapsed from 1180 MB to 31 MB per day in step with the signal loss",
+      "A RADIUS orphan entry exists but references a superseded CPE MAC and is not used for authentication",
+      "The orphan cannot explain progressive optical loss, so it is a coincident record defect and not the cause",
+      "Severity is driven by the optical fault, which has service impact; the record defect has none"
+    ],
+    "required_evidence": [
+      "rx_trend_over_time",
+      "peers_normal_on_same_port",
+      "radius_orphan_ruled_out_as_cause"
+    ],
+    "expected_remediation": "dispatch_technician",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "field_service",
+      "requires_human_review": true,
+      "review_reason": "A separate orphan RADIUS record should be cleaned up independently of the field repair"
+    },
+    "distractors": [
+      "The RADIUS mismatch invites an auth-related diagnosis",
+      "Fourteen sessions in 24h could be read as auth flapping",
+      "Two genuine faults are present and only one has service impact"
+    ]
+  }
+}

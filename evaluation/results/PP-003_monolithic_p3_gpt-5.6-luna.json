@@ -1,0 +1,88 @@
+{
+  "scenario_id": "PP-003",
+  "config": "monolithic_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 14.0,
+  "result": {
+    "diagnosis": {
+      "fault_type": "olt_failure",
+      "root_cause": "A recent OLT restart or OLT-side PON service failure has left nearly all ONUs deregistered across all eight PON ports. The OLT management plane is reachable and currently healthy, but only 12 of 236 ONUs are online and the affected ONU is in MPCP deregistration with no optical readings.",
+      "confidence": 0.86,
+      "affected_scope": "olt",
+      "evidence": [
+        "The affected ONU is offline, has no RX/TX reading, and reports MPCP DEREG; zero and null optical values are therefore unavailable readings, not strong signals.",
+        "The same offline condition is present for all eight sampled ONUs on EPON0/3, so this is not a single-customer ONU or fibre fault.",
+        "The OLT population shows 224 of 236 customers offline, far above the normal background of approximately 14 offline customers on a 300-customer OLT.",
+        "The outage spans all eight PONs, ruling against a single PON-port or splitter fault and pointing to an OLT-wide service failure.",
+        "The OLT management plane, SNMP, OID subtree, router heartbeat, VLAN 1103, and RADIUS records are working, so router reachability, VLAN provisioning, and authentication are not the cause.",
+        "The OLT uptime is only 2820 seconds, consistent with a recent restart or recovery event; the telemetry series also stops producing ONU readings near the incident.",
+        "Seven days of optical telemetry before the event is stable: RX is around -20.4 dBm, TX around +2.35 dBm, distance remains 176, and bias current remains within the healthy range. This provides no evidence of fibre, laser, distance, or CATV degradation.",
+        "The subscriber's session rate and duration are normal, so the incident is not session flapping or an authentication fault.",
+        "OLT CPU, memory, and temperature are near baseline now; this indicates the OLT management plane has recovered, not that PON service is operational."
+      ]
+    },
+    "remediation": {
+      "action": "Escalate as an OLT-wide outage. Check the OLT reboot and system logs, power and hardware alarms, firmware stability, and PON-controller status. Verify all PON interfaces and ONU registration after the restart; perform a controlled OLT reboot or failover only under the outage procedure. If most ONUs do not re-register, replace or RMA the OLT and restore service from the approved configuration. Do not dispatch for customer fibre degradation or alter RADIUS/VLAN settings."
+    },
+    "escalation": {
+      "priority": "Disaster"
+    },
+    "monolithic": {
+      "fault_type": "olt_failure",
+      "root_cause": "A recent OLT restart or OLT-side PON service failure has left nearly all ONUs deregistered across all eight PON ports. The OLT management plane is reachable and currently healthy, but only 12 of 236 ONUs are online and the affected ONU is in MPCP deregistration with no optical readings.",
+      "confidence": 0.86,
+      "severity": "Disaster",
+      "affected_scope": "olt",
+      "remediation": "Escalate as an OLT-wide outage. Check the OLT reboot and system logs, power and hardware alarms, firmware stability, and PON-controller status. Verify all PON interfaces and ONU registration after the restart; perform a controlled OLT reboot or failover only under the outage procedure. If most ONUs do not re-register, replace or RMA the OLT and restore service from the approved configuration. Do not dispatch for customer fibre degradation or alter RADIUS/VLAN settings.",
+      "reasoning": [
+        "The affected ONU is offline, has no RX/TX reading, and reports MPCP DEREG; zero and null optical values are therefore unavailable readings, not strong signals.",
+        "The same offline condition is present for all eight sampled ONUs on EPON0/3, so this is not a single-customer ONU or fibre fault.",
+        "The OLT population shows 224 of 236 customers offline, far above the normal background of approximately 14 offline customers on a 300-customer OLT.",
+        "The outage spans all eight PONs, ruling against a single PON-port or splitter fault and pointing to an OLT-wide service failure.",
+        "The OLT management plane, SNMP, OID subtree, router heartbeat, VLAN 1103, and RADIUS records are working, so router reachability, VLAN provisioning, and authentication are not the cause.",
+        "The OLT uptime is only 2820 seconds, consistent with a recent restart or recovery event; the telemetry series also stops producing ONU readings near the incident.",
+        "Seven days of optical telemetry before the event is stable: RX is around -20.4 dBm, TX around +2.35 dBm, distance remains 176, and bias current remains within the healthy range. This provides no evidence of fibre, laser, distance, or CATV degradation.",
+        "The subscriber's session rate and duration are normal, so the incident is not session flapping or an authentication fault.",
+        "OLT CPU, memory, and temperature are near baseline now; this indicates the OLT management plane has recovered, not that PON service is operational."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "pon_port_failure",
+    "root_cause": "The OLT rebooted 47 minutes ago and its PON ports have not brought subscribers back. All ports are genuinely down: every ONU answers the probe with a definite offline state, sessions ended together at the reboot, and traffic has stopped.",
+    "severity": "Disaster",
+    "affected_scope": "olt",
+    "affected_lineids": [],
+    "affected_customer_count": 224,
+    "service_impact": true,
+    "expected_reasoning": [
+      "The health record wording is identical to the known false-critical signature, so it cannot be trusted either way",
+      "The live probe is decisive: every ONU returns responds true with online 0",
+      "That is a definite negative from the OLT, not an absence of response, so the OID subtree is present and answering",
+      "oid_subtree_responds is true, which rules out the firmware mismatch mechanism",
+      "OLT sys_uptime is 2820 seconds, meaning it rebooted 47 minutes ago",
+      "CRM shows only 12 of 236 ONUs online, far outside the 4.85% background rate",
+      "Sessions across the OLT ended together at the reboot and traffic has fallen to near zero",
+      "This is a genuine OLT-wide outage that happens to produce the same health record as the false positive",
+      "The discriminator is the probe response type, not the alarm text"
+    ],
+    "required_evidence": [
+      "definite_offline_not_no_response",
+      "oid_subtree_responds_true",
+      "olt_recently_rebooted",
+      "customers_not_passing_traffic"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "Disaster",
+      "category": "infrastructure",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "The alarm text is word for word the same as the known false critical",
+      "Ping and SNMP both succeed, which is also true in the false-critical case",
+      "A pipeline that has learned to distrust this alarm will dismiss a real outage"
+    ]
+  }
+}

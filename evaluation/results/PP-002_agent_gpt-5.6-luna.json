@@ -1,0 +1,285 @@
+{
+  "scenario_id": "PP-002",
+  "config": "agent",
+  "model": "gpt-5.6-luna",
+  "seconds": 72.4,
+  "result": {
+    "trigger": "threshold_breach",
+    "trigger_input": {
+      "signal": "mass_onu_offline",
+      "olt_host": "TK_AZ-OLT_BT_Jad-04",
+      "value": 29
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [
+        {
+          "type": "mass_onu_offline",
+          "value": "38 of 271 customers offline (14.0%); trigger reported 29",
+          "threshold": "ONU offline baseline 4.85% (~13.2 of 271); 14.0% exceeds baseline"
+        },
+        {
+          "type": "failed_pon_port",
+          "value": "1 of 8 PONs failed: EPON0/6:1; 7 of 8 healthy",
+          "threshold": "Expected healthy PON status: all in-service PONs healthy"
+        },
+        {
+          "type": "customer_on_failed_port",
+          "value": "70:B6:4F:48:D2:B8 and 70:B6:4F:B7:D3:FB show onu_status 0 on EPON0/6",
+          "threshold": "ONU status 0 means offline; online service requires onu_status 1"
+        },
+        {
+          "type": "cached_optical_reading",
+          "value": "rx_power 0 dBm and tx_power 0 dBm, reading age 5 minutes, for sampled customers",
+          "threshold": "0 means no reading, not a measured signal; valid RX is above -28 dBm and valid TX is 0 to +5 dBm"
+        },
+        {
+          "type": "optical_trend",
+          "value": "RX last -19.87 dBm with change -0.03 dBm; TX last 2.32 dBm with change -0.08 dBm over 168 hours",
+          "threshold": "RX strong above -20 dBm and TX normal 0 to +5 dBm; 24-hour noise floor is RX +/-0.3 dBm and TX +/-0.08 dBm"
+        },
+        {
+          "type": "olt_health",
+          "value": "CPU 25%, memory 18%, temperature 42 C; ping, SNMP, and overall OLT status healthy",
+          "threshold": "Healthy baseline approximately CPU 25%, memory 17%, temperature 42 C"
+        }
+      ],
+      "preliminary_severity": "High",
+      "affected_scope": "pon_port",
+      "affected_lineids": [
+        "70:B6:4F:48:D2:B8",
+        "70:B6:4F:B7:D3:FB"
+      ],
+      "olt_id": "TK_AZ-OLT_BT_Jad-04",
+      "interface": "EPON0/6",
+      "summary": "The offline count materially exceeds the network baseline and is concentrated on EPON0/6, with sampled active customers offline despite historically normal optical trends."
+    },
+    "diagnosis": {
+      "fault_type": "pon_port_failure",
+      "root_cause": "EPON0/6 has a confirmed port-level outage: the live SNMP probe received definite offline responses for seven ONUs on the failed port, while the OLT itself responds normally to ping and SNMP. The evidence does not establish whether the remaining customers on EPON0/6 are also offline, and the OLT population total of 38 offline customers conflicts with the seven live negatives observed on EPON0/6, so the full blast radius is uncertain.",
+      "confidence": 0.86,
+      "affected_scope": "pon_port",
+      "affected_lineids": [
+        "70:B6:4F:48:D2:B8",
+        "78:88:8A:87:AB:42",
+        "70:B6:4F:E5:1D:6A",
+        "70:B6:4F:D2:5F:22",
+        "70:B6:4F:B7:D3:FB",
+        "00:A1:07:60:84:0A",
+        "80:F1:A8:33:16:4E"
+      ],
+      "evidence": [
+        "The live OLT probe succeeded: ping, SNMP, and the OID subtree all responded, ruling out an OLT-wide failure.",
+        "The live EPON0/6 port probe returned online:0 with responds:true for seven ONUs, which are definite offline answers rather than monitoring timeouts.",
+        "The customer view independently reported the same seven EPON0/6 ONUs as onu_status 0 and active, confirming customer impact on the port.",
+        "Detection identified EPON0/6 as the failed PON while the other seven PONs were reported healthy.",
+        "The OLT CPU, memory, and temperature are at healthy baseline levels.",
+        "Null and zero optical readings represent no reading from offline ONUs; they do not indicate strong or degraded optical power.",
+        "The customer VLAN is correctly provisioned as VLAN 1066, so this is not a stuck VLAN 46 provisioning fault."
+      ],
+      "cached_vs_live_discrepancy": true,
+      "discrepancy_detail": "The trigger reported 29 offline customers, while the live OLT population reports 38 offline. The population total also conflicts with the seven definite EPON0/6 negatives observed live, so the total offline count and complete port attribution cannot be reconciled from the available queries. Cached optical values of 0 also differ from live null readings, although both indicate no current optical reading."
+    },
+    "remediation": {
+      "action": "escalate_infrastructure",
+      "automated": false,
+      "reason": "EPON0/6 has a confirmed port-level outage affecting at least seven active ONUs, while the OLT remains reachable and healthy. The uncertain total blast radius and discrepancy between cached and live offline counts require infrastructure investigation rather than individual ONU remediation.",
+      "instructions": "Escalate to the OLT/PON infrastructure team. Verify the operational state and hardware health of EPON0/6, determine the complete affected customer scope, inspect port optics and uplink conditions, and restore or replace the failed port component as appropriate. Reconcile the live offline population with monitoring data after service recovery. Do not perform individual ONU resets as the primary remedy.",
+      "alternatives_considered": [
+        {
+          "action": "onu_reset",
+          "rejected_because": "The fault is shared across a PON port and affects multiple ONUs, so resetting individual ONUs would not address the confirmed port-level outage."
+        },
+        {
+          "action": "dispatch_technician",
+          "rejected_because": "The evidence identifies a PON port or infrastructure failure, not confirmed fibre degradation, distance change, or splitter damage requiring a field visit as the initial action."
+        },
+        {
+          "action": "trigger_acs_provisioning",
+          "rejected_because": "The customer VLAN is correctly provisioned as VLAN 1066, and this is not a stuck VLAN 46 issue."
+        },
+        {
+          "action": "flag_monitoring_defect",
+          "rejected_because": "Although population and cached readings are inconsistent, live probes independently confirm a real EPON0/6 outage; monitoring discrepancies are secondary to the infrastructure fault."
+        }
+      ]
+    },
+    "escalation": {
+      "priority": "High",
+      "category": "infrastructure",
+      "requires_human_review": true,
+      "review_reason": "The EPON0/6 outage is confirmed, but the affected scope is ambiguous: live probes confirm at least seven offline ONUs while OLT and monitoring data report conflicting totals of 29 and 38 offline customers. Human infrastructure review is required to reconcile the monitoring data and determine the complete blast radius.",
+      "summary": "EPON0/6 has a confirmed port-level outage affecting at least seven active customers. The OLT remains reachable and healthy, and the other PONs are healthy, ruling out an OLT-wide failure. Optical zero or null values are missing readings from offline ONUs, not signal measurements, and provisioning is correct. Escalate to the OLT/PON infrastructure team to inspect and restore the failed port, then reconcile live customer and monitoring counts.",
+      "affected_customer_count": 7,
+      "service_impact": true
+    },
+    "trace": [
+      {
+        "tool": "get_olt_health",
+        "args": {
+          "olt_id": "TK_AZ-OLT_BT_Jad-04"
+        },
+        "result": "{\"olt_ip\": \"10.220.39.9\", \"olt_host\": \"TK_AZ-OLT_BT_Jad-04\", \"olt_technology\": \"EPON\", \"olt_ext_id\": \"10203\", \"ping_ok\": true, \"snmp_community_ok\": true, \"snmp_response_ok\": true, \"total_pons_tested\": 8, \"healthy_pons\": 7, \"failed_pons_list\": [\"EPON0/6:1\"], \"error_description\": null, \"overall_status\": \"healthy\", \"run_date\": \"2026-09-20\"}"
+      },
+      {
+        "tool": "get_olt_metrics",
+        "args": {
+          "olt_id": "TK_AZ-OLT_BT_Jad-04"
+        },
+        "result": "{\"cpu_load\": 25, \"memory_usage\": 18, \"temperature\": 42, \"uptime_days\": 70, \"firmware\": \"V2.03.78R\", \"firmware_date\": \"2024-06-11\"}"
+      },
+      {
+        "tool": "get_olt_population",
+        "args": {
+          "olt_id": "TK_AZ-OLT_BT_Jad-04"
+        },
+        "result": "{\"total_customers\": 271, \"pon_ports_in_use\": 8, \"customers_per_port\": {\"EPON0/1\": 34, \"EPON0/2\": 34, \"EPON0/3\": 34, \"EPON0/4\": 34, \"EPON0/5\": 34, \"EPON0/6\": 29, \"EPON0/7\": 34, \"EPON0/8\": 38}, \"onu_online_count\": 233, \"onu_offline_count\": 38}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "TK_AZ-OLT_BT_Jad-04",
+          "interface": ""
+        },
+        "result": "{\"interface_port\": \"EPON0/6\", \"crm_view\": {\"total_on_port\": 29, \"customers\": [{\"lineid\": \"70:B6:4F:48:D2:B8\", \"interface\": \"EPON0/6:1\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"78:88:8A:87:AB:42\", \"interface\": \"EPON0/6:4\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"70:B6:4F:E5:1D:6A\", \"interface\": \"EPON0/6:11\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"70:B6:4F:D2:5F:22\", \"interface\": \"EPON0/6:12\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"70:B6:4F:B7:D3:FB\", \"interface\": \"EPON0/6:15\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"00:A1:07:60:84:0A\", \"interface\": \"EPON0/6:31\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"80:F1:A8:33:16:4E\", \"interface\": \"EPON0/6:35\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "70:B6:4F:48:D2:B8"
+        },
+        "result": "{\"error\": \"not_held\", \"lineid_in_scope\": \"70:B6:4F:B7:D3:FB\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "70:B6:4F:48:D2:B8"
+        },
+        "result": "{\"onu_status\": 0, \"rx_power\": \"0\", \"tx_power\": \"0\", \"reading_age_minutes\": 5}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "70:B6:4F:48:D2:B8",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 164, \"first\": -19.84, \"last\": -19.87, \"min\": -20.28, \"max\": -19.59, \"mean\": -19.9, \"range\": 0.69, \"change\": -0.03, \"gaps\": 4}, \"tx_power\": {\"available\": true, \"points\": 164, \"first\": 2.4, \"last\": 2.32, \"min\": 2.26, \"max\": 2.44, \"mean\": 2.35, \"range\": 0.18, \"change\": -0.08, \"gaps\": 4}, \"temperature\": {\"available\": true, \"points\": 164, \"first\": 22.16, \"last\": 20.93, \"min\": 19.67, \"max\": 24.4, \"mean\": 22.03, \"range\": 4.73, \"change\": -1.23, \"gaps\": 4}, \"distance\": {\"available\": true, \"points\": 164, \"first\": 88, \"last\": 88, \"min\": 88, \"max\": 88, \"mean\": 88.0, \"range\": 0, \"change\": 0, \"gaps\": 4}, \"tx_bias_current\": {\"available\": true, \"points\": 164, \"first\": 11.24, \"last\": 11.28, \"min\": 10.69, \"max\": 11.54, \"mean\": 11.2, \"range\": 0.85, \"change\": 0.04, \"gaps\": 4}, \"supply_voltage\": {\"available\": true, \"points\": 164, \"first\": 3.42, \"last\": 3.43, \"min\": 3.41, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.05, \"change\": 0.01, \"gaps\": 4}, \"speed_kbps\": {\"available\": true, \"points\": 164, \"first\": 5.43, \"last\": 10.37, \"min\": 0.05, \"max\": 10.37, \"mean\": 5.01, \"range\": 10.32, \"change\": 4.94, \"gaps\": 4}}}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "70:B6:4F:48:D2:B8"
+        },
+        "result": "{\"count_24h\": 1, \"count_7d\": 15, \"avg_duration_minutes\": 694, \"last_disconnect\": \"2026-09-20T21:12:00Z\", \"recent\": [{\"start\": \"2026-09-20T21:12:00Z\", \"end\": null, \"duration_s\": 42617, \"ip\": \"10.5.50.183\"}, {\"start\": \"2026-09-20T09:11:40Z\", \"end\": \"2026-09-20T20:54:02Z\", \"duration_s\": 42142, \"ip\": \"10.5.50.183\"}]}"
+      },
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "70:B6:4F:B7:D3:FB"
+        },
+        "result": "{\"customer_id\": 22383, \"lineid\": \"70:B6:4F:B7:D3:FB\", \"mac\": \"30:16:9D:BE:EE:04\", \"interface\": \"EPON0/6:15\", \"olt_id\": \"10203\", \"olt_host\": \"TK_AZ-OLT_BT_Jad-04\", \"olt_ip\": \"10.220.39.9\", \"olt_technology\": \"EPON\", \"olt_model\": \"V1600D\", \"router_id\": 12, \"router_name\": \"TK_AZ_Bitola_Jadranska01\", \"profile\": \"profile_30M_1M\", \"active\": 1, \"deleted\": 0, \"onu_model\": \"Infel 1G + CATV\", \"onu_type\": \"Bridge\", \"has_catv\": 1, \"has_voip\": 0, \"catv_service\": 1, \"catv_synced\": 1, \"city\": \"Bitola\", \"area\": \"Jadranska\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "70:B6:4F:B7:D3:FB"
+        },
+        "result": "{\"onu_status\": 0, \"rx_power\": \"0\", \"tx_power\": \"0\", \"reading_age_minutes\": 5}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "70:B6:4F:B7:D3:FB",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 164, \"first\": -19.84, \"last\": -19.87, \"min\": -20.28, \"max\": -19.59, \"mean\": -19.9, \"range\": 0.69, \"change\": -0.03, \"gaps\": 4}, \"tx_power\": {\"available\": true, \"points\": 164, \"first\": 2.4, \"last\": 2.32, \"min\": 2.26, \"max\": 2.44, \"mean\": 2.35, \"range\": 0.18, \"change\": -0.08, \"gaps\": 4}, \"temperature\": {\"available\": true, \"points\": 164, \"first\": 22.16, \"last\": 20.93, \"min\": 19.67, \"max\": 24.4, \"mean\": 22.03, \"range\": 4.73, \"change\": -1.23, \"gaps\": 4}, \"distance\": {\"available\": true, \"points\": 164, \"first\": 88, \"last\": 88, \"min\": 88, \"max\": 88, \"mean\": 88.0, \"range\": 0, \"change\": 0, \"gaps\": 4}, \"tx_bias_current\": {\"available\": true, \"points\": 164, \"first\": 11.24, \"last\": 11.28, \"min\": 10.69, \"max\": 11.54, \"mean\": 11.2, \"range\": 0.85, \"change\": 0.04, \"gaps\": 4}, \"supply_voltage\": {\"available\": true, \"points\": 164, \"first\": 3.42, \"last\": 3.43, \"min\": 3.41, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.05, \"change\": 0.01, \"gaps\": 4}, \"speed_kbps\": {\"available\": true, \"points\": 164, \"first\": 5.43, \"last\": 10.37, \"min\": 0.05, \"max\": 10.37, \"mean\": 5.01, \"range\": 10.32, \"change\": 4.94, \"gaps\": 4}}}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "70:B6:4F:B7:D3:FB"
+        },
+        "result": "{\"count_24h\": 1, \"count_7d\": 15, \"avg_duration_minutes\": 694, \"last_disconnect\": \"2026-09-20T21:12:00Z\", \"recent\": [{\"start\": \"2026-09-20T21:12:00Z\", \"end\": null, \"duration_s\": 42617, \"ip\": \"10.5.50.183\"}, {\"start\": \"2026-09-20T09:11:40Z\", \"end\": \"2026-09-20T20:54:02Z\", \"duration_s\": 42142, \"ip\": \"10.5.50.183\"}]}"
+      },
+      {
+        "tool": "snmp_probe_olt",
+        "args": {
+          "olt_id": "TK_AZ-OLT_BT_Jad-04"
+        },
+        "result": "{\"ping_ok\": true, \"snmp_responds\": true, \"sys_uptime_seconds\": 6048000, \"oid_subtree_responds\": true}"
+      },
+      {
+        "tool": "snmp_probe_pon_port",
+        "args": {
+          "olt_id": "TK_AZ-OLT_BT_Jad-04",
+          "interface": "EPON0/6"
+        },
+        "result": "{\"interface_port\": \"EPON0/6\", \"onus\": [{\"onu_index\": 1, \"online\": 0, \"rx_power\": null, \"tx_power\": null, \"responds\": true}, {\"onu_index\": 4, \"online\": 0, \"rx_power\": null, \"tx_power\": null, \"responds\": true}, {\"onu_index\": 11, \"online\": 0, \"rx_power\": null, \"tx_power\": null, \"responds\": true}, {\"onu_index\": 12, \"online\": 0, \"rx_power\": null, \"tx_power\": null, \"responds\": true}, {\"onu_index\": 15, \"online\": 0, \"rx_power\": null, \"tx_power\": null, \"responds\": true}, {\"onu_index\": 31, \"online\": 0, \"rx_power\": null, \"tx_power\": null, \"responds\": true}, {\"onu_index\": 35, \"online\": 0, \"rx_power\": null, \"tx_power\": null, \"responds\": true}]}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "TK_AZ-OLT_BT_Jad-04",
+          "interface": "EPON0/6"
+        },
+        "result": "{\"interface_port\": \"EPON0/6\", \"crm_view\": {\"total_on_port\": 29, \"customers\": [{\"lineid\": \"70:B6:4F:48:D2:B8\", \"interface\": \"EPON0/6:1\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"78:88:8A:87:AB:42\", \"interface\": \"EPON0/6:4\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"70:B6:4F:E5:1D:6A\", \"interface\": \"EPON0/6:11\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"70:B6:4F:D2:5F:22\", \"interface\": \"EPON0/6:12\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"70:B6:4F:B7:D3:FB\", \"interface\": \"EPON0/6:15\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"00:A1:07:60:84:0A\", \"interface\": \"EPON0/6:31\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"80:F1:A8:33:16:4E\", \"interface\": \"EPON0/6:35\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "get_olt_population",
+        "args": {
+          "olt_id": "TK_AZ-OLT_BT_Jad-04"
+        },
+        "result": "{\"total_customers\": 271, \"pon_ports_in_use\": 8, \"customers_per_port\": {\"EPON0/1\": 34, \"EPON0/2\": 34, \"EPON0/3\": 34, \"EPON0/4\": 34, \"EPON0/5\": 34, \"EPON0/6\": 29, \"EPON0/7\": 34, \"EPON0/8\": 38}, \"onu_online_count\": 233, \"onu_offline_count\": 38}"
+      },
+      {
+        "tool": "snmp_walk_vlans",
+        "args": {
+          "olt_id": "TK_AZ-OLT_BT_Jad-04"
+        },
+        "result": "{\"responds\": true, \"vlans_present\": [1, 46, 100, 1061, 1062, 1063, 1064, 1065, 1066, 1067, 1068, 1998, 1999], \"customer_vlan_expected\": 1066, \"customer_vlan_actual\": 1066}"
+      }
+    ]
+  },
+  "ground_truth": {
+    "fault_type": "pon_port_failure",
+    "root_cause": "EPON0/6 has failed, taking 28 of its 29 customers offline simultaneously 80 minutes ago. The twenty-ninth ONU had already been offline for three days from an unrelated individual fault and is not part of this event.",
+    "severity": "High",
+    "affected_scope": "pon_port",
+    "affected_lineids": [
+      "78:88:8A:87:AB:42",
+      "70:B6:4F:E5:1D:6A",
+      "70:B6:4F:D2:5F:22",
+      "70:B6:4F:B7:D3:FB",
+      "00:A1:07:60:84:0A",
+      "80:F1:A8:33:16:4E"
+    ],
+    "affected_customer_count": 6,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Every ONU on EPON0/6 now returns responds true with online 0",
+      "28 of the 29 stopped within the same minute, 80 minutes ago",
+      "One ONU on the port last held a session three days ago, so it was already down before this event",
+      "That ONU's separate history excludes it from this incident's affected set",
+      "OLT ping and SNMP succeed and the other seven ports are serving normally",
+      "The failure boundary follows EPON0/6 exactly",
+      "PON port traffic has collapsed from 231 Mbps average to 8 Mbps",
+      "The affected count is 28, not 29"
+    ],
+    "required_evidence": [
+      "all_onus_on_port_offline",
+      "pre_existing_outage_excluded",
+      "other_ports_healthy"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "High",
+      "category": "infrastructure",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "The trigger states 29 offline, inviting that number to be reported as the blast radius",
+      "All 29 look identical in current state and only history separates them"
+    ]
+  }
+}

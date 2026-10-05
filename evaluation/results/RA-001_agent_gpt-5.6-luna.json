@@ -1,0 +1,244 @@
+{
+  "scenario_id": "RA-001",
+  "config": "agent",
+  "model": "gpt-5.6-luna",
+  "seconds": 33.5,
+  "result": {
+    "trigger": "customer_complaint",
+    "trigger_input": {
+      "lineid": "4C:46:D1:D3:16:C5",
+      "complaint": "New connection installed yesterday, never worked"
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [
+        {
+          "type": "active_line_no_sessions",
+          "value": "0 sessions in 24h and 0 sessions in 7d",
+          "threshold": "Active line with no sessions has never been served; fault"
+        },
+        {
+          "type": "zero_customer_traffic",
+          "value": "0 MB daily download and 0 MB daily upload for 7 days; monthly averages 0 MB",
+          "threshold": "Active service should show non-zero traffic when served"
+        },
+        {
+          "type": "onu_status",
+          "value": "ONU online (onu_status 1), cached reading age 18 minutes",
+          "threshold": "Online is expected, but does not clear an active line with no sessions"
+        },
+        {
+          "type": "rx_power",
+          "value": "-19.52 dBm",
+          "threshold": "Strong > -20 dBm"
+        },
+        {
+          "type": "tx_power",
+          "value": "2.47 dBm",
+          "threshold": "Normal 0 to +5 dBm"
+        }
+      ],
+      "preliminary_severity": "High",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "4C:46:D1:D3:16:C5"
+      ],
+      "olt_id": "10362",
+      "interface": "EPON0/3:28",
+      "summary": "The active newly installed line is online optically but has never established a session or carried traffic, confirming a service fault for this customer."
+    },
+    "diagnosis": {
+      "fault_type": "radius_missing_entry",
+      "root_cause": "The newly installed customer is optically online with healthy RX/TX power and the correct customer VLAN, but no RADIUS radcheck entry exists. RADIUS provisioning did not complete, so the line has never established a session or carried traffic.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "4C:46:D1:D3:16:C5"
+      ],
+      "evidence": [
+        "Live ONU query responds with online=1, RX power -19.55 dBm, and TX power 2.48 dBm, all healthy.",
+        "The customer has 0 sessions in both the last 24 hours and last 7 days, with no recorded disconnects.",
+        "RADIUS status confirms radcheck_exists=false and explicitly reports that the provisioning step creating the RADIUS user did not complete.",
+        "The customer VLAN is correctly provisioned: expected VLAN 1053 and actual VLAN 1053.",
+        "Other customers are online on the same PON interface, and the OLT responds to ping, SNMP, and the queried OID subtree, excluding shared PON and OLT failure.",
+        "The ONU is active in CRM but has no corresponding RADIUS entry, matching the complaint that the new connection never worked."
+      ],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "remediation": {
+      "action": "create_radius_entry",
+      "automated": true,
+      "reason": "The ONU is optically online with healthy power levels and the correct VLAN, while the RADIUS radcheck entry is missing. This is an individual provisioning failure, not an ONU, PON, OLT, or fibre fault.",
+      "instructions": "Create the RADIUS radcheck entry for line ID 4C:46:D1:D3:16:C5 using the customer's approved service credentials and profile. Verify that authentication succeeds and confirm the customer establishes a session and carries traffic.",
+      "alternatives_considered": [
+        {
+          "action": "onu_reset",
+          "rejected_because": "The ONU is online and responding with healthy RX/TX power; resetting it would not correct the missing RADIUS entry."
+        },
+        {
+          "action": "dispatch_technician",
+          "rejected_because": "There is no evidence of fibre degradation, distance change, splitter trouble, or physical connectivity failure."
+        },
+        {
+          "action": "escalate_infrastructure",
+          "rejected_because": "The OLT and shared PON are functioning normally, with other customers online and management interfaces responding."
+        },
+        {
+          "action": "trigger_acs_provisioning",
+          "rejected_because": "The VLAN and ONU provisioning are already correct; the missing component is the RADIUS subscriber entry."
+        }
+      ]
+    },
+    "escalation": {
+      "priority": "Average",
+      "category": "provisioning",
+      "requires_human_review": true,
+      "review_reason": "The fault is in the RADIUS provisioning system: the ONU is online with healthy optical levels and correct VLAN provisioning, but the required RADIUS radcheck entry is missing. Verify the RADIUS entry creation and successful customer authentication after remediation.",
+      "summary": "A single newly installed customer is out of service despite an online ONU, healthy RX/TX power, correct VLAN 1053, and normal OLT/PON operation. The line has never established a session or carried traffic because RADIUS provisioning did not create the subscriber entry. Create the RADIUS radcheck entry using the approved service profile and credentials, then verify authentication, session establishment, and traffic.",
+      "affected_customer_count": 1,
+      "service_impact": true
+    },
+    "trace": [
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "4C:46:D1:D3:16:C5"
+        },
+        "result": "{\"customer_id\": 32564, \"lineid\": \"4C:46:D1:D3:16:C5\", \"mac\": \"CC:2D:21:E8:0D:65\", \"interface\": \"EPON0/3:28\", \"olt_id\": \"10362\", \"olt_host\": \"TK_AZ-OLT_SK-Gradezen-01\", \"olt_ip\": \"10.220.88.4\", \"olt_technology\": \"EPON\", \"olt_model\": \"V1600D\", \"router_id\": 18, \"router_name\": \"TK_Skopje02-Gradezen\", \"profile\": \"profile_20M\", \"active\": 1, \"deleted\": 0, \"onu_model\": \"Aztech 1G + CATV\", \"onu_type\": \"Bridge\", \"has_catv\": 1, \"has_voip\": 0, \"catv_service\": 1, \"catv_synced\": 1, \"city\": \"Skopje\", \"area\": \"Gradezen\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "4C:46:D1:D3:16:C5"
+        },
+        "result": "{\"onu_status\": 1, \"rx_power\": \"-19.52\", \"tx_power\": \"2.47\", \"reading_age_minutes\": 18}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "4C:46:D1:D3:16:C5"
+        },
+        "result": "{\"count_24h\": 0, \"count_7d\": 0, \"avg_duration_minutes\": 0, \"last_disconnect\": null, \"recent\": []}"
+      },
+      {
+        "tool": "get_traffic",
+        "args": {
+          "lineid": "4C:46:D1:D3:16:C5"
+        },
+        "result": "{\"download_mb_daily\": [0, 0, 0, 0, 0, 0, 0], \"upload_mb_daily\": [0, 0, 0, 0, 0, 0, 0], \"monthly_avg_download_mb\": 0, \"monthly_avg_upload_mb\": 0, \"pon_port_traffic\": {\"current_mbps\": 196, \"avg_mbps\": 201, \"peak_mbps\": 590}}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "4C:46:D1:D3:16:C5",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 168, \"first\": -19.39, \"last\": -19.57, \"min\": -19.86, \"max\": -18.98, \"mean\": -19.49, \"range\": 0.88, \"change\": -0.18, \"gaps\": 0}, \"tx_power\": {\"available\": true, \"points\": 168, \"first\": 2.37, \"last\": 2.37, \"min\": 2.25, \"max\": 2.48, \"mean\": 2.36, \"range\": 0.23, \"change\": 0.0, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 22.14, \"last\": 21.17, \"min\": 19.7, \"max\": 24.25, \"mean\": 21.96, \"range\": 4.55, \"change\": -0.97, \"gaps\": 0}, \"distance\": {\"available\": true, \"points\": 168, \"first\": 63, \"last\": 63, \"min\": 63, \"max\": 63, \"mean\": 63.0, \"range\": 0, \"change\": 0, \"gaps\": 0}, \"tx_bias_current\": {\"available\": true, \"points\": 168, \"first\": 11.5, \"last\": 11.34, \"min\": 10.76, \"max\": 11.52, \"mean\": 11.21, \"range\": 0.76, \"change\": -0.16, \"gaps\": 0}, \"supply_voltage\": {\"available\": true, \"points\": 168, \"first\": 3.43, \"last\": 3.42, \"min\": 3.4, \"max\": 3.45, \"mean\": 3.43, \"range\": 0.05, \"change\": -0.01, \"gaps\": 0}, \"speed_kbps\": {\"available\": true, \"points\": 168, \"first\": 0.0, \"last\": 0.0, \"min\": 0.0, \"max\": 0.0, \"mean\": 0.0, \"range\": 0.0, \"change\": 0.0, \"gaps\": 0}}}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "10362",
+          "interface": "EPON0/3:28"
+        },
+        "result": "{\"interface_port\": \"EPON0/3\", \"crm_view\": {\"total_on_port\": 30, \"customers\": [{\"lineid\": \"B4:64:15:7F:2C:49\", \"interface\": \"EPON0/3:1\", \"onu_status\": 1, \"rx_power\": \"-19.06\", \"active\": 1}, {\"lineid\": \"4C:46:D1:A6:20:63\", \"interface\": \"EPON0/3:13\", \"onu_status\": 1, \"rx_power\": \"-21.46\", \"active\": 1}, {\"lineid\": \"4C:46:D1:D3:16:C5\", \"interface\": \"EPON0/3:28\", \"onu_status\": 1, \"rx_power\": \"-19.52\", \"active\": 1}, {\"lineid\": \"00:A1:07:A6:85:91\", \"interface\": \"EPON0/3:39\", \"onu_status\": 1, \"rx_power\": \"-20.22\", \"active\": 1}, {\"lineid\": \"B4:64:15:70:1F:98\", \"interface\": \"EPON0/3:48\", \"onu_status\": 1, \"rx_power\": \"-19.00\", \"active\": 1}, {\"lineid\": \"4C:46:D1:07:9E:3A\", \"interface\": \"EPON0/3:53\", \"onu_status\": 1, \"rx_power\": \"-23.62\", \"active\": 1}, {\"lineid\": \"4C:D7:C8:1A:45:43\", \"interface\": \"EPON0/3:58\", \"onu_status\": 1, \"rx_power\": \"-22.58\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "get_olt_population",
+        "args": {
+          "olt_id": "10362"
+        },
+        "result": "{\"total_customers\": 281, \"pon_ports_in_use\": 8, \"customers_per_port\": {\"EPON0/1\": 35, \"EPON0/2\": 35, \"EPON0/3\": 30, \"EPON0/4\": 35, \"EPON0/5\": 35, \"EPON0/6\": 35, \"EPON0/7\": 35, \"EPON0/8\": 41}, \"onu_online_count\": 267, \"onu_offline_count\": 14}"
+      },
+      {
+        "tool": "get_router_status",
+        "args": {
+          "router_id": 18
+        },
+        "result": "{\"name\": \"TK_Skopje02-Gradezen\", \"model\": \"CCR2116-12G-4S+\", \"os_version\": \"7.24\", \"last_checkin\": \"2026-09-18T08:38:00Z\", \"hours_since_checkin\": 0.2, \"heartbeat_status\": \"ok\", \"cpu_usage\": 6, \"memory_utilization\": 0, \"temperature\": 39}"
+      },
+      {
+        "tool": "snmp_get_onu",
+        "args": {
+          "lineid": "4C:46:D1:D3:16:C5"
+        },
+        "result": "{\"responds\": true, \"online\": 1, \"rx_power\": -19.55, \"tx_power\": 2.48, \"auth_flag\": \"Auth\", \"exchange\": \"Finish\", \"rtt_tq\": 51}"
+      },
+      {
+        "tool": "get_radius_status",
+        "args": {
+          "lineid": "4C:46:D1:D3:16:C5"
+        },
+        "result": "{\"radcheck_exists\": false, \"username\": null, \"lineid_in_radius\": null, \"framed_pool\": null, \"assigned_ip\": null, \"crm_consistent\": false, \"mismatches\": [{\"type\": \"missing_radcheck\", \"detail\": \"The customer is active in CRM with a CPE MAC but has no radcheck row. The provisioning step that creates the RADIUS user did not complete.\"}]}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "4C:46:D1:D3:16:C5"
+        },
+        "result": "{\"count_24h\": 0, \"count_7d\": 0, \"avg_duration_minutes\": 0, \"last_disconnect\": null, \"recent\": []}"
+      },
+      {
+        "tool": "snmp_walk_vlans",
+        "args": {
+          "olt_id": "10362"
+        },
+        "result": "{\"responds\": true, \"vlans_present\": [1, 46, 100, 1051, 1052, 1053, 1054, 1055, 1056, 1057, 1058, 1998, 1999], \"customer_vlan_expected\": 1053, \"customer_vlan_actual\": 1053}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "10362",
+          "interface": "EPON0/3:28"
+        },
+        "result": "{\"interface_port\": \"EPON0/3\", \"crm_view\": {\"total_on_port\": 30, \"customers\": [{\"lineid\": \"B4:64:15:7F:2C:49\", \"interface\": \"EPON0/3:1\", \"onu_status\": 1, \"rx_power\": \"-19.06\", \"active\": 1}, {\"lineid\": \"4C:46:D1:A6:20:63\", \"interface\": \"EPON0/3:13\", \"onu_status\": 1, \"rx_power\": \"-21.46\", \"active\": 1}, {\"lineid\": \"4C:46:D1:D3:16:C5\", \"interface\": \"EPON0/3:28\", \"onu_status\": 1, \"rx_power\": \"-19.52\", \"active\": 1}, {\"lineid\": \"00:A1:07:A6:85:91\", \"interface\": \"EPON0/3:39\", \"onu_status\": 1, \"rx_power\": \"-20.22\", \"active\": 1}, {\"lineid\": \"B4:64:15:70:1F:98\", \"interface\": \"EPON0/3:48\", \"onu_status\": 1, \"rx_power\": \"-19.00\", \"active\": 1}, {\"lineid\": \"4C:46:D1:07:9E:3A\", \"interface\": \"EPON0/3:53\", \"onu_status\": 1, \"rx_power\": \"-23.62\", \"active\": 1}, {\"lineid\": \"4C:D7:C8:1A:45:43\", \"interface\": \"EPON0/3:58\", \"onu_status\": 1, \"rx_power\": \"-22.58\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "snmp_probe_olt",
+        "args": {
+          "olt_id": "10362"
+        },
+        "result": "{\"ping_ok\": true, \"snmp_responds\": true, \"sys_uptime_seconds\": 3801600, \"oid_subtree_responds\": true}"
+      }
+    ]
+  },
+  "ground_truth": {
+    "fault_type": "radius_missing_entry",
+    "root_cause": "The customer has no radcheck row, so every authentication attempt is rejected and no session is ever established. The provisioning step that writes the RADIUS user did not complete when the line was installed.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "4C:46:D1:D3:16:C5"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "The ONU is online with RX -19.52 and TX 2.47, both comfortably normal",
+      "The live probe confirms the ONU and its peers are responding normally",
+      "The OLT and router are healthy, so no shared infrastructure fault exists",
+      "The physical layer is therefore working end to end",
+      "Despite that, the customer has zero sessions in both the 24 hour and 7 day windows",
+      "RADIUS holds no radcheck row for this CPE MAC, so authentication cannot succeed",
+      "Daily traffic is zero for all seven days, consistent with never having been authenticated",
+      "A healthy physical layer with an absent RADIUS entry is a provisioning failure, not a network fault",
+      "No technician visit is warranted; the RADIUS entry needs creating"
+    ],
+    "required_evidence": [
+      "physical_layer_confirmed_healthy",
+      "radcheck_absent",
+      "zero_sessions_since_install"
+    ],
+    "expected_remediation": "create_radius_entry",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "provisioning",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "A brand new connection that never worked suggests an installation fault",
+      "Zero traffic could be read as a dead line"
+    ]
+  }
+}

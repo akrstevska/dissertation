@@ -1,0 +1,89 @@
+{
+  "scenario_id": "FC-002",
+  "config": "agent",
+  "model": "claude-haiku-4-5-20251001",
+  "seconds": 0.0,
+  "result": {
+    "trigger": "scheduled_scan",
+    "trigger_input": {
+      "scope": "olt",
+      "target": "TK_AZ_OLT-VE05"
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [],
+      "preliminary_severity": "Warning",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        ""
+      ],
+      "olt_id": null,
+      "interface": null,
+      "summary": "stub"
+    },
+    "diagnosis": {
+      "fault_type": "no_fault",
+      "root_cause": "stub",
+      "confidence": 0.5,
+      "affected_scope": "single_customer",
+      "affected_lineids": [],
+      "evidence": [],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "remediation": {
+      "action": "no_action",
+      "automated": false,
+      "reason": "stub",
+      "instructions": "",
+      "alternatives_considered": []
+    },
+    "escalation": {
+      "priority": "Warning",
+      "category": "monitoring",
+      "requires_human_review": false,
+      "review_reason": null,
+      "summary": "stub",
+      "affected_customer_count": 0,
+      "service_impact": false
+    },
+    "trace": []
+  },
+  "ground_truth": {
+    "fault_type": "olt_health_false_critical",
+    "root_cause": "The health check marks an OLT critical only when every sampled PON fails. Seven of eight failed here, so it wrote 'healthy' with a null error description while healthy_pons stood at 1 of 8 in the same record. A genuine multi-port outage is running underneath a healthy verdict.",
+    "severity": "High",
+    "affected_scope": "olt",
+    "affected_lineids": [],
+    "affected_customer_count": 43,
+    "service_impact": true,
+    "expected_reasoning": [
+      "The health record reports overall_status healthy with a null error description",
+      "The same record holds healthy_pons 1 against total_pons_tested 8, and seven entries in failed_pons_list",
+      "The summary label contradicts the detail fields inside one record",
+      "The check sets critical only when every sampled PON fails, so seven of eight yields healthy by design",
+      "Probing confirms every ONU on EPON0/7 returns responds true with online 0, a definite negative",
+      "oid_subtree_responds is true, so this is not the firmware mismatch mechanism",
+      "43 of 272 customers on the OLT are offline, far above the 4.85% background rate",
+      "Sessions ended together and PON traffic has collapsed from 219 to 6 Mbps",
+      "This is a genuine multi-port outage that the health check's status rule conceals"
+    ],
+    "required_evidence": [
+      "healthy_label_contradicts_detail_fields",
+      "definite_offline_not_no_response",
+      "customers_not_passing_traffic"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "High",
+      "category": "infrastructure",
+      "requires_human_review": true,
+      "review_reason": "The health check reported healthy during a seven-port outage; the status rule needs correcting"
+    },
+    "distractors": [
+      "The health record says healthy, inviting a no_fault conclusion",
+      "A scheduled scan with no complaint gives no reason to look harder",
+      "The fault type is a health check defect but the service impact is real"
+    ]
+  }
+}

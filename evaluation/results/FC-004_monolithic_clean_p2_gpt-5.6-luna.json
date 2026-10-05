@@ -1,0 +1,85 @@
+{
+  "scenario_id": "FC-004",
+  "config": "monolithic_clean_p2",
+  "model": "gpt-5.6-luna",
+  "seconds": 6.8,
+  "result": {
+    "diagnosis": {
+      "fault_type": "olt_health_false_critical",
+      "root_cause": "The OLT health check is generating a false critical result from stale or defective PON test data. The stored record claims all 8 PONs failed, but it is dated 2025-11-11 and conflicts with live evidence: OLT ping and SNMP respond, all tested ONUs on EPON0/5 are online, traffic is passing, and OLT metrics are healthy.",
+      "confidence": 0.99,
+      "affected_scope": "olt",
+      "evidence": [
+        "The stored OLT health record is materially stale, so it describes historical state rather than current state.",
+        "The OLT currently answers ping and SNMP, including the relevant OID subtree, so this is not an OLT outage.",
+        "The subscriber ONU is online with healthy RX power of -19.71 dBm and TX power of 2.42 dBm.",
+        "All seven live-tested ONUs on EPON0/5 are online and responding, so the PON port and its shared splitter are functioning.",
+        "The OLT has healthy CPU, memory, temperature, and uptime values, and the router heartbeat is normal.",
+        "Customer VLAN 1035 is present and matches the expected VLAN, with active traffic and normal session behavior.",
+        "The OLT population has 207 of 214 ONUs online; seven offline is within ordinary background variation and does not support an OLT-wide outage.",
+        "The critical summary claiming all 8 PONs failed contradicts the live detail, so the monitoring check is the fault rather than the network."
+      ]
+    },
+    "remediation": {
+      "action": "Clear or suppress the false alarm after confirming live service, refresh the OLT/PON health data, and investigate the health-check logic or data pipeline that marked every PON failed. Ensure stale health records cannot determine current status and validate the check against live ONU online values, OLT ping, and SNMP responses."
+    },
+    "escalation": {
+      "priority": "Information"
+    },
+    "monolithic": {
+      "fault_type": "olt_health_false_critical",
+      "root_cause": "The OLT health check is generating a false critical result from stale or defective PON test data. The stored record claims all 8 PONs failed, but it is dated 2025-11-11 and conflicts with live evidence: OLT ping and SNMP respond, all tested ONUs on EPON0/5 are online, traffic is passing, and OLT metrics are healthy.",
+      "confidence": 0.99,
+      "severity": "Information",
+      "affected_scope": "olt",
+      "remediation": "Clear or suppress the false alarm after confirming live service, refresh the OLT/PON health data, and investigate the health-check logic or data pipeline that marked every PON failed. Ensure stale health records cannot determine current status and validate the check against live ONU online values, OLT ping, and SNMP responses.",
+      "reasoning": [
+        "The stored OLT health record is materially stale, so it describes historical state rather than current state.",
+        "The OLT currently answers ping and SNMP, including the relevant OID subtree, so this is not an OLT outage.",
+        "The subscriber ONU is online with healthy RX power of -19.71 dBm and TX power of 2.42 dBm.",
+        "All seven live-tested ONUs on EPON0/5 are online and responding, so the PON port and its shared splitter are functioning.",
+        "The OLT has healthy CPU, memory, temperature, and uptime values, and the router heartbeat is normal.",
+        "Customer VLAN 1035 is present and matches the expected VLAN, with active traffic and normal session behavior.",
+        "The OLT population has 207 of 214 ONUs online; seven offline is within ordinary background variation and does not support an OLT-wide outage.",
+        "The critical summary claiming all 8 PONs failed contradicts the live detail, so the monitoring check is the fault rather than the network."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "olt_health_false_critical",
+    "root_cause": "The stored health record carries a run_date of 2025-11-11, ten months before the current date. The health check has not run since. The OLT has 58 days of uptime, answers every probe normally and is serving all its customers; the alarm describes a condition that no longer exists, if it ever did.",
+    "severity": "Information",
+    "affected_scope": "none",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The health record reports critical with all eight PONs failed",
+      "Its run_date is 2025-11-11, ten months before the scenario's capture time",
+      "A stored record that old describes history, not current state",
+      "The live probe answers normally: the ONU is online with RX -19.71 and TX 2.42",
+      "OLT ping and SNMP succeed, oid_subtree_responds is true and uptime is 58 days",
+      "58 days of uptime postdates the stored record, so the device has restarted since it was written",
+      "CPU 24, memory 18 and temperature 42 are all at healthy baseline",
+      "Customers are authenticated with normal sessions and seven days of steady traffic",
+      "The finding is not an outage but that OLT health monitoring has not run for ten months"
+    ],
+    "required_evidence": [
+      "record_age_checked",
+      "live_probe_contradicts_record",
+      "uptime_postdates_record"
+    ],
+    "expected_remediation": "flag_monitoring_defect",
+    "expected_escalation": {
+      "priority": "Information",
+      "category": "monitoring",
+      "requires_human_review": true,
+      "review_reason": "OLT health checks have not run since 2025-11-11; the schedule is not active"
+    },
+    "distractors": [
+      "The alarm text is identical to a genuine critical",
+      "The record is internally consistent and only its date betrays it",
+      "Nothing in the alarm payload signals that it is stale"
+    ]
+  }
+}

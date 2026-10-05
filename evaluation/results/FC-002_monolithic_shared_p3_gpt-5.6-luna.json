@@ -1,0 +1,85 @@
+{
+  "scenario_id": "FC-002",
+  "config": "monolithic_shared_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 12.9,
+  "result": {
+    "diagnosis": {
+      "fault_type": "olt_health_false_critical",
+      "root_cause": "The OLT health check reports overall_status=healthy even though 7 of 8 tested PONs are marked failed. The OLT itself is reachable and SNMP is responsive, so this is a false healthy monitoring result caused by an incorrect health-status aggregation rule. The subscriber's EPON0/7 port is genuinely down: all probed ONUs on that port returned responds=true with online=0.",
+      "confidence": 0.99,
+      "affected_scope": "olt",
+      "evidence": [
+        "The OLT responds to ping, SNMP, and the OID subtree, with normal CPU, memory, temperature, and uptime; this rules out an OLT-wide device failure.",
+        "The detailed OLT health record marks 7 of 8 tested PONs as failed, leaving only one healthy PON, but overall_status is incorrectly reported as healthy.",
+        "The monitoring rules state that an overall healthy label concealing failures on every tested PON or all but one indicates a health-check fault.",
+        "The live probe for EPON0/7 returns responds=true and online=0 for every sampled ONU, which is a definite real outage rather than a monitoring silence.",
+        "Because all observed ONUs on EPON0/7 are offline, the subscriber's port is down; the VLAN, RADIUS record, router heartbeat, and authentication mapping are otherwise normal.",
+        "The customer's optical telemetry before the current dropout was stable and healthy: RX stayed around -21.4 dBm, TX around +2.35 dBm, distance remained 166, and TX bias remained near 11.2 mA.",
+        "Session activity is normal at one session in the last 24 hours with a near-normal average duration, so there is no evidence of session flapping or an authentication fault.",
+        "The breadth of the failed-port detail makes the service impact OLT-wide, while the fault being reported is the incorrect OLT health status rather than an OLT hardware failure."
+      ]
+    },
+    "remediation": {
+      "action": "Correct the OLT health-check aggregation so an OLT with all or all-but-one PONs failed cannot be reported healthy. Escalate the underlying seven failed PONs, beginning with EPON0/7, for port, splitter, and upstream optical-path investigation and restoration. Re-run live PON probes and verify ONU recovery after repair."
+    },
+    "escalation": {
+      "priority": "Disaster"
+    },
+    "monolithic": {
+      "fault_type": "olt_health_false_critical",
+      "root_cause": "The OLT health check reports overall_status=healthy even though 7 of 8 tested PONs are marked failed. The OLT itself is reachable and SNMP is responsive, so this is a false healthy monitoring result caused by an incorrect health-status aggregation rule. The subscriber's EPON0/7 port is genuinely down: all probed ONUs on that port returned responds=true with online=0.",
+      "confidence": 0.99,
+      "severity": "Disaster",
+      "affected_scope": "olt",
+      "remediation": "Correct the OLT health-check aggregation so an OLT with all or all-but-one PONs failed cannot be reported healthy. Escalate the underlying seven failed PONs, beginning with EPON0/7, for port, splitter, and upstream optical-path investigation and restoration. Re-run live PON probes and verify ONU recovery after repair.",
+      "reasoning": [
+        "The OLT responds to ping, SNMP, and the OID subtree, with normal CPU, memory, temperature, and uptime; this rules out an OLT-wide device failure.",
+        "The detailed OLT health record marks 7 of 8 tested PONs as failed, leaving only one healthy PON, but overall_status is incorrectly reported as healthy.",
+        "The monitoring rules state that an overall healthy label concealing failures on every tested PON or all but one indicates a health-check fault.",
+        "The live probe for EPON0/7 returns responds=true and online=0 for every sampled ONU, which is a definite real outage rather than a monitoring silence.",
+        "Because all observed ONUs on EPON0/7 are offline, the subscriber's port is down; the VLAN, RADIUS record, router heartbeat, and authentication mapping are otherwise normal.",
+        "The customer's optical telemetry before the current dropout was stable and healthy: RX stayed around -21.4 dBm, TX around +2.35 dBm, distance remained 166, and TX bias remained near 11.2 mA.",
+        "Session activity is normal at one session in the last 24 hours with a near-normal average duration, so there is no evidence of session flapping or an authentication fault.",
+        "The breadth of the failed-port detail makes the service impact OLT-wide, while the fault being reported is the incorrect OLT health status rather than an OLT hardware failure."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "olt_health_false_critical",
+    "root_cause": "The health check marks an OLT critical only when every sampled PON fails. Seven of eight failed here, so it wrote 'healthy' with a null error description while healthy_pons stood at 1 of 8 in the same record. A genuine multi-port outage is running underneath a healthy verdict.",
+    "severity": "High",
+    "affected_scope": "olt",
+    "affected_lineids": [],
+    "affected_customer_count": 43,
+    "service_impact": true,
+    "expected_reasoning": [
+      "The health record reports overall_status healthy with a null error description",
+      "The same record holds healthy_pons 1 against total_pons_tested 8, and seven entries in failed_pons_list",
+      "The summary label contradicts the detail fields inside one record",
+      "The check sets critical only when every sampled PON fails, so seven of eight yields healthy by design",
+      "Probing confirms every ONU on EPON0/7 returns responds true with online 0, a definite negative",
+      "oid_subtree_responds is true, so this is not the firmware mismatch mechanism",
+      "43 of 272 customers on the OLT are offline, far above the 4.85% background rate",
+      "Sessions ended together and PON traffic has collapsed from 219 to 6 Mbps",
+      "This is a genuine multi-port outage that the health check's status rule conceals"
+    ],
+    "required_evidence": [
+      "healthy_label_contradicts_detail_fields",
+      "definite_offline_not_no_response",
+      "customers_not_passing_traffic"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "High",
+      "category": "infrastructure",
+      "requires_human_review": true,
+      "review_reason": "The health check reported healthy during a seven-port outage; the status rule needs correcting"
+    },
+    "distractors": [
+      "The health record says healthy, inviting a no_fault conclusion",
+      "A scheduled scan with no complaint gives no reason to look harder",
+      "The fault type is a health check defect but the service impact is real"
+    ]
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "scenario_id": "RA-002",
+  "config": "agent",
+  "model": "claude-haiku-4-5-20251001",
+  "seconds": 0.0,
+  "result": {
+    "trigger": "scheduled_scan",
+    "trigger_input": {
+      "scope": "network",
+      "target": null
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [],
+      "preliminary_severity": "Warning",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        ""
+      ],
+      "olt_id": null,
+      "interface": null,
+      "summary": "stub"
+    },
+    "diagnosis": {
+      "fault_type": "no_fault",
+      "root_cause": "stub",
+      "confidence": 0.5,
+      "affected_scope": "single_customer",
+      "affected_lineids": [],
+      "evidence": [],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "remediation": {
+      "action": "no_action",
+      "automated": false,
+      "reason": "stub",
+      "instructions": "",
+      "alternatives_considered": []
+    },
+    "escalation": {
+      "priority": "Warning",
+      "category": "monitoring",
+      "requires_human_review": false,
+      "review_reason": null,
+      "summary": "stub",
+      "affected_customer_count": 0,
+      "service_impact": false
+    },
+    "trace": []
+  },
+  "ground_truth": {
+    "fault_type": "radius_suspended_but_serving",
+    "root_cause": "The customer is marked inactive in CRM but RADIUS never applied the suspension. Framed-Pool is unset and the assigned address is in pool_Users, so full service continues. This is one of the 218 such cases in the estate.",
+    "severity": "Warning",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "00:A1:07:37:94:EB"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": false,
+    "expected_reasoning": [
+      "CRM marks the customer inactive, which should mean service is suspended",
+      "RADIUS has a radcheck row with no Framed-Pool set",
+      "A suspended customer should be assigned to pool_Disable_Users and hold an address in 10.200.200.0/24",
+      "The assigned address is 10.5.50.188, which is in pool_Users, the standard subscriber range",
+      "The IP range settles the question without relying on either system's status flag",
+      "Sessions are active with a 715 minute mean and traffic is normal across all seven days",
+      "The customer is therefore receiving full service despite being suspended in CRM",
+      "The optical layer is healthy and irrelevant to this fault",
+      "There is no service impact for the customer; the impact is commercial"
+    ],
+    "required_evidence": [
+      "ip_in_standard_pool_not_disable_pool",
+      "crm_marks_inactive",
+      "traffic_confirms_live_service"
+    ],
+    "expected_remediation": "apply_disable_pool",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "provisioning",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "Every technical signal is healthy, inviting a no_fault conclusion",
+      "No customer has complained and none will",
+      "service_impact is false even though a genuine fault exists"
+    ]
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "scenario_id": "SV-002",
+  "config": "monolithic_shared_p2",
+  "model": "gpt-5.6-luna",
+  "seconds": 6.8,
+  "result": {
+    "diagnosis": {
+      "fault_type": "stuck_provisioning_vlan46",
+      "root_cause": "The ONU is online with healthy optical and OLT conditions, but the customer service is mapped to VLAN 46, the factory-default/unprovisioned VLAN, instead of the expected customer VLAN 1058. This prevents the subscriber from obtaining a service session or IP address after the move.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The ONU is currently online and responding, with RX power -21.76 dBm and TX power 2.42 dBm, both within normal EPON ranges.",
+        "The seven-day optical telemetry is stable: RX remains around -21.7 dBm, TX around +2.35 dBm, distance is constant at 193, and TX bias remains healthy around 11 mA.",
+        "All tested peers on EPON0/8 are online and responding, so there is no evidence of an ONU, splitter, PON-port, or shared-fibre failure.",
+        "The OLT responds to ping, SNMP, and the ONU subtree, while CPU, memory, temperature, and uptime are normal; this is not an OLT failure.",
+        "The router heartbeat is healthy and the customer has zero traffic and zero sessions, confirming loss of service despite physical connectivity.",
+        "RADIUS has a valid current entry whose line ID matches the subscriber; the superseded CPE-MAC row is explicitly inert and is not consulted, so it is not the presenting authentication fault.",
+        "The VLAN walk shows customer VLAN 1058 expected but VLAN 46 actually assigned. VLAN 46 is the factory-default, never-provisioned VLAN, directly explaining the post-move complaint and absence of service."
+      ]
+    },
+    "remediation": {
+      "action": "Correct the subscriber provisioning on EPON0/8:37 to use VLAN 1058 rather than VLAN 46, apply or reload the ONU service profile, and force a fresh authentication/session. Verify that the customer receives an IP address and passes traffic. Remove the inert orphan radcheck row from the previous address after confirming it is no longer needed."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "stuck_provisioning_vlan46",
+      "root_cause": "The ONU is online with healthy optical and OLT conditions, but the customer service is mapped to VLAN 46, the factory-default/unprovisioned VLAN, instead of the expected customer VLAN 1058. This prevents the subscriber from obtaining a service session or IP address after the move.",
+      "confidence": 0.99,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Correct the subscriber provisioning on EPON0/8:37 to use VLAN 1058 rather than VLAN 46, apply or reload the ONU service profile, and force a fresh authentication/session. Verify that the customer receives an IP address and passes traffic. Remove the inert orphan radcheck row from the previous address after confirming it is no longer needed.",
+      "reasoning": [
+        "The ONU is currently online and responding, with RX power -21.76 dBm and TX power 2.42 dBm, both within normal EPON ranges.",
+        "The seven-day optical telemetry is stable: RX remains around -21.7 dBm, TX around +2.35 dBm, distance is constant at 193, and TX bias remains healthy around 11 mA.",
+        "All tested peers on EPON0/8 are online and responding, so there is no evidence of an ONU, splitter, PON-port, or shared-fibre failure.",
+        "The OLT responds to ping, SNMP, and the ONU subtree, while CPU, memory, temperature, and uptime are normal; this is not an OLT failure.",
+        "The router heartbeat is healthy and the customer has zero traffic and zero sessions, confirming loss of service despite physical connectivity.",
+        "RADIUS has a valid current entry whose line ID matches the subscriber; the superseded CPE-MAC row is explicitly inert and is not consulted, so it is not the presenting authentication fault.",
+        "The VLAN walk shows customer VLAN 1058 expected but VLAN 46 actually assigned. VLAN 46 is the factory-default, never-provisioned VLAN, directly explaining the post-move complaint and absence of service."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "stuck_provisioning_vlan46",
+    "root_cause": "The relocated CPE is still on the factory-default VLAN 46 and was never migrated to VLAN 1999 and its data VLAN, so it cannot reach the network. The orphan RADIUS row left behind at the previous address is inert and is not the cause.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "80:F1:A8:5A:4C:36"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "The ONU is online with RX -21.73 and TX 2.41, and the live probe confirms it",
+      "Peers, OLT and router are all healthy, so the physical layer works",
+      "The customer has zero sessions and zero traffic since reconnection",
+      "RADIUS does hold a current radcheck row for this CPE MAC, so the missing-entry explanation is ruled out",
+      "There is a RADIUS anomaly, an orphan row under a superseded MAC from the previous address",
+      "That row is inert: it is not consulted for the current username and cannot prevent authentication",
+      "Accepting it as the cause would stop the investigation one step short",
+      "The VLAN walk shows the customer on VLAN 46 where VLAN 1058 is expected",
+      "VLAN 46 is the factory default, so provisioning never migrated this CPE after the move",
+      "A device on the factory VLAN has no network path regardless of its RADIUS state"
+    ],
+    "required_evidence": [
+      "vlan_walk_shows_46",
+      "radcheck_exists_so_not_missing_entry",
+      "orphan_row_ruled_out_as_cause"
+    ],
+    "expected_remediation": "trigger_acs_provisioning",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "provisioning",
+      "requires_human_review": true,
+      "review_reason": "An orphan RADIUS row from the previous address should be cleaned up separately"
+    },
+    "distractors": [
+      "The RADIUS orphan is a plausible cause and is found before the VLAN walk",
+      "The symptom profile is identical to a missing RADIUS entry",
+      "A house move suggests an account or provisioning record problem rather than a VLAN one"
+    ]
+  }
+}

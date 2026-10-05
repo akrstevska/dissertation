@@ -1,0 +1,227 @@
+{
+  "scenario_id": "OF-002",
+  "config": "agent",
+  "model": "gpt-5.6-luna",
+  "seconds": 47.1,
+  "result": {
+    "trigger": "health_check_alarm",
+    "trigger_input": {
+      "olt_host": "TK_AZ_OLT-KO-14",
+      "overall_status": "critical",
+      "error_description": "SNMP community string not accessible, OLT does not respond to SNMP queries"
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [
+        {
+          "type": "snmp_accessibility",
+          "value": "snmp_community_ok=false; snmp_response_ok=false",
+          "threshold": "SNMP community and response must be accessible=true"
+        },
+        {
+          "type": "olt_metrics",
+          "value": "cpu_load=0, memory_usage=0, temperature=0, uptime_days=0",
+          "threshold": "Values are missing/unavailable, not valid readings against healthy CPU~25%, memory~17%, temperature~42C"
+        },
+        {
+          "type": "cached_onu_reading_age",
+          "value": "reading_age_minutes=2880",
+          "threshold": "Cached optical readings should be current; 2880 minutes is stale"
+        },
+        {
+          "type": "service_observation",
+          "value": "ONU online=158/167; sampled RX=-20.03 dBm, TX=2.38 dBm, sessions=2 in 24h, router heartbeat=0.3h",
+          "threshold": "ONU offline baseline=4.85% (~8.1 of 167), RX normal=-20 to -25 dBm, TX normal=0 to +5 dBm, sessions normal=2-3/day, heartbeat ok<2h"
+        }
+      ],
+      "preliminary_severity": "Information",
+      "affected_scope": "olt",
+      "affected_lineids": [
+        "78:88:8A:96:98:59"
+      ],
+      "olt_id": "TK_AZ_OLT-KO-14",
+      "interface": "EPON0/6",
+      "summary": "The OLT is unreachable through SNMP and its health metrics are unavailable, while sampled customer service and router heartbeat remain within normal bands."
+    },
+    "diagnosis": {
+      "fault_type": "olt_failure",
+      "root_cause": "The OLT responds to ping but does not respond to SNMP, so the OLT management plane is failing or inaccessible. ONU service appears operational based on cached/customer observations, but live ONU probes cannot be verified while SNMP is unavailable.",
+      "confidence": 0.98,
+      "affected_scope": "olt",
+      "affected_lineids": [
+        "78:88:8A:96:98:59"
+      ],
+      "evidence": [
+        "Live OLT probe shows ping_ok=true but snmp_responds=false, with no uptime or OID response.",
+        "Live probes for all sampled ONUs on EPON0/6 return responds=false, which is consistent with the unavailable SNMP path rather than definite ONU offline states.",
+        "Cached service data shows 158/167 customers online, 9 offline, sampled RX/TX within normal bands, sessions at 2 per 24h, and router heartbeat at 0.3h.",
+        "The cached optical and service readings are 2880 minutes old and therefore cannot establish current live OLT or ONU state."
+      ],
+      "cached_vs_live_discrepancy": true,
+      "discrepancy_detail": "Cached data reports normal customer service and healthy sampled optics, while current OLT and ONU SNMP queries do not respond. The cached readings are stale and cannot disprove the live SNMP/OLT failure."
+    },
+    "escalation": {
+      "priority": "Information",
+      "category": "monitoring",
+      "requires_human_review": true,
+      "review_reason": "SNMP monitoring/access to OLT TK_AZ_OLT-KO-14 is unavailable and cached telemetry is stale; confirm or repair the monitoring/management path because downstream customer remediation cannot clear this condition.",
+      "summary": "The OLT responds to ping but not SNMP, leaving live OLT and ONU health metrics unavailable. Cached data is 48 hours old and shows 158 of 167 ONUs online, 9 offline within the normal background range, healthy sampled RX/TX, normal session activity, and a current router heartbeat. No customer service impact is confirmed. Investigate the SNMP community, OLT management plane, and monitoring path; do not treat zero metrics or failed ONU probes as customer outages.",
+      "affected_customer_count": 0,
+      "service_impact": false
+    },
+    "trace": [
+      {
+        "tool": "get_olt_health",
+        "args": {
+          "olt_id": "TK_AZ_OLT-KO-14"
+        },
+        "result": "{\"olt_ip\": \"10.220.60.15\", \"olt_host\": \"TK_AZ_OLT-KO-14\", \"olt_technology\": \"EPON\", \"olt_ext_id\": \"10331\", \"ping_ok\": true, \"snmp_community_ok\": false, \"snmp_response_ok\": false, \"total_pons_tested\": 0, \"healthy_pons\": 0, \"failed_pons_list\": [], \"error_description\": \"SNMP community string not accessible, OLT does not respond to SNMP queries\", \"overall_status\": \"critical\", \"run_date\": \"2026-09-17\"}"
+      },
+      {
+        "tool": "get_olt_metrics",
+        "args": {
+          "olt_id": "TK_AZ_OLT-KO-14"
+        },
+        "result": "{\"cpu_load\": 0, \"memory_usage\": 0, \"temperature\": 0, \"uptime_days\": 0, \"firmware\": \"V2.04.12R\", \"firmware_date\": \"2025-11-28\"}"
+      },
+      {
+        "tool": "get_olt_population",
+        "args": {
+          "olt_id": "TK_AZ_OLT-KO-14"
+        },
+        "result": "{\"total_customers\": 167, \"pon_ports_in_use\": 7, \"customers_per_port\": {\"EPON0/1\": 24, \"EPON0/2\": 24, \"EPON0/3\": 24, \"EPON0/4\": 24, \"EPON0/5\": 24, \"EPON0/6\": 22, \"EPON0/7\": 25}, \"onu_online_count\": 158, \"onu_offline_count\": 9}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "TK_AZ_OLT-KO-14",
+          "interface": ""
+        },
+        "result": "{\"interface_port\": \"EPON0/6\", \"crm_view\": {\"total_on_port\": 22, \"customers\": [{\"lineid\": \"78:88:8A:96:98:59\", \"interface\": \"EPON0/6:3\", \"onu_status\": 1, \"rx_power\": \"-18.65\", \"active\": 1}, {\"lineid\": \"B4:64:15:59:32:8B\", \"interface\": \"EPON0/6:5\", \"onu_status\": 1, \"rx_power\": \"-22.57\", \"active\": 1}, {\"lineid\": \"00:A1:07:90:52:D8\", \"interface\": \"EPON0/6:8\", \"onu_status\": 1, \"rx_power\": \"-20.55\", \"active\": 1}, {\"lineid\": \"80:F1:A8:F4:18:66\", \"interface\": \"EPON0/6:20\", \"onu_status\": 1, \"rx_power\": \"-20.03\", \"active\": 1}, {\"lineid\": \"B4:64:15:9C:0A:4E\", \"interface\": \"EPON0/6:22\", \"onu_status\": 1, \"rx_power\": \"-19.60\", \"active\": 1}, {\"lineid\": \"B4:64:15:F8:73:94\", \"interface\": \"EPON0/6:41\", \"onu_status\": 1, \"rx_power\": \"-19.15\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "78:88:8A:96:98:59"
+        },
+        "result": "{\"error\": \"not_held\", \"lineid_in_scope\": \"80:F1:A8:F4:18:66\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "78:88:8A:96:98:59"
+        },
+        "result": "{\"onu_status\": 1, \"rx_power\": \"-20.03\", \"tx_power\": \"2.38\", \"reading_age_minutes\": 2880}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "78:88:8A:96:98:59",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 120, \"first\": -19.82, \"last\": -20.16, \"min\": -20.42, \"max\": -19.58, \"mean\": -19.99, \"range\": 0.84, \"change\": -0.34, \"gaps\": 48}, \"tx_power\": {\"available\": true, \"points\": 120, \"first\": 2.33, \"last\": 2.32, \"min\": 2.24, \"max\": 2.44, \"mean\": 2.35, \"range\": 0.2, \"change\": -0.01, \"gaps\": 48}, \"temperature\": {\"available\": true, \"points\": 120, \"first\": 21.56, \"last\": 21.98, \"min\": 19.79, \"max\": 24.28, \"mean\": 21.96, \"range\": 4.49, \"change\": 0.42, \"gaps\": 48}, \"distance\": {\"available\": true, \"points\": 168, \"first\": 201, \"last\": 201, \"min\": 201, \"max\": 201, \"mean\": 201.0, \"range\": 0, \"change\": 0, \"gaps\": 0}, \"tx_bias_current\": {\"available\": true, \"points\": 120, \"first\": 11.17, \"last\": 11.05, \"min\": 10.79, \"max\": 11.53, \"mean\": 11.2, \"range\": 0.74, \"change\": -0.12, \"gaps\": 48}, \"supply_voltage\": {\"available\": true, \"points\": 120, \"first\": 3.43, \"last\": 3.42, \"min\": 3.41, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.05, \"change\": -0.01, \"gaps\": 48}, \"speed_kbps\": {\"available\": true, \"points\": 168, \"first\": 4.62, \"last\": 6.12, \"min\": 0.05, \"max\": 10.78, \"mean\": 5.27, \"range\": 10.73, \"change\": 1.5, \"gaps\": 0}}}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "78:88:8A:96:98:59"
+        },
+        "result": "{\"count_24h\": 2, \"count_7d\": 15, \"avg_duration_minutes\": 688, \"last_disconnect\": \"2026-09-16T22:31:00Z\", \"recent\": [{\"start\": \"2026-09-16T22:31:00Z\", \"end\": null, \"duration_s\": 30335, \"ip\": \"10.5.50.73\"}, {\"start\": \"2026-09-16T13:58:02Z\", \"end\": \"2026-09-17T02:06:05Z\", \"duration_s\": 43683, \"ip\": \"10.5.50.73\"}, {\"start\": \"2026-09-16T01:48:57Z\", \"end\": \"2026-09-16T10:44:21Z\", \"duration_s\": 32124, \"ip\": \"10.5.50.73\"}]}"
+      },
+      {
+        "tool": "get_traffic",
+        "args": {
+          "lineid": "78:88:8A:96:98:59"
+        },
+        "result": "{\"download_mb_daily\": [1010, 1060, 980, 1030, 1000, 1070, 1020], \"upload_mb_daily\": [6248, 6318, 6034, 6191, 5937, 6377, 6144], \"monthly_avg_download_mb\": 1024, \"monthly_avg_upload_mb\": 6178, \"pon_port_traffic\": {\"current_mbps\": 174, \"avg_mbps\": 169, \"peak_mbps\": 510}}"
+      },
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "80:F1:A8:F4:18:66"
+        },
+        "result": "{\"customer_id\": 25463, \"lineid\": \"80:F1:A8:F4:18:66\", \"mac\": \"C8:3A:35:5B:79:C3\", \"interface\": \"EPON0/6:20\", \"olt_id\": \"10331\", \"olt_host\": \"TK_AZ_OLT-KO-14\", \"olt_ip\": \"10.220.60.15\", \"olt_technology\": \"EPON\", \"olt_model\": \"V1600D\", \"router_id\": 20, \"router_name\": \"TK_Router_KO03\", \"profile\": \"profile_40M\", \"active\": 1, \"deleted\": 0, \"onu_model\": \"JM 1G + CATV + WiFi + POTs\", \"onu_type\": \"Router\", \"has_catv\": 1, \"has_voip\": 1, \"catv_service\": 1, \"catv_synced\": 1, \"city\": \"Kocani\", \"area\": \"KO\"}"
+      },
+      {
+        "tool": "get_router_status",
+        "args": {
+          "router_id": 20
+        },
+        "result": "{\"name\": \"TK_Router_KO03\", \"model\": \"CCR1072-1G-8S+\", \"os_version\": \"7.24\", \"last_checkin\": \"2026-09-17T14:37:00Z\", \"hours_since_checkin\": 0.3, \"heartbeat_status\": \"ok\", \"cpu_usage\": 5, \"memory_utilization\": 0, \"temperature\": 45}"
+      },
+      {
+        "tool": "snmp_probe_olt",
+        "args": {
+          "olt_id": "TK_AZ_OLT-KO-14"
+        },
+        "result": "{\"ping_ok\": true, \"snmp_responds\": false, \"sys_uptime_seconds\": null, \"oid_subtree_responds\": null}"
+      },
+      {
+        "tool": "snmp_probe_pon_port",
+        "args": {
+          "olt_id": "TK_AZ_OLT-KO-14",
+          "interface": "EPON0/6"
+        },
+        "result": "{\"interface_port\": \"EPON0/6\", \"onus\": [{\"onu_index\": 3, \"online\": null, \"rx_power\": null, \"tx_power\": null, \"responds\": false}, {\"onu_index\": 5, \"online\": null, \"rx_power\": null, \"tx_power\": null, \"responds\": false}, {\"onu_index\": 8, \"online\": null, \"rx_power\": null, \"tx_power\": null, \"responds\": false}, {\"onu_index\": 20, \"online\": null, \"rx_power\": null, \"tx_power\": null, \"responds\": false}, {\"onu_index\": 22, \"online\": null, \"rx_power\": null, \"tx_power\": null, \"responds\": false}, {\"onu_index\": 41, \"online\": null, \"rx_power\": null, \"tx_power\": null, \"responds\": false}]}"
+      },
+      {
+        "tool": "snmp_get_onu",
+        "args": {
+          "lineid": "78:88:8A:96:98:59"
+        },
+        "result": "{\"responds\": false, \"online\": null, \"rx_power\": null, \"tx_power\": null, \"auth_flag\": null, \"exchange\": null, \"rtt_tq\": null}"
+      },
+      {
+        "tool": "get_olt_population",
+        "args": {
+          "olt_id": "TK_AZ_OLT-KO-14"
+        },
+        "result": "{\"total_customers\": 167, \"pon_ports_in_use\": 7, \"customers_per_port\": {\"EPON0/1\": 24, \"EPON0/2\": 24, \"EPON0/3\": 24, \"EPON0/4\": 24, \"EPON0/5\": 24, \"EPON0/6\": 22, \"EPON0/7\": 25}, \"onu_online_count\": 158, \"onu_offline_count\": 9}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "TK_AZ_OLT-KO-14",
+          "interface": "EPON0/6"
+        },
+        "result": "{\"interface_port\": \"EPON0/6\", \"crm_view\": {\"total_on_port\": 22, \"customers\": [{\"lineid\": \"78:88:8A:96:98:59\", \"interface\": \"EPON0/6:3\", \"onu_status\": 1, \"rx_power\": \"-18.65\", \"active\": 1}, {\"lineid\": \"B4:64:15:59:32:8B\", \"interface\": \"EPON0/6:5\", \"onu_status\": 1, \"rx_power\": \"-22.57\", \"active\": 1}, {\"lineid\": \"00:A1:07:90:52:D8\", \"interface\": \"EPON0/6:8\", \"onu_status\": 1, \"rx_power\": \"-20.55\", \"active\": 1}, {\"lineid\": \"80:F1:A8:F4:18:66\", \"interface\": \"EPON0/6:20\", \"onu_status\": 1, \"rx_power\": \"-20.03\", \"active\": 1}, {\"lineid\": \"B4:64:15:9C:0A:4E\", \"interface\": \"EPON0/6:22\", \"onu_status\": 1, \"rx_power\": \"-19.60\", \"active\": 1}, {\"lineid\": \"B4:64:15:F8:73:94\", \"interface\": \"EPON0/6:41\", \"onu_status\": 1, \"rx_power\": \"-19.15\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      }
+    ]
+  },
+  "ground_truth": {
+    "fault_type": "olt_failure",
+    "root_cause": "The OLT's SNMP agent has stopped answering while the device continues to forward traffic. Ping succeeds, customers are authenticated and passing normal traffic, and only the monitoring path is broken.",
+    "severity": "Warning",
+    "affected_scope": "olt",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The health check reports critical, but its two SNMP flags come from a single sysUpTime read and are always equal, so the wording distinguishes nothing",
+      "Ping succeeds, so the device is powered and reachable on the management network",
+      "No SNMP query answers, so no ONU can be probed and no device metrics can be collected",
+      "Telemetry for both the ONU and the OLT stops 48 hours ago, matching when SNMP failed",
+      "Cached optical readings are 2880 minutes old for the same reason",
+      "Customer-facing evidence is intact: sessions are active with normal durations and daily traffic is unchanged across all seven days",
+      "Service therefore continues normally; what has been lost is visibility, not connectivity",
+      "The correct conclusion is a monitoring-path failure on a serving OLT, not a customer outage"
+    ],
+    "required_evidence": [
+      "ping_succeeds_snmp_fails",
+      "customers_passing_traffic",
+      "telemetry_stopped_at_same_time"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "monitoring",
+      "requires_human_review": true,
+      "review_reason": "SNMP agent or community configuration on a serving OLT; no customer impact but the estate is unmonitored"
+    },
+    "distractors": [
+      "A critical alarm on a whole OLT invites a Disaster severity",
+      "Zeroed olt_metrics could be read as a failing device",
+      "Every probe returns no response, which resembles the firmware mismatch signature"
+    ]
+  }
+}

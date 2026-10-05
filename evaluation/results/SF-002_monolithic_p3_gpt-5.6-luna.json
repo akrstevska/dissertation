@@ -1,0 +1,82 @@
+{
+  "scenario_id": "SF-002",
+  "config": "monolithic_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 6.1,
+  "result": {
+    "diagnosis": {
+      "fault_type": "radius_lineid_conflict",
+      "root_cause": "The subscriber's RADIUS username has two radcheck entries with different lineids. The orphan entry uses lineid 1C:EF:03:90:2B:5A, which matches no active CRM customer, while the valid CRM lineid is 00:A1:07:C4:1D:88. FreeRADIUS can select either row, causing inconsistent attribution and repeated authentication disconnects.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The subscriber has 19 sessions in 24 hours, well above the normal 2-3 and within the flapping range of 8 or more.",
+        "Sessions are very short, averaging 38 minutes versus the 11.9-hour network mean, and recent sessions alternate between assigned IPs, consistent with repeated authentication churn.",
+        "RADIUS explicitly reports two rows for the same username and a lineid conflict; one row is orphaned and does not match any active CRM customer.",
+        "The ONU is online and authenticated, with stable RX power around -20.6 dBm, normal TX power around +2.4 dBm, constant distance, healthy bias current, and no optical noise change.",
+        "The OLT, router, PON port peers, VLAN 1055 mapping, and overall OLT health are normal, so the evidence does not support a fiber, ONU, PON, OLT, router, VLAN, or congestion fault.",
+        "The directly evidenced fault is an RADIUS lineid conflict causing authentication-related session flapping."
+      ]
+    },
+    "remediation": {
+      "action": "Remove the orphan radcheck row for lineid 1C:EF:03:90:2B:5A, retain and verify the row for 00:A1:07:C4:1D:88, then reload or synchronize RADIUS data. Terminate stale sessions for username 30:16:9D:A2:5F:03, force one clean reauthentication, and monitor session count and duration. Audit for other duplicate username or lineid records."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "radius_lineid_conflict",
+      "root_cause": "The subscriber's RADIUS username has two radcheck entries with different lineids. The orphan entry uses lineid 1C:EF:03:90:2B:5A, which matches no active CRM customer, while the valid CRM lineid is 00:A1:07:C4:1D:88. FreeRADIUS can select either row, causing inconsistent attribution and repeated authentication disconnects.",
+      "confidence": 0.99,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Remove the orphan radcheck row for lineid 1C:EF:03:90:2B:5A, retain and verify the row for 00:A1:07:C4:1D:88, then reload or synchronize RADIUS data. Terminate stale sessions for username 30:16:9D:A2:5F:03, force one clean reauthentication, and monitor session count and duration. Audit for other duplicate username or lineid records.",
+      "reasoning": [
+        "The subscriber has 19 sessions in 24 hours, well above the normal 2-3 and within the flapping range of 8 or more.",
+        "Sessions are very short, averaging 38 minutes versus the 11.9-hour network mean, and recent sessions alternate between assigned IPs, consistent with repeated authentication churn.",
+        "RADIUS explicitly reports two rows for the same username and a lineid conflict; one row is orphaned and does not match any active CRM customer.",
+        "The ONU is online and authenticated, with stable RX power around -20.6 dBm, normal TX power around +2.4 dBm, constant distance, healthy bias current, and no optical noise change.",
+        "The OLT, router, PON port peers, VLAN 1055 mapping, and overall OLT health are normal, so the evidence does not support a fiber, ONU, PON, OLT, router, VLAN, or congestion fault.",
+        "The directly evidenced fault is an RADIUS lineid conflict causing authentication-related session flapping."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "session_flapping_auth",
+    "root_cause": "Two radcheck rows exist for the same username. FreeRADIUS resolves inconsistently between them, so authentication succeeds or fails depending on which row is matched, producing repeated short sessions and two alternating IP assignments.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "00:A1:07:C4:1D:88"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "19 sessions in 24h against a 2-3 baseline, with a 38 minute mean duration against an 11.9 hour norm",
+      "RX has been flat at -20.6 dBm for seven days inside the +/-0.3 dBm noise floor, so signal is not the cause",
+      "TX power, bias current, supply voltage and distance are all stable",
+      "Port neighbours are normal and the OLT is healthy, so no shared infrastructure fault",
+      "With no optical explanation available, the search moves to the authentication layer",
+      "RADIUS holds two radcheck rows for username 30:16:9D:A2:5F:03, one of them an orphan with a different lineid",
+      "Recent sessions alternate between two IP addresses, consistent with inconsistent row resolution",
+      "Traffic is erratic rather than declining, which fits intermittent authentication rather than a degrading link"
+    ],
+    "required_evidence": [
+      "optical_layer_confirmed_clean",
+      "duplicate_radcheck_identified",
+      "alternating_ip_assignment"
+    ],
+    "expected_remediation": "manual_review",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "provisioning",
+      "requires_human_review": true,
+      "review_reason": "Duplicate RADIUS rows must be resolved by hand; deleting the wrong row disconnects the customer"
+    },
+    "distractors": [
+      "The session pattern is identical to signal-related flapping and invites that diagnosis",
+      "Zero-throughput windows in the speed series look like link loss but coincide with rejected auth",
+      "ONU is a Router type, inviting a CPE-fault explanation"
+    ]
+  }
+}

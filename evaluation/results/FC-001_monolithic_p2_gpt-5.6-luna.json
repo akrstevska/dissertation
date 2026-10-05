@@ -1,0 +1,83 @@
+{
+  "scenario_id": "FC-001",
+  "config": "monolithic_p2",
+  "model": "gpt-5.6-luna",
+  "seconds": 10.6,
+  "result": {
+    "diagnosis": {
+      "fault_type": "olt_health_false_critical",
+      "root_cause": "The OLT-wide health alarm is a false critical caused by failure of the PON OID subtree/probe, not by an actual failure of all seven PON ports. The OLT remains reachable over ping and SNMP, has normal CPU, memory, temperature, and uptime, while subscriber service, authentication, VLAN state, and historical ONU telemetry are normal.",
+      "confidence": 0.98,
+      "affected_scope": "olt",
+      "evidence": [
+        "The alarm reports all 7 of 7 PONs failed, so the apparent scope is OLT-wide rather than a single subscriber or one PON port.",
+        "The OLT responds to ping and SNMP, and its CPU at 22%, memory at 19%, temperature at 44 C, and 61-day uptime are consistent with a healthy OLT.",
+        "The generic OLT SNMP endpoint responds, but the PON OID subtree does not respond; every live ONU and PON probe consequently returns no response and null readings. Null optical readings are no readings, not evidence of failed or weak optics.",
+        "The customer's stored ONU state is online with RX power -19.84 dBm and TX power 2.29 dBm, both normal. Seven days of RX, TX, distance, bias current, and supply voltage telemetry are stable, with no fiber degradation, laser degradation, or distance change.",
+        "The port has 26 customers and only one listed ONU is offline; the OLT-wide population has 9 offline out of 183, below the expected background level of about 14 on a 300-customer OLT.",
+        "The router heartbeat is healthy, the customer has a current long-lived session, normal re-authentication frequency, consistent RADIUS data, and matching VLAN 1022, indicating no customer service or authentication fault.",
+        "The combined evidence indicates a monitoring or PON-subtree polling failure producing a false critical alarm rather than an actual OLT or PON outage."
+      ]
+    },
+    "remediation": {
+      "action": "Validate the PON state directly through the OLT CLI or an alternate management interface, then repair or update the health-check SNMP OID/subtree, SNMP view, permissions, or polling implementation. Re-run the PON checks and clear the alarm after confirming ONU availability. Do not dispatch fiber or replace ONUs based on this alarm alone."
+    },
+    "escalation": {
+      "priority": "Warning"
+    },
+    "monolithic": {
+      "fault_type": "olt_health_false_critical",
+      "root_cause": "The OLT-wide health alarm is a false critical caused by failure of the PON OID subtree/probe, not by an actual failure of all seven PON ports. The OLT remains reachable over ping and SNMP, has normal CPU, memory, temperature, and uptime, while subscriber service, authentication, VLAN state, and historical ONU telemetry are normal.",
+      "confidence": 0.98,
+      "severity": "Warning",
+      "affected_scope": "olt",
+      "remediation": "Validate the PON state directly through the OLT CLI or an alternate management interface, then repair or update the health-check SNMP OID/subtree, SNMP view, permissions, or polling implementation. Re-run the PON checks and clear the alarm after confirming ONU availability. Do not dispatch fiber or replace ONUs based on this alarm alone.",
+      "reasoning": [
+        "The alarm reports all 7 of 7 PONs failed, so the apparent scope is OLT-wide rather than a single subscriber or one PON port.",
+        "The OLT responds to ping and SNMP, and its CPU at 22%, memory at 19%, temperature at 44 C, and 61-day uptime are consistent with a healthy OLT.",
+        "The generic OLT SNMP endpoint responds, but the PON OID subtree does not respond; every live ONU and PON probe consequently returns no response and null readings. Null optical readings are no readings, not evidence of failed or weak optics.",
+        "The customer's stored ONU state is online with RX power -19.84 dBm and TX power 2.29 dBm, both normal. Seven days of RX, TX, distance, bias current, and supply voltage telemetry are stable, with no fiber degradation, laser degradation, or distance change.",
+        "The port has 26 customers and only one listed ONU is offline; the OLT-wide population has 9 offline out of 183, below the expected background level of about 14 on a 300-customer OLT.",
+        "The router heartbeat is healthy, the customer has a current long-lived session, normal re-authentication frequency, consistent RADIUS data, and matching VLAN 1022, indicating no customer service or authentication fault.",
+        "The combined evidence indicates a monitoring or PON-subtree polling failure producing a false critical alarm rather than an actual OLT or PON outage."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "olt_health_false_critical",
+    "root_cause": "The OLT firmware (V2.04.12R) does not expose the ONU parameter OID subtree the health check reads. Every sampled ONU returns no instance, the check marks all seven PONs failed and writes a critical status, while the OLT and all 183 customers are operating normally.",
+    "severity": "Information",
+    "affected_scope": "none",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "Health check reports critical with all 7 of 7 PONs failed",
+      "OLT ping succeeds and SNMP sysUpTime answers, with 61 days of uptime and no recent reboot",
+      "OLT CPU 22%, memory 19% and temperature 44C are all at healthy baseline",
+      "Live probe returns oid_subtree_responds false, and every ONU on the port returns responds false rather than online 0",
+      "Uniform non-response means nothing answered; it is not a definite negative, so no ONU has been reported down",
+      "CRM shows 174 of 183 ONUs online, and 9 offline matches the 4.85% network baseline",
+      "The representative customer holds a session opened 14 hours ago and is passing normal daily traffic",
+      "Cached optical readings are 22 minutes old and normal, and telemetry has been flat for seven days",
+      "Healthy service with uniform probe non-response indicates an OID or firmware mismatch in the monitoring tool, not a network outage"
+    ],
+    "required_evidence": [
+      "olt_uptime_confirms_no_reboot",
+      "oid_subtree_non_response_is_uniform",
+      "customers_online_and_passing_traffic"
+    ],
+    "expected_remediation": "flag_monitoring_defect",
+    "expected_escalation": {
+      "priority": "Information",
+      "category": "monitoring",
+      "requires_human_review": true,
+      "review_reason": "Health check produces false criticals on firmware V2.04.12R; the OID subtree it reads is absent on this version"
+    },
+    "distractors": [
+      "The critical alarm invites an olt_failure or pon_port_failure diagnosis",
+      "Nine genuinely offline ONUs on the OLT are unrelated background noise at the normal rate",
+      "Firmware V2.04.12R differs from the estate norm V2.03.78R, which is the discriminator rather than a fault in itself"
+    ]
+  }
+}

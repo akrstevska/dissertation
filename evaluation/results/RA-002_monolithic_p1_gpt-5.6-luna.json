@@ -1,0 +1,85 @@
+{
+  "scenario_id": "RA-002",
+  "config": "monolithic_p1",
+  "model": "gpt-5.6-luna",
+  "seconds": 6.1,
+  "result": {
+    "diagnosis": {
+      "fault_type": "radius_suspended_but_serving",
+      "root_cause": "CRM marks customer 19426 inactive, but the RADIUS record was not fully suspended because Framed-Pool is unset. The customer remains authenticated, has an active session, and holds IP address 10.5.50.188 from pool_Users.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The subscriber record has active set to 0 and deleted set to 0, indicating the customer is administratively inactive rather than deleted.",
+        "RADIUS has a valid radcheck entry, the expected line ID, an assigned IP address, and an active authenticated session.",
+        "RADIUS explicitly reports crm_consistent=false with a disabled_not_pooled mismatch: no Framed-Pool is set, so the suspension was never applied.",
+        "The customer has two sessions in the last 24 hours and a current session, proving the inactive account is still serving.",
+        "Optical levels are healthy: RX is about -22.44 dBm and TX is about 2.36 dBm, with stable telemetry and healthy bias current.",
+        "The ONU is online and responding, the PON peers are online, the OLT and router are healthy, and the customer VLAN is correctly provisioned.",
+        "Session frequency and duration are within normal ranges, so this is not session flapping or an optical, PON, OLT, router, or provisioning fault."
+      ]
+    },
+    "remediation": {
+      "action": "Confirm the customer should remain inactive. If confirmed, correct the RADIUS record by applying the suspension or removing/disabling the authentication entry, terminate the active session, and release 10.5.50.188 back to pool_Users. Reconcile CRM and RADIUS, then verify that a new authentication attempt is rejected. If the customer should be active, update CRM instead of suspending service."
+    },
+    "escalation": {
+      "priority": "Average"
+    },
+    "monolithic": {
+      "fault_type": "radius_suspended_but_serving",
+      "root_cause": "CRM marks customer 19426 inactive, but the RADIUS record was not fully suspended because Framed-Pool is unset. The customer remains authenticated, has an active session, and holds IP address 10.5.50.188 from pool_Users.",
+      "confidence": 0.99,
+      "severity": "Average",
+      "affected_scope": "single_customer",
+      "remediation": "Confirm the customer should remain inactive. If confirmed, correct the RADIUS record by applying the suspension or removing/disabling the authentication entry, terminate the active session, and release 10.5.50.188 back to pool_Users. Reconcile CRM and RADIUS, then verify that a new authentication attempt is rejected. If the customer should be active, update CRM instead of suspending service.",
+      "reasoning": [
+        "The subscriber record has active set to 0 and deleted set to 0, indicating the customer is administratively inactive rather than deleted.",
+        "RADIUS has a valid radcheck entry, the expected line ID, an assigned IP address, and an active authenticated session.",
+        "RADIUS explicitly reports crm_consistent=false with a disabled_not_pooled mismatch: no Framed-Pool is set, so the suspension was never applied.",
+        "The customer has two sessions in the last 24 hours and a current session, proving the inactive account is still serving.",
+        "Optical levels are healthy: RX is about -22.44 dBm and TX is about 2.36 dBm, with stable telemetry and healthy bias current.",
+        "The ONU is online and responding, the PON peers are online, the OLT and router are healthy, and the customer VLAN is correctly provisioned.",
+        "Session frequency and duration are within normal ranges, so this is not session flapping or an optical, PON, OLT, router, or provisioning fault."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "radius_suspended_but_serving",
+    "root_cause": "The customer is marked inactive in CRM but RADIUS never applied the suspension. Framed-Pool is unset and the assigned address is in pool_Users, so full service continues. This is one of the 218 such cases in the estate.",
+    "severity": "Warning",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "00:A1:07:37:94:EB"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": false,
+    "expected_reasoning": [
+      "CRM marks the customer inactive, which should mean service is suspended",
+      "RADIUS has a radcheck row with no Framed-Pool set",
+      "A suspended customer should be assigned to pool_Disable_Users and hold an address in 10.200.200.0/24",
+      "The assigned address is 10.5.50.188, which is in pool_Users, the standard subscriber range",
+      "The IP range settles the question without relying on either system's status flag",
+      "Sessions are active with a 715 minute mean and traffic is normal across all seven days",
+      "The customer is therefore receiving full service despite being suspended in CRM",
+      "The optical layer is healthy and irrelevant to this fault",
+      "There is no service impact for the customer; the impact is commercial"
+    ],
+    "required_evidence": [
+      "ip_in_standard_pool_not_disable_pool",
+      "crm_marks_inactive",
+      "traffic_confirms_live_service"
+    ],
+    "expected_remediation": "apply_disable_pool",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "provisioning",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "Every technical signal is healthy, inviting a no_fault conclusion",
+      "No customer has complained and none will",
+      "service_impact is false even though a genuine fault exists"
+    ]
+  }
+}

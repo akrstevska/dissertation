@@ -1,0 +1,269 @@
+{
+  "scenario_id": "RA-004",
+  "config": "agent",
+  "model": "gpt-5.6-luna",
+  "seconds": 37.5,
+  "result": {
+    "trigger": "customer_complaint",
+    "trigger_input": {
+      "lineid": "70:B6:4F:43:CB:C8",
+      "complaint": "Drops every couple of hours then comes back by itself"
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [
+        {
+          "type": "session_flapping",
+          "value": "13 sessions in 24h",
+          "threshold": "2-3 normal; 4-7 elevated; 8+ indicates flapping"
+        },
+        {
+          "type": "short_session_duration",
+          "value": "104 minutes average duration",
+          "threshold": "11.9 hours mean duration"
+        },
+        {
+          "type": "rx_power",
+          "value": "-21.02 dBm current, -21.30 dBm latest trend",
+          "threshold": "Normal band: -20 to -25 dBm"
+        },
+        {
+          "type": "tx_power",
+          "value": "2.38 dBm current, 2.33 dBm latest trend",
+          "threshold": "Normal band: 0 to +5 dBm"
+        }
+      ],
+      "preliminary_severity": "Average",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "70:B6:4F:43:CB:C8"
+      ],
+      "olt_id": "10122",
+      "interface": "EPON0/2:26",
+      "summary": "The complaint is corroborated by 13 sessions in 24 hours and a 104-minute average duration, while current optical readings and the OLT are within normal bands."
+    },
+    "diagnosis": {
+      "fault_type": "radius_replication_lag",
+      "root_cause": "The primary and secondary FreeRADIUS servers contain inconsistent authentication state for this customer. The secondary has a stale password after the 2026-09-20 profile upgrade, so authentication succeeds through the primary but is rejected after failover to the secondary, causing the observed drops and re-authentication. Optical levels, distance, bias current, OLT health, port peers, and VLAN configuration are normal.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "70:B6:4F:43:CB:C8"
+      ],
+      "evidence": [
+        "RADIUS status explicitly reports replication_lag: the primary has the current radcheck row while the secondary has a stale password row.",
+        "Authentication succeeds against the primary and is rejected by the secondary; session starts correlate with which RADIUS server answered.",
+        "The customer has 13 sessions in 24 hours with a 104-minute average duration, matching the reported periodic drops and recovery.",
+        "The ONU is currently online and responding, with RX power -21.05 dBm and TX power 2.39 dBm, both within normal EPON ranges.",
+        "The 168-hour optical series shows stable RX/TX power, constant distance of 228 m, stable healthy TX bias, and no distance step or degradation trend.",
+        "All observed peers on EPON0/2 are online with normal optical readings, and the OLT responds to ping, SNMP, and its OID subtree.",
+        "The expected customer VLAN 1102 is present and active, and no duplicate ONU slot conflict is reported."
+      ],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "remediation": {
+      "action": "escalate_radius_infrastructure",
+      "automated": false,
+      "reason": "Authentication state is inconsistent between the primary and secondary FreeRADIUS servers. The secondary has a stale password, causing failover authentication failures and session drops, while ONU, optical, OLT, port, and VLAN health are normal.",
+      "instructions": "Escalate to the RADIUS infrastructure team. Synchronize or repair the affected customer's radcheck/password state on the secondary server, verify replication health, and test authentication through both servers and failover before closing the incident.",
+      "alternatives_considered": [
+        {
+          "action": "onu_reset",
+          "rejected_because": "The ONU is online with stable, normal optical levels and no evidence of an ONU fault."
+        },
+        {
+          "action": "escalate_infrastructure",
+          "rejected_because": "OLT, PON port, router, peers, and VLAN configuration are healthy; the fault is specifically within RADIUS replication."
+        },
+        {
+          "action": "create_radius_entry",
+          "rejected_because": "The customer already has a RADIUS entry on both servers; the issue is stale replicated authentication state, not a missing entry."
+        }
+      ]
+    },
+    "escalation": {
+      "priority": "Average",
+      "category": "infrastructure",
+      "requires_human_review": false,
+      "review_reason": null,
+      "summary": "Single customer 70:B6:4F:43:CB:C8 is experiencing intermittent authentication failures and re-authentication, evidenced by 13 sessions in 24 hours and a 104-minute average session duration. Optical levels, ONU, OLT, PON peers, VLAN, distance, and TX bias are healthy. The cause is replication lag between the primary and secondary FreeRADIUS servers, with the secondary retaining a stale password after the profile upgrade. Escalate to the RADIUS infrastructure team to synchronize the customer's authentication state, verify replication, and test authentication through both servers and failover.",
+      "affected_customer_count": 1,
+      "service_impact": true
+    },
+    "trace": [
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "70:B6:4F:43:CB:C8"
+        },
+        "result": "{\"customer_id\": 19728, \"lineid\": \"70:B6:4F:43:CB:C8\", \"mac\": \"C8:3A:35:CA:72:B2\", \"interface\": \"EPON0/2:26\", \"olt_id\": \"10122\", \"olt_host\": \"TK_AF-OLT_PP03\", \"olt_ip\": \"10.220.28.4\", \"olt_technology\": \"EPON\", \"olt_model\": \"V1600D\", \"router_id\": 14, \"router_name\": \"TK_Prilep_NC\", \"profile\": \"profile_80M\", \"active\": 1, \"deleted\": 0, \"onu_model\": \"JM 1G + CATV + WiFi + POTs\", \"onu_type\": \"Router\", \"has_catv\": 1, \"has_voip\": 1, \"catv_service\": 1, \"catv_synced\": 1, \"city\": \"Prilep\", \"area\": \"PP\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "70:B6:4F:43:CB:C8"
+        },
+        "result": "{\"onu_status\": 1, \"rx_power\": \"-21.02\", \"tx_power\": \"2.38\", \"reading_age_minutes\": 9}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "70:B6:4F:43:CB:C8"
+        },
+        "result": "{\"count_24h\": 13, \"count_7d\": 79, \"avg_duration_minutes\": 104, \"last_disconnect\": \"2026-09-22T14:59:00Z\", \"recent\": [{\"start\": \"2026-09-22T14:59:00Z\", \"end\": null, \"duration_s\": 6193, \"ip\": \"10.5.50.212\"}, {\"start\": \"2026-09-22T13:09:09Z\", \"end\": \"2026-09-22T14:50:34Z\", \"duration_s\": 6085, \"ip\": \"10.5.50.212\"}, {\"start\": \"2026-09-22T11:16:02Z\", \"end\": \"2026-09-22T12:30:29Z\", \"duration_s\": 4467, \"ip\": \"10.5.50.212\"}, {\"start\": \"2026-09-22T10:00:23Z\", \"end\": \"2026-09-22T11:48:55Z\", \"duration_s\": 6512, \"ip\": \"10.5.50.212\"}, {\"start\": \"2026-09-22T08:05:30Z\", \"end\": \"2026-09-22T09:36:30Z\", \"duration_s\": 5460, \"ip\": \"10.5.50.212\"}]}"
+      },
+      {
+        "tool": "get_traffic",
+        "args": {
+          "lineid": "70:B6:4F:43:CB:C8"
+        },
+        "result": "{\"download_mb_daily\": [980, 640, 1010, 590, 950, 620, 900], \"upload_mb_daily\": [5851, 3978, 6063, 3461, 5695, 3799, 5330], \"monthly_avg_download_mb\": 812, \"monthly_avg_upload_mb\": 4882, \"pon_port_traffic\": {\"current_mbps\": 201, \"avg_mbps\": 225, \"peak_mbps\": 670}}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "70:B6:4F:43:CB:C8",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 168, \"first\": -21.01, \"last\": -21.3, \"min\": -21.36, \"max\": -20.68, \"mean\": -21.01, \"range\": 0.68, \"change\": -0.29, \"gaps\": 0}, \"tx_power\": {\"available\": true, \"points\": 168, \"first\": 2.38, \"last\": 2.33, \"min\": 2.25, \"max\": 2.44, \"mean\": 2.35, \"range\": 0.19, \"change\": -0.05, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 21.28, \"last\": 22.03, \"min\": 19.97, \"max\": 24.16, \"mean\": 21.99, \"range\": 4.19, \"change\": 0.75, \"gaps\": 0}, \"distance\": {\"available\": true, \"points\": 168, \"first\": 228, \"last\": 228, \"min\": 228, \"max\": 228, \"mean\": 228.0, \"range\": 0, \"change\": 0, \"gaps\": 0}, \"tx_bias_current\": {\"available\": true, \"points\": 168, \"first\": 11.37, \"last\": 11.4, \"min\": 10.86, \"max\": 11.58, \"mean\": 11.19, \"range\": 0.72, \"change\": 0.03, \"gaps\": 0}, \"supply_voltage\": {\"available\": true, \"points\": 168, \"first\": 3.44, \"last\": 3.43, \"min\": 3.4, \"max\": 3.45, \"mean\": 3.43, \"range\": 0.05, \"change\": -0.01, \"gaps\": 0}, \"speed_kbps\": {\"available\": true, \"points\": 168, \"first\": 1.71, \"last\": 6.95, \"min\": 0.0, \"max\": 10.88, \"mean\": 3.72, \"range\": 10.88, \"change\": 5.24, \"gaps\": 0}}}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "10122",
+          "interface": "EPON0/2:26"
+        },
+        "result": "{\"interface_port\": \"EPON0/2\", \"crm_view\": {\"total_on_port\": 27, \"customers\": [{\"lineid\": \"B4:64:15:3C:E0:7A\", \"interface\": \"EPON0/2:12\", \"onu_status\": 1, \"rx_power\": \"-21.54\", \"active\": 1}, {\"lineid\": \"70:B6:4F:33:AA:45\", \"interface\": \"EPON0/2:25\", \"onu_status\": 1, \"rx_power\": \"-24.01\", \"active\": 1}, {\"lineid\": \"70:B6:4F:43:CB:C8\", \"interface\": \"EPON0/2:26\", \"onu_status\": 1, \"rx_power\": \"-21.02\", \"active\": 1}, {\"lineid\": \"70:B6:4F:65:03:94\", \"interface\": \"EPON0/2:30\", \"onu_status\": 1, \"rx_power\": \"-21.33\", \"active\": 1}, {\"lineid\": \"B4:64:15:4F:07:3B\", \"interface\": \"EPON0/2:33\", \"onu_status\": 1, \"rx_power\": \"-20.95\", \"active\": 1}, {\"lineid\": \"70:B6:4F:0A:36:07\", \"interface\": \"EPON0/2:44\", \"onu_status\": 1, \"rx_power\": \"-20.25\", \"active\": 1}, {\"lineid\": \"78:88:8A:AD:90:AD\", \"interface\": \"EPON0/2:45\", \"onu_status\": 1, \"rx_power\": \"-21.37\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "get_olt_population",
+        "args": {
+          "olt_id": "10122"
+        },
+        "result": "{\"total_customers\": 236, \"pon_ports_in_use\": 8, \"customers_per_port\": {\"EPON0/1\": 29, \"EPON0/2\": 27, \"EPON0/3\": 29, \"EPON0/4\": 29, \"EPON0/5\": 29, \"EPON0/6\": 29, \"EPON0/7\": 29, \"EPON0/8\": 35}, \"onu_online_count\": 227, \"onu_offline_count\": 9}"
+      },
+      {
+        "tool": "get_olt_health",
+        "args": {
+          "olt_id": "10122"
+        },
+        "result": "{\"olt_ip\": \"10.220.28.4\", \"olt_host\": \"TK_AF-OLT_PP03\", \"olt_technology\": \"EPON\", \"olt_ext_id\": \"10122\", \"ping_ok\": true, \"snmp_community_ok\": true, \"snmp_response_ok\": true, \"total_pons_tested\": 8, \"healthy_pons\": 8, \"failed_pons_list\": [], \"error_description\": null, \"overall_status\": \"healthy\", \"run_date\": \"2026-09-22\"}"
+      },
+      {
+        "tool": "get_olt_metrics",
+        "args": {
+          "olt_id": "10122"
+        },
+        "result": "{\"cpu_load\": 23, \"memory_usage\": 18, \"temperature\": 42, \"uptime_days\": 41, \"firmware\": \"V2.03.78R\", \"firmware_date\": \"2024-06-11\"}"
+      },
+      {
+        "tool": "get_router_status",
+        "args": {
+          "router_id": 14
+        },
+        "result": "{\"name\": \"TK_Prilep_NC\", \"model\": \"CCR2116-12G-4S+\", \"os_version\": \"7.24\", \"last_checkin\": \"2026-09-22T15:53:00Z\", \"hours_since_checkin\": 0.2, \"heartbeat_status\": \"ok\", \"cpu_usage\": 5, \"memory_utilization\": 0, \"temperature\": 36}"
+      },
+      {
+        "tool": "snmp_get_onu",
+        "args": {
+          "lineid": "70:B6:4F:43:CB:C8"
+        },
+        "result": "{\"responds\": true, \"online\": 1, \"rx_power\": -21.05, \"tx_power\": 2.39, \"auth_flag\": \"Auth\", \"exchange\": \"Finish\", \"rtt_tq\": 71}"
+      },
+      {
+        "tool": "snmp_probe_olt",
+        "args": {
+          "olt_id": "10122"
+        },
+        "result": "{\"ping_ok\": true, \"snmp_responds\": true, \"sys_uptime_seconds\": 3542400, \"oid_subtree_responds\": true}"
+      },
+      {
+        "tool": "snmp_probe_pon_port",
+        "args": {
+          "olt_id": "10122",
+          "interface": "EPON0/2:26"
+        },
+        "result": "{\"interface_port\": \"EPON0/2\", \"onus\": [{\"onu_index\": 12, \"online\": 1, \"rx_power\": -21.2, \"tx_power\": 2.32, \"responds\": true}, {\"onu_index\": 25, \"online\": 1, \"rx_power\": -22.7, \"tx_power\": 2.44, \"responds\": true}, {\"onu_index\": 26, \"online\": 1, \"rx_power\": -21.05, \"tx_power\": 2.43, \"responds\": true}, {\"onu_index\": 30, \"online\": 1, \"rx_power\": -20.84, \"tx_power\": 2.31, \"responds\": true}, {\"onu_index\": 33, \"online\": 1, \"rx_power\": -20.14, \"tx_power\": 2.37, \"responds\": true}, {\"onu_index\": 44, \"online\": 1, \"rx_power\": -20.96, \"tx_power\": 2.47, \"responds\": true}, {\"onu_index\": 45, \"online\": 1, \"rx_power\": -20.32, \"tx_power\": 2.47, \"responds\": true}]}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "70:B6:4F:43:CB:C8",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 168, \"first\": -21.01, \"last\": -21.3, \"min\": -21.36, \"max\": -20.68, \"mean\": -21.01, \"range\": 0.68, \"change\": -0.29, \"gaps\": 0}, \"tx_power\": {\"available\": true, \"points\": 168, \"first\": 2.38, \"last\": 2.33, \"min\": 2.25, \"max\": 2.44, \"mean\": 2.35, \"range\": 0.19, \"change\": -0.05, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 21.28, \"last\": 22.03, \"min\": 19.97, \"max\": 24.16, \"mean\": 21.99, \"range\": 4.19, \"change\": 0.75, \"gaps\": 0}, \"distance\": {\"available\": true, \"points\": 168, \"first\": 228, \"last\": 228, \"min\": 228, \"max\": 228, \"mean\": 228.0, \"range\": 0, \"change\": 0, \"gaps\": 0}, \"tx_bias_current\": {\"available\": true, \"points\": 168, \"first\": 11.37, \"last\": 11.4, \"min\": 10.86, \"max\": 11.58, \"mean\": 11.19, \"range\": 0.72, \"change\": 0.03, \"gaps\": 0}, \"supply_voltage\": {\"available\": true, \"points\": 168, \"first\": 3.44, \"last\": 3.43, \"min\": 3.4, \"max\": 3.45, \"mean\": 3.43, \"range\": 0.05, \"change\": -0.01, \"gaps\": 0}, \"speed_kbps\": {\"available\": true, \"points\": 168, \"first\": 1.71, \"last\": 6.95, \"min\": 0.0, \"max\": 10.88, \"mean\": 3.72, \"range\": 10.88, \"change\": 5.24, \"gaps\": 0}}}"
+      },
+      {
+        "tool": "get_radius_status",
+        "args": {
+          "lineid": "70:B6:4F:43:CB:C8"
+        },
+        "result": "{\"radcheck_exists\": true, \"username\": \"C8:3A:35:CA:72:B2\", \"lineid_in_radius\": \"70:B6:4F:43:CB:C8\", \"framed_pool\": null, \"assigned_ip\": \"10.5.50.212\", \"crm_consistent\": false, \"mismatches\": [{\"type\": \"replication_lag\", \"detail\": \"The primary FreeRADIUS holds a current radcheck row for this username. The secondary holds a stale row whose password was changed during a profile upgrade on 2026-09-20 and has not replicated. Authentication succeeds against the primary and is rejected by the secondary.\"}, {\"type\": \"replication_lag\", \"detail\": \"Session starts correlate with which server answered: accepted sessions begin within seconds of a primary response, rejected attempts cluster when the MikroTik failed over to the secondary.\"}]}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "70:B6:4F:43:CB:C8"
+        },
+        "result": "{\"count_24h\": 13, \"count_7d\": 79, \"avg_duration_minutes\": 104, \"last_disconnect\": \"2026-09-22T14:59:00Z\", \"recent\": [{\"start\": \"2026-09-22T14:59:00Z\", \"end\": null, \"duration_s\": 6193, \"ip\": \"10.5.50.212\"}, {\"start\": \"2026-09-22T13:09:09Z\", \"end\": \"2026-09-22T14:50:34Z\", \"duration_s\": 6085, \"ip\": \"10.5.50.212\"}, {\"start\": \"2026-09-22T11:16:02Z\", \"end\": \"2026-09-22T12:30:29Z\", \"duration_s\": 4467, \"ip\": \"10.5.50.212\"}, {\"start\": \"2026-09-22T10:00:23Z\", \"end\": \"2026-09-22T11:48:55Z\", \"duration_s\": 6512, \"ip\": \"10.5.50.212\"}, {\"start\": \"2026-09-22T08:05:30Z\", \"end\": \"2026-09-22T09:36:30Z\", \"duration_s\": 5460, \"ip\": \"10.5.50.212\"}]}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "10122",
+          "interface": "EPON0/2:26"
+        },
+        "result": "{\"interface_port\": \"EPON0/2\", \"crm_view\": {\"total_on_port\": 27, \"customers\": [{\"lineid\": \"B4:64:15:3C:E0:7A\", \"interface\": \"EPON0/2:12\", \"onu_status\": 1, \"rx_power\": \"-21.54\", \"active\": 1}, {\"lineid\": \"70:B6:4F:33:AA:45\", \"interface\": \"EPON0/2:25\", \"onu_status\": 1, \"rx_power\": \"-24.01\", \"active\": 1}, {\"lineid\": \"70:B6:4F:43:CB:C8\", \"interface\": \"EPON0/2:26\", \"onu_status\": 1, \"rx_power\": \"-21.02\", \"active\": 1}, {\"lineid\": \"70:B6:4F:65:03:94\", \"interface\": \"EPON0/2:30\", \"onu_status\": 1, \"rx_power\": \"-21.33\", \"active\": 1}, {\"lineid\": \"B4:64:15:4F:07:3B\", \"interface\": \"EPON0/2:33\", \"onu_status\": 1, \"rx_power\": \"-20.95\", \"active\": 1}, {\"lineid\": \"70:B6:4F:0A:36:07\", \"interface\": \"EPON0/2:44\", \"onu_status\": 1, \"rx_power\": \"-20.25\", \"active\": 1}, {\"lineid\": \"78:88:8A:AD:90:AD\", \"interface\": \"EPON0/2:45\", \"onu_status\": 1, \"rx_power\": \"-21.37\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "snmp_walk_vlans",
+        "args": {
+          "olt_id": "10122"
+        },
+        "result": "{\"responds\": true, \"vlans_present\": [1, 46, 100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108, 1998, 1999], \"customer_vlan_expected\": 1102, \"customer_vlan_actual\": 1102}"
+      }
+    ]
+  },
+  "ground_truth": {
+    "fault_type": "radius_replication_lag",
+    "root_cause": "A password change made during a profile upgrade on 20 September replicated to the primary FreeRADIUS but not the secondary. When the MikroTik fails over, the secondary rejects the customer; when the primary answers, authentication succeeds. The result is repeated disconnection and recovery with no physical cause.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "70:B6:4F:43:CB:C8"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Thirteen sessions in 24 hours against a 2-3 baseline, with a 104 minute mean against an 11.9 hour norm",
+      "RX has been flat at -21.0 dBm for seven days inside the noise floor, and TX, bias, voltage and distance are all stable",
+      "The live probe confirms the ONU is online and healthy, and peers on the port are normal",
+      "The OLT and router are healthy, so no shared infrastructure fault exists",
+      "With the optical layer conclusively clean, the cause must lie in authentication",
+      "The radcheck row on the primary is current, so a single-server check would find nothing wrong",
+      "Comparing both servers shows the secondary holds a stale row from before the 20 September profile change",
+      "Session outcomes correlate with which server answered rather than with any signal or time of day",
+      "The throughput series shows recurring zero windows that match the rejected attempts",
+      "Inconsistent state across replicated servers explains intermittency that no single query reveals"
+    ],
+    "required_evidence": [
+      "optical_layer_confirmed_clean",
+      "both_radius_servers_compared",
+      "session_outcome_correlates_with_server"
+    ],
+    "expected_remediation": "escalate_radius_infrastructure",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "infrastructure",
+      "requires_human_review": true,
+      "review_reason": "Master-slave replication between the FreeRADIUS pair is lagging; other customers changed since 20 September may be affected"
+    },
+    "distractors": [
+      "The session pattern is identical to signal-related flapping",
+      "The primary RADIUS record is entirely correct, so a single-server check finds nothing",
+      "Self-recovering drops suggest an intermittent physical fault",
+      "Traffic alternates between normal and reduced days, which looks like usage variation"
+    ]
+  }
+}

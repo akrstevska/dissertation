@@ -1,0 +1,84 @@
+{
+  "scenario_id": "DS-001",
+  "config": "monolithic_shared_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 8.5,
+  "result": {
+    "diagnosis": {
+      "fault_type": "duplicate_onu_slot",
+      "root_cause": "Two active CRM records with different ONU MAC addresses are assigned to the same physical slot EPON0/4:17. Only one ONU can occupy that slot, indicating a duplicate or stale ONU provisioning record.",
+      "confidence": 0.99,
+      "affected_scope": "multi_customer",
+      "evidence": [
+        "The target ONU is currently online and responding, with Auth/Finish state, so it is not currently offline.",
+        "RX power is -20.91 dBm and TX power is 2.38 dBm, both within the calibrated normal ranges.",
+        "Seven days of RX, TX, bias current, distance, voltage, and temperature telemetry are stable; there is no fibre degradation, laser degradation, or distance change.",
+        "The OLT responds to ping, SNMP, and subtree queries, with healthy CPU, memory, and temperature; the router heartbeat is also healthy.",
+        "All probed surviving ONUs on EPON0/4 are online, and the customer VLAN is correctly provisioned as 1044.",
+        "Session count is normal at 2 in 24 hours with approximately normal session durations, so there is no session-flapping diagnosis.",
+        "The explicit duplicate-slot conflict identifies two active CRM records, with different ONU MACs, both assigned to EPON0/4:17. This is the direct fault evidence and affects the two customer records sharing the slot."
+      ]
+    },
+    "remediation": {
+      "action": "Inspect the two records for slot EPON0/4:17, identify the valid subscriber and physical ONU, remove or correct the stale duplicate CRM/OLT entry, and assign the displaced ONU a unique slot. Reconcile the ONU MAC, line ID, CRM record, and OLT registration, then verify both customers authenticate and remain online."
+    },
+    "escalation": {
+      "priority": "Average"
+    },
+    "monolithic": {
+      "fault_type": "duplicate_onu_slot",
+      "root_cause": "Two active CRM records with different ONU MAC addresses are assigned to the same physical slot EPON0/4:17. Only one ONU can occupy that slot, indicating a duplicate or stale ONU provisioning record.",
+      "confidence": 0.99,
+      "severity": "Average",
+      "affected_scope": "multi_customer",
+      "remediation": "Inspect the two records for slot EPON0/4:17, identify the valid subscriber and physical ONU, remove or correct the stale duplicate CRM/OLT entry, and assign the displaced ONU a unique slot. Reconcile the ONU MAC, line ID, CRM record, and OLT registration, then verify both customers authenticate and remain online.",
+      "reasoning": [
+        "The target ONU is currently online and responding, with Auth/Finish state, so it is not currently offline.",
+        "RX power is -20.91 dBm and TX power is 2.38 dBm, both within the calibrated normal ranges.",
+        "Seven days of RX, TX, bias current, distance, voltage, and temperature telemetry are stable; there is no fibre degradation, laser degradation, or distance change.",
+        "The OLT responds to ping, SNMP, and subtree queries, with healthy CPU, memory, and temperature; the router heartbeat is also healthy.",
+        "All probed surviving ONUs on EPON0/4 are online, and the customer VLAN is correctly provisioned as 1044.",
+        "Session count is normal at 2 in 24 hours with approximately normal session durations, so there is no session-flapping diagnosis.",
+        "The explicit duplicate-slot conflict identifies two active CRM records, with different ONU MACs, both assigned to EPON0/4:17. This is the direct fault evidence and affects the two customer records sharing the slot."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "duplicate_onu_slot",
+    "root_cause": "Two active CRM records place different ONU MACs on EPON0/4:17. A slot holds exactly one ONU, so one record is stale. The live probe returns a single device, and its MAC matches the subject record, identifying the other as the leftover.",
+    "severity": "Warning",
+    "affected_scope": "multi_customer",
+    "affected_lineids": [
+      "4C:D7:C8:93:BA:F1",
+      "4C:D7:C8:7F:0A:B9"
+    ],
+    "affected_customer_count": 2,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The CRM view lists two active customers on EPON0/4:17 with different ONU MACs",
+      "A PON slot holds exactly one ONU, so this state is physically impossible",
+      "The live probe of that slot returns a single responding device",
+      "The probe's optical values match the subject record's cached reading of -20.88 dBm",
+      "RADIUS holds a consistent entry for the subject with normal sessions and traffic",
+      "The second record therefore does not correspond to an installed device and is stale",
+      "The optical layer is healthy and neither customer is experiencing a service fault",
+      "This is a record defect of the same class as the 644 such interfaces in the estate"
+    ],
+    "required_evidence": [
+      "two_crm_records_one_slot",
+      "live_probe_returns_one_device",
+      "probe_identifies_real_occupant"
+    ],
+    "expected_remediation": "manual_review",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "provisioning",
+      "requires_human_review": true,
+      "review_reason": "One of two CRM records on this slot is stale; deleting the wrong one disconnects a live customer"
+    },
+    "distractors": [
+      "Nothing is failing and no customer has complained",
+      "Both records are marked active and look equally legitimate in CRM"
+    ]
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "scenario_id": "SP-001",
+  "config": "monolithic_p1",
+  "model": "gpt-5.6-luna",
+  "seconds": 9.3,
+  "result": {
+    "diagnosis": {
+      "fault_type": "onu_offline",
+      "root_cause": "Customer ONU 22371 is currently offline and deregistered from MPCP (Unauth/MPCP DEREG), with no live optical readings. The historical optical, bias-current, distance, power-supply, and temperature readings were stable and healthy, so there is no evidence of fibre, laser, PON-port, splitter, OLT, VLAN, router, or RADIUS failure. The most likely cause is a customer-side ONU power or local-fibre/CPE issue.",
+      "confidence": 0.93,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The subscriber ONU status is offline, and the live probe confirms online=0, auth_flag=Unauth, and exchange=MPCP DEREG.",
+        "The zero/null RX and TX values are correctly interpreted as no reading because the ONU is offline, not as strong optical signal.",
+        "Seven days of historical RX power stayed around -22.3 to -23.1 dBm, which is normal and within the healthy noise range; TX power stayed around +2.3 dBm, also normal.",
+        "TX bias current remained approximately 10.8-11.7 mA, with no rising-bias pattern indicating laser ageing.",
+        "Distance remained constant at 294 m, so there is no evidence of a fibre-path change.",
+        "The OLT is reachable and healthy: all eight PONs passed, CPU and memory are normal, temperature is normal, and uptime is stable.",
+        "Other ONUs on EPON0/6 are online with normal optical levels, ruling out a PON-port failure or broad splitter failure.",
+        "The router heartbeat is healthy, the expected customer VLAN 1016 is present, and RADIUS data is consistent with CRM, ruling out router, VLAN, and authentication/configuration faults.",
+        "The customer's session count and duration are normal, with no session-flapping or authentication pattern.",
+        "The OLT has 25 offline of 298 customers, versus an expected background level of about 14; this is elevated but not sufficient to establish an OLT-wide outage, and the subscriber-specific evidence remains an ONU offline condition."
+      ]
+    },
+    "remediation": {
+      "action": "Treat the customer ONU as offline rather than as an OLT or PON outage. Contact the customer or dispatch support to verify ONU power, LEDs, power adapter, and the indoor/drop fibre connection; power-cycle or replace the ONU if necessary, then verify MPCP registration and optical readings. Do not change RADIUS, VLAN, OLT, or router configuration. Monitor the other offline ONUs separately; the OLT-wide offline count is within plausible background range and the PON port remains operational."
+    },
+    "escalation": {
+      "priority": "Warning"
+    },
+    "monolithic": {
+      "fault_type": "onu_offline",
+      "root_cause": "Customer ONU 22371 is currently offline and deregistered from MPCP (Unauth/MPCP DEREG), with no live optical readings. The historical optical, bias-current, distance, power-supply, and temperature readings were stable and healthy, so there is no evidence of fibre, laser, PON-port, splitter, OLT, VLAN, router, or RADIUS failure. The most likely cause is a customer-side ONU power or local-fibre/CPE issue.",
+      "confidence": 0.93,
+      "severity": "Warning",
+      "affected_scope": "single_customer",
+      "remediation": "Treat the customer ONU as offline rather than as an OLT or PON outage. Contact the customer or dispatch support to verify ONU power, LEDs, power adapter, and the indoor/drop fibre connection; power-cycle or replace the ONU if necessary, then verify MPCP registration and optical readings. Do not change RADIUS, VLAN, OLT, or router configuration. Monitor the other offline ONUs separately; the OLT-wide offline count is within plausible background range and the PON port remains operational.",
+      "reasoning": [
+        "The subscriber ONU status is offline, and the live probe confirms online=0, auth_flag=Unauth, and exchange=MPCP DEREG.",
+        "The zero/null RX and TX values are correctly interpreted as no reading because the ONU is offline, not as strong optical signal.",
+        "Seven days of historical RX power stayed around -22.3 to -23.1 dBm, which is normal and within the healthy noise range; TX power stayed around +2.3 dBm, also normal.",
+        "TX bias current remained approximately 10.8-11.7 mA, with no rising-bias pattern indicating laser ageing.",
+        "Distance remained constant at 294 m, so there is no evidence of a fibre-path change.",
+        "The OLT is reachable and healthy: all eight PONs passed, CPU and memory are normal, temperature is normal, and uptime is stable.",
+        "Other ONUs on EPON0/6 are online with normal optical levels, ruling out a PON-port failure or broad splitter failure.",
+        "The router heartbeat is healthy, the expected customer VLAN 1016 is present, and RADIUS data is consistent with CRM, ruling out router, VLAN, and authentication/configuration faults.",
+        "The customer's session count and duration are normal, with no session-flapping or authentication pattern.",
+        "The OLT has 25 offline of 298 customers, versus an expected background level of about 14; this is elevated but not sufficient to establish an OLT-wide outage, and the subscriber-specific evidence remains an ONU offline condition."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "splitter_failure",
+    "root_cause": "Eleven of the thirty-four customers on EPON0/6 lost service within the same minute while the remaining twenty-three continue normally. A shared downstream splitter branch has failed; the PON port itself is still working.",
+    "severity": "High",
+    "affected_scope": "multi_customer",
+    "affected_lineids": [
+      "00:A1:07:3E:93:09",
+      "80:F1:A8:E9:86:C1",
+      "4C:D7:C8:51:F8:2F",
+      "4C:D7:C8:6A:63:74",
+      "78:88:8A:69:60:54"
+    ],
+    "affected_customer_count": 5,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Probing EPON0/6 shows eleven ONUs offline and twenty-three still online with normal RX and TX",
+      "Because part of the port is still serving, the port optics and feeder fibre are working",
+      "The eleven failures occurred within the same minute, which rules out unrelated individual faults",
+      "A simultaneous partial loss on a working port indicates a shared element downstream of the port",
+      "That element is a splitter branch serving those eleven customers",
+      "OLT ping, SNMP, CPU, memory and temperature are all normal, so the OLT is not involved",
+      "The health check still reports the OLT healthy, which is correct here but only because the port has surviving ONUs",
+      "PON port traffic has fallen but not collapsed, consistent with losing a third of the port",
+      "The affected set is the eleven, not the whole port"
+    ],
+    "required_evidence": [
+      "subset_of_port_affected",
+      "surviving_onus_on_same_port",
+      "simultaneous_dropout"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "High",
+      "category": "infrastructure",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "Eleven simultaneous outages could be read as a PON port failure if the surviving ONUs are not probed",
+      "The OLT health check reports healthy, inviting a no_fault conclusion",
+      "The affected ONU indexes are not contiguous, obscuring the shared branch"
+    ]
+  }
+}

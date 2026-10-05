@@ -1,0 +1,87 @@
+{
+  "scenario_id": "CD-001",
+  "config": "monolithic_shared_p1",
+  "model": "gpt-5.6-luna",
+  "seconds": 9.2,
+  "result": {
+    "diagnosis": {
+      "fault_type": "catv_drift",
+      "root_cause": "The subscriber's CATV service is provisioned and the ONU is online, but the CATV interface is not synchronized (catv_synced=0). Internet service is unaffected, indicating a CATV/RF path or tuner synchronization problem rather than an EPON data fault.",
+      "confidence": 0.93,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The complaint is specifically that Internet works but TV channels never came on.",
+        "The subscriber has CATV capability and service enabled: has_catv=1, catv_service=1, and profile_CATV.",
+        "The ONU is online with normal optical readings: RX -20.4 dBm and TX 2.45 dBm.",
+        "Seven days of RX and TX telemetry are stable, distance is constant, and TX bias current is healthy; there is no evidence of fibre degradation, laser degradation, or distance change.",
+        "All tested peers on EPON0/7 are online and healthy, so there is no shared PON, splitter, port, or OLT outage.",
+        "The OLT and router are healthy and responding normally.",
+        "RADIUS exists, matches CRM, and the subscriber has normal session activity and traffic, ruling out authentication or Internet provisioning faults.",
+        "The expected customer VLAN 1037 is present and matches the actual VLAN, ruling out stuck provisioning on VLAN 46.",
+        "The decisive abnormality is catv_synced=0 while the data service remains operational, consistent with CATV drift or loss of CATV synchronization confined to this customer."
+      ]
+    },
+    "remediation": {
+      "action": "Check CATV optical/RF input level and signal quality at the ONU and customer outlet, inspect or reseat coaxial/fibre connectors and splitters, and rescan or reinitialize the ONU CATV tuner. Replace the ONU or repair the CATV drop/path if synchronization cannot be restored. Verify that catv_synced becomes 1 after remediation."
+    },
+    "escalation": {
+      "priority": "Average"
+    },
+    "monolithic": {
+      "fault_type": "catv_drift",
+      "root_cause": "The subscriber's CATV service is provisioned and the ONU is online, but the CATV interface is not synchronized (catv_synced=0). Internet service is unaffected, indicating a CATV/RF path or tuner synchronization problem rather than an EPON data fault.",
+      "confidence": 0.93,
+      "severity": "Average",
+      "affected_scope": "single_customer",
+      "remediation": "Check CATV optical/RF input level and signal quality at the ONU and customer outlet, inspect or reseat coaxial/fibre connectors and splitters, and rescan or reinitialize the ONU CATV tuner. Replace the ONU or repair the CATV drop/path if synchronization cannot be restored. Verify that catv_synced becomes 1 after remediation.",
+      "reasoning": [
+        "The complaint is specifically that Internet works but TV channels never came on.",
+        "The subscriber has CATV capability and service enabled: has_catv=1, catv_service=1, and profile_CATV.",
+        "The ONU is online with normal optical readings: RX -20.4 dBm and TX 2.45 dBm.",
+        "Seven days of RX and TX telemetry are stable, distance is constant, and TX bias current is healthy; there is no evidence of fibre degradation, laser degradation, or distance change.",
+        "All tested peers on EPON0/7 are online and healthy, so there is no shared PON, splitter, port, or OLT outage.",
+        "The OLT and router are healthy and responding normally.",
+        "RADIUS exists, matches CRM, and the subscriber has normal session activity and traffic, ruling out authentication or Internet provisioning faults.",
+        "The expected customer VLAN 1037 is present and matches the actual VLAN, ruling out stuck provisioning on VLAN 46.",
+        "The decisive abnormality is catv_synced=0 while the data service remains operational, consistent with CATV drift or loss of CATV synchronization confined to this customer."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "catv_drift",
+    "root_cause": "The customer is recorded as subscribed to CATV but catv_synced is 0, so the CATV state was never pushed to the ONU. Data service is unaffected; only the television service is missing.",
+    "severity": "Information",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "78:88:8A:61:59:3D"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "The customer reports working internet and missing television",
+      "catv_service is 1 and catv_synced is 0, so the subscription exists and the device state does not match it",
+      "The ONU model supports CATV, so this is not an equipment limitation",
+      "Optical readings are normal and the live probe confirms the ONU is healthy",
+      "Sessions and daily traffic are normal, consistent with working data service",
+      "The OLT and router are healthy and no shared fault exists",
+      "This is a service state mismatch on one dimension, of the same class as the 84 unsynced lines in the estate",
+      "It is resolved by re-pushing the CATV state rather than by any field work"
+    ],
+    "required_evidence": [
+      "catv_service_set_but_unsynced",
+      "data_service_unaffected",
+      "onu_model_supports_catv"
+    ],
+    "expected_remediation": "resync_catv",
+    "expected_escalation": {
+      "priority": "Information",
+      "category": "provisioning",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "Every network signal is healthy, inviting a no_fault conclusion",
+      "The complaint could be read as customer equipment rather than provisioning"
+    ]
+  }
+}

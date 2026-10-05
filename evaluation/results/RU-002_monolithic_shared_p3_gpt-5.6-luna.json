@@ -1,0 +1,85 @@
+{
+  "scenario_id": "RU-002",
+  "config": "monolithic_shared_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 12.3,
+  "result": {
+    "diagnosis": {
+      "fault_type": "router_unreachable",
+      "root_cause": "The router has never reported a heartbeat, so its management-plane reachability or heartbeat monitoring is not established. This is not a subscriber access outage: the ONU is online, optics are stable, authentication is consistent, the expected VLAN is present, and traffic is passing.",
+      "confidence": 0.86,
+      "affected_scope": "router",
+      "evidence": [
+        "The scheduled scan targets the router, and its heartbeat status is never with no check-in record.",
+        "The ONU is currently online and responds to SNMP with RX power -21.9 dBm and TX power 2.34 dBm, both within normal EPON ranges.",
+        "Seven days of RX, TX, distance, bias current, voltage, and temperature telemetry are stable; there is no fibre degradation, laser degradation, or distance change.",
+        "All visible peers on EPON0/4 are online, so there is no ONU, splitter, or PON-port outage.",
+        "The OLT answers ping and SNMP, has normal CPU, memory, temperature, and all six tested PONs are healthy; this is not an OLT fault.",
+        "Authentication is normal with an existing consistent RADIUS entry, three sessions in 24 hours, and session duration near the network mean.",
+        "The expected customer VLAN 1124 is present and correct.",
+        "Traffic is active and stable, confirming that customer service is currently passing despite the missing router heartbeat."
+      ]
+    },
+    "remediation": {
+      "action": "Verify the router's management connectivity, heartbeat agent, monitoring configuration, and firewall/ACL rules. Establish a heartbeat record and re-run the router probe. Do not replace the ONU, PON port, OLT, RADIUS configuration, or VLAN based on this case."
+    },
+    "escalation": {
+      "priority": "Information"
+    },
+    "monolithic": {
+      "fault_type": "router_unreachable",
+      "root_cause": "The router has never reported a heartbeat, so its management-plane reachability or heartbeat monitoring is not established. This is not a subscriber access outage: the ONU is online, optics are stable, authentication is consistent, the expected VLAN is present, and traffic is passing.",
+      "confidence": 0.86,
+      "severity": "Information",
+      "affected_scope": "router",
+      "remediation": "Verify the router's management connectivity, heartbeat agent, monitoring configuration, and firewall/ACL rules. Establish a heartbeat record and re-run the router probe. Do not replace the ONU, PON port, OLT, RADIUS configuration, or VLAN based on this case.",
+      "reasoning": [
+        "The scheduled scan targets the router, and its heartbeat status is never with no check-in record.",
+        "The ONU is currently online and responds to SNMP with RX power -21.9 dBm and TX power 2.34 dBm, both within normal EPON ranges.",
+        "Seven days of RX, TX, distance, bias current, voltage, and temperature telemetry are stable; there is no fibre degradation, laser degradation, or distance change.",
+        "All visible peers on EPON0/4 are online, so there is no ONU, splitter, or PON-port outage.",
+        "The OLT answers ping and SNMP, has normal CPU, memory, temperature, and all six tested PONs are healthy; this is not an OLT fault.",
+        "Authentication is normal with an existing consistent RADIUS entry, three sessions in 24 hours, and session duration near the network mean.",
+        "The expected customer VLAN 1124 is present and correct.",
+        "Traffic is active and stable, confirming that customer service is currently passing despite the missing router heartbeat."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "no_fault",
+    "root_cause": "The router has no check-in record of any kind, which means it was never enrolled in heartbeat monitoring rather than that it stopped responding. Its customers are authenticated, holding long sessions and passing normal traffic.",
+    "severity": "Information",
+    "affected_scope": "none",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The router's heartbeat status is 'never' with a null last_checkin",
+      "That is different from a heartbeat that went stale, which would carry a timestamp and an elapsed time",
+      "No record at all indicates the router was never enrolled in the check-in mechanism",
+      "The ONU behind it is online with RX -21.9 and TX 2.3, both normal",
+      "The live probe confirms the ONU and its peers are all responding normally",
+      "Sessions are active with a 683 minute mean, close to the 11.9 hour network norm",
+      "Daily traffic is steady across all seven days with no interruption",
+      "Customers on this router are being served, so there is no outage",
+      "The finding is a monitoring gap, not a network fault"
+    ],
+    "required_evidence": [
+      "never_checked_in_not_stale",
+      "customers_passing_traffic",
+      "sessions_normal_duration"
+    ],
+    "expected_remediation": "flag_monitoring_defect",
+    "expected_escalation": {
+      "priority": "Information",
+      "category": "monitoring",
+      "requires_human_review": true,
+      "review_reason": "Router is not enrolled in heartbeat monitoring and should be added"
+    },
+    "distractors": [
+      "A null heartbeat looks worse than a stale one and invites a Disaster conclusion",
+      "A scheduled scan targeting the router frames it as the suspect",
+      "The correct answer is that nothing is wrong with the network"
+    ]
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "scenario_id": "SP-001",
+  "config": "monolithic_clean_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 7.4,
+  "result": {
+    "diagnosis": {
+      "fault_type": "splitter_failure",
+      "root_cause": "A shared splitter or splitter-side optical path serving EPON0/6 has failed, taking multiple ONUs offline while other ONUs on the same PON remain online.",
+      "confidence": 0.99,
+      "affected_scope": "pon_port",
+      "evidence": [
+        "The live ONU probe responds successfully and reports online:0 for the subscriber, which is a definite offline state.",
+        "The same port has multiple definite offline ONUs at indexes 15, 16, 19, 20, and 46, while indexes 8, 13, 49, and 57 remain online.",
+        "Multiple offline ONUs with surviving peers on the same PON place the fault boundary inside the port and identify a splitter failure rather than a single ONU fault or a whole-port failure.",
+        "The OLT responds to ping and SNMP, all eight tested PONs are marked healthy, and OLT CPU, memory, and temperature are normal, ruling out an OLT failure.",
+        "The router heartbeat is healthy, the expected customer VLAN 1016 is present, and the RADIUS record matches CRM, ruling out router, VLAN, and authentication causes.",
+        "The subscriber's historical RX remained stable around -22.6 dBm in the normal band, TX remained near 2.35 dBm, bias current remained healthy and flat, and distance stayed at 294, so there is no evidence of fibre degradation, laser degradation, or distance change.",
+        "The current mass-offline count of 25 is only modestly above the approximately 14-background baseline for a 300-customer OLT, but the per-ONU live readings directly show the affected boundary on EPON0/6."
+      ]
+    },
+    "remediation": {
+      "action": "Dispatch field operations to inspect and repair or replace the splitter and its feeder/drop connections for EPON0/6. Verify optical continuity and power, then confirm that all affected ONUs re-register and that RX/TX readings return. Keep the OLT, router, VLAN, and RADIUS systems unchanged; they are healthy."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "splitter_failure",
+      "root_cause": "A shared splitter or splitter-side optical path serving EPON0/6 has failed, taking multiple ONUs offline while other ONUs on the same PON remain online.",
+      "confidence": 0.99,
+      "severity": "High",
+      "affected_scope": "pon_port",
+      "remediation": "Dispatch field operations to inspect and repair or replace the splitter and its feeder/drop connections for EPON0/6. Verify optical continuity and power, then confirm that all affected ONUs re-register and that RX/TX readings return. Keep the OLT, router, VLAN, and RADIUS systems unchanged; they are healthy.",
+      "reasoning": [
+        "The live ONU probe responds successfully and reports online:0 for the subscriber, which is a definite offline state.",
+        "The same port has multiple definite offline ONUs at indexes 15, 16, 19, 20, and 46, while indexes 8, 13, 49, and 57 remain online.",
+        "Multiple offline ONUs with surviving peers on the same PON place the fault boundary inside the port and identify a splitter failure rather than a single ONU fault or a whole-port failure.",
+        "The OLT responds to ping and SNMP, all eight tested PONs are marked healthy, and OLT CPU, memory, and temperature are normal, ruling out an OLT failure.",
+        "The router heartbeat is healthy, the expected customer VLAN 1016 is present, and the RADIUS record matches CRM, ruling out router, VLAN, and authentication causes.",
+        "The subscriber's historical RX remained stable around -22.6 dBm in the normal band, TX remained near 2.35 dBm, bias current remained healthy and flat, and distance stayed at 294, so there is no evidence of fibre degradation, laser degradation, or distance change.",
+        "The current mass-offline count of 25 is only modestly above the approximately 14-background baseline for a 300-customer OLT, but the per-ONU live readings directly show the affected boundary on EPON0/6."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "splitter_failure",
+    "root_cause": "Eleven of the thirty-four customers on EPON0/6 lost service within the same minute while the remaining twenty-three continue normally. A shared downstream splitter branch has failed; the PON port itself is still working.",
+    "severity": "High",
+    "affected_scope": "multi_customer",
+    "affected_lineids": [
+      "00:A1:07:3E:93:09",
+      "80:F1:A8:E9:86:C1",
+      "4C:D7:C8:51:F8:2F",
+      "4C:D7:C8:6A:63:74",
+      "78:88:8A:69:60:54"
+    ],
+    "affected_customer_count": 5,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Probing EPON0/6 shows eleven ONUs offline and twenty-three still online with normal RX and TX",
+      "Because part of the port is still serving, the port optics and feeder fibre are working",
+      "The eleven failures occurred within the same minute, which rules out unrelated individual faults",
+      "A simultaneous partial loss on a working port indicates a shared element downstream of the port",
+      "That element is a splitter branch serving those eleven customers",
+      "OLT ping, SNMP, CPU, memory and temperature are all normal, so the OLT is not involved",
+      "The health check still reports the OLT healthy, which is correct here but only because the port has surviving ONUs",
+      "PON port traffic has fallen but not collapsed, consistent with losing a third of the port",
+      "The affected set is the eleven, not the whole port"
+    ],
+    "required_evidence": [
+      "subset_of_port_affected",
+      "surviving_onus_on_same_port",
+      "simultaneous_dropout"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "High",
+      "category": "infrastructure",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "Eleven simultaneous outages could be read as a PON port failure if the surviving ONUs are not probed",
+      "The OLT health check reports healthy, inviting a no_fault conclusion",
+      "The affected ONU indexes are not contiguous, obscuring the shared branch"
+    ]
+  }
+}

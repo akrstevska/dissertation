@@ -1,0 +1,354 @@
+{
+  "scenario_id": "SP-001",
+  "config": "agent",
+  "model": "gpt-5.6-luna",
+  "seconds": 59.0,
+  "result": {
+    "trigger": "threshold_breach",
+    "trigger_input": {
+      "signal": "mass_onu_offline",
+      "olt_host": "TK_AZ-OLT_SK_ANC-08",
+      "value": 11
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [
+        {
+          "type": "mass_onu_offline",
+          "value": "25 of 298 customers offline (8.39%); trigger reported 11",
+          "threshold": "Network baseline 4.85% (approximately 14 of 300 customers)"
+        },
+        {
+          "type": "active_customer_with_offline_onu",
+          "value": "Line 00:A1:07:3E:93:09 has onu_status 0 and cached rx_power/tx_power 0, but CRM active with 1 session in 24h and 1030 MB download traffic",
+          "threshold": "Active offline ONU with no optical reading is an inconsistency; 0 means missing reading, not measured power"
+        },
+        {
+          "type": "active_customer_with_offline_onu",
+          "value": "Line 4C:D7:C8:51:F8:2F has onu_status 0 and cached rx_power/tx_power 0, but CRM active with 1 session in 24h and 1030 MB download traffic",
+          "threshold": "Active offline ONU with no optical reading is an inconsistency; 0 means missing reading, not measured power"
+        },
+        {
+          "type": "optical_trend",
+          "value": "Sampled RX last -22.86 dBm and TX last 2.36 dBm",
+          "threshold": "RX normal -20 to -25 dBm; TX normal 0 to +5 dBm"
+        }
+      ],
+      "preliminary_severity": "Warning",
+      "affected_scope": "olt",
+      "affected_lineids": [
+        "00:A1:07:3E:93:09",
+        "4C:D7:C8:51:F8:2F"
+      ],
+      "olt_id": "TK_AZ-OLT_SK_ANC-08",
+      "interface": null,
+      "summary": "The OLT has 25 offline ONUs, exceeding the approximately 14 expected at baseline, despite healthy OLT metrics and normal sampled optical trends."
+    },
+    "diagnosis": {
+      "fault_type": "splitter_failure",
+      "root_cause": "EPON0/6 has multiple definite ONU offline responses while other ONUs on the same port remain online, identifying a shared splitter-path failure rather than an OLT-wide failure. The two flagged customers are currently offline; their recent sessions and active CRM records reflect prior service, not current online state.",
+      "confidence": 0.99,
+      "affected_scope": "pon_port",
+      "affected_lineids": [
+        "00:A1:07:3E:93:09",
+        "80:F1:A8:E9:86:C1",
+        "4C:D7:C8:51:F8:2F",
+        "4C:D7:C8:6A:63:74",
+        "78:88:8A:69:60:54"
+      ],
+      "evidence": [
+        "The OLT responds to ping and SNMP, including its OID subtree, so this is not an OLT failure.",
+        "OLT CPU, memory, and temperature are near healthy baselines.",
+        "Live probing maps the held interface to EPON0/6 and shows five ONUs with online:0 and responds:true, while four other ONUs on the same port remain online.",
+        "The five offline ONU responses have null optical readings, which correctly indicates no current reading rather than strong optical power.",
+        "Two or more definite offline ONUs with surviving peers on the same port meets the splitter-failure discriminator.",
+        "Both flagged lineids independently return responds:true, online:0, auth_flag Una uth, and MPCP DEREG.",
+        "Customer VLAN 1016 is present as expected, so VLAN provisioning is not the cause.",
+        "The sampled optical values for online peers are within normal ranges, and the OLT-wide offline count does not override the direct port-level survivor/offline evidence."
+      ],
+      "cached_vs_live_discrepancy": true,
+      "discrepancy_detail": "The detection trigger reported 11 offline customers, while the live OLT population reports 25 offline and the held EPON0/6 view directly shows five offline ONUs. Cached zero optical values are consistent with missing readings, not measured power; recent sessions and active CRM status are historical/service records and do not contradict the live online:0 responses."
+    },
+    "remediation": {
+      "action": "dispatch_technician",
+      "automated": false,
+      "reason": "Multiple ONUs on EPON0/6 are definitively offline while other ONUs on the same PON remain online, indicating a shared splitter-path failure rather than an OLT, router, VLAN, or individual ONU fault. Field inspection is required.",
+      "instructions": "Dispatch a technician to inspect the EPON0/6 fibre route, splitter, connectors, and feeder/drop segments. Test optical levels and continuity, repair or replace the failed splitter or damaged fibre path, then verify that all affected ONUs re-register and recover service.",
+      "alternatives_considered": [
+        {
+          "action": "onu_reset",
+          "rejected_because": "The issue affects five ONUs sharing a splitter path, so resetting individual ONUs would not address the common failure."
+        },
+        {
+          "action": "escalate_infrastructure",
+          "rejected_because": "The OLT is reachable and healthy, and surviving ONUs on the same port demonstrate that the PON port is not broadly failed."
+        },
+        {
+          "action": "trigger_acs_provisioning",
+          "rejected_because": "Customer VLAN 1016 is present and the symptoms are physical offline states, not provisioning or VLAN 46 issues."
+        },
+        {
+          "action": "schedule_onu_replacement",
+          "rejected_because": "A shared splitter-path failure explains the grouped outages better than simultaneous ONU laser ageing."
+        }
+      ]
+    },
+    "escalation": {
+      "priority": "High",
+      "category": "field_service",
+      "requires_human_review": false,
+      "review_reason": null,
+      "summary": "Five ONUs on EPON0/6 are definitively offline while other ONUs on the same PON remain online, indicating a shared splitter or fibre-path failure. The OLT is reachable and healthy, optical levels for online peers are normal, and VLAN provisioning is present. Dispatch a technician to inspect and repair the EPON0/6 splitter, connectors, and fibre route, then verify ONU re-registration and service recovery.",
+      "affected_customer_count": 5,
+      "service_impact": true
+    },
+    "trace": [
+      {
+        "tool": "get_olt_health",
+        "args": {
+          "olt_id": "TK_AZ-OLT_SK_ANC-08"
+        },
+        "result": "{\"olt_ip\": \"10.220.114.5\", \"olt_host\": \"TK_AZ-OLT_SK_ANC-08\", \"olt_technology\": \"EPON\", \"olt_ext_id\": \"10417\", \"ping_ok\": true, \"snmp_community_ok\": true, \"snmp_response_ok\": true, \"total_pons_tested\": 8, \"healthy_pons\": 8, \"failed_pons_list\": [], \"error_description\": null, \"overall_status\": \"healthy\", \"run_date\": \"2026-09-18\"}"
+      },
+      {
+        "tool": "get_olt_metrics",
+        "args": {
+          "olt_id": "TK_AZ-OLT_SK_ANC-08"
+        },
+        "result": "{\"cpu_load\": 24, \"memory_usage\": 17, \"temperature\": 41, \"uptime_days\": 85, \"firmware\": \"V2.03.78R\", \"firmware_date\": \"2024-06-11\"}"
+      },
+      {
+        "tool": "get_olt_population",
+        "args": {
+          "olt_id": "TK_AZ-OLT_SK_ANC-08"
+        },
+        "result": "{\"total_customers\": 298, \"pon_ports_in_use\": 8, \"customers_per_port\": {\"EPON0/1\": 37, \"EPON0/2\": 37, \"EPON0/3\": 37, \"EPON0/4\": 37, \"EPON0/5\": 37, \"EPON0/6\": 34, \"EPON0/7\": 37, \"EPON0/8\": 42}, \"onu_online_count\": 273, \"onu_offline_count\": 25}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "TK_AZ-OLT_SK_ANC-08",
+          "interface": ""
+        },
+        "result": "{\"interface_port\": \"EPON0/6\", \"crm_view\": {\"total_on_port\": 34, \"customers\": [{\"lineid\": \"00:A1:07:FB:A4:C4\", \"interface\": \"EPON0/6:8\", \"onu_status\": 1, \"rx_power\": \"-19.63\", \"active\": 1}, {\"lineid\": \"B4:64:15:0E:7E:77\", \"interface\": \"EPON0/6:13\", \"onu_status\": 1, \"rx_power\": \"-21.10\", \"active\": 1}, {\"lineid\": \"00:A1:07:3E:93:09\", \"interface\": \"EPON0/6:15\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"80:F1:A8:E9:86:C1\", \"interface\": \"EPON0/6:16\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"4C:D7:C8:51:F8:2F\", \"interface\": \"EPON0/6:19\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"4C:D7:C8:6A:63:74\", \"interface\": \"EPON0/6:20\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"78:88:8A:69:60:54\", \"interface\": \"EPON0/6:46\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"80:F1:A8:2D:46:4A\", \"interface\": \"EPON0/6:49\", \"onu_status\": 1, \"rx_power\": \"-22.43\", \"active\": 1}, {\"lineid\": \"00:A1:07:AC:12:7B\", \"interface\": \"EPON0/6:57\", \"onu_status\": 1, \"rx_power\": \"-22.77\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "00:A1:07:3E:93:09"
+        },
+        "result": "{\"error\": \"not_held\", \"lineid_in_scope\": \"4C:D7:C8:51:F8:2F\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "00:A1:07:3E:93:09"
+        },
+        "result": "{\"onu_status\": 0, \"rx_power\": \"0\", \"tx_power\": \"0\", \"reading_age_minutes\": 6}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "00:A1:07:3E:93:09",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 161, \"first\": -22.9, \"last\": -22.86, \"min\": -23.11, \"max\": -22.3, \"mean\": -22.68, \"range\": 0.81, \"change\": 0.04, \"gaps\": 7}, \"tx_power\": {\"available\": true, \"points\": 161, \"first\": 2.37, \"last\": 2.36, \"min\": 2.27, \"max\": 2.42, \"mean\": 2.35, \"range\": 0.15, \"change\": -0.01, \"gaps\": 7}, \"temperature\": {\"available\": true, \"points\": 161, \"first\": 21.75, \"last\": 20.44, \"min\": 19.66, \"max\": 24.08, \"mean\": 22.06, \"range\": 4.42, \"change\": -1.31, \"gaps\": 7}, \"distance\": {\"available\": true, \"points\": 161, \"first\": 294, \"last\": 294, \"min\": 294, \"max\": 294, \"mean\": 294.0, \"range\": 0, \"change\": 0, \"gaps\": 7}, \"tx_bias_current\": {\"available\": true, \"points\": 161, \"first\": 11.09, \"last\": 11.18, \"min\": 10.81, \"max\": 11.71, \"mean\": 11.2, \"range\": 0.9, \"change\": 0.09, \"gaps\": 7}, \"supply_voltage\": {\"available\": true, \"points\": 161, \"first\": 3.46, \"last\": 3.43, \"min\": 3.41, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.05, \"change\": -0.03, \"gaps\": 7}, \"speed_kbps\": {\"available\": true, \"points\": 161, \"first\": 8.89, \"last\": 8.68, \"min\": 0.05, \"max\": 10.51, \"mean\": 5.46, \"range\": 10.46, \"change\": -0.21, \"gaps\": 7}}}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "00:A1:07:3E:93:09"
+        },
+        "result": "{\"count_24h\": 1, \"count_7d\": 15, \"avg_duration_minutes\": 706, \"last_disconnect\": \"2026-09-18T15:19:00Z\", \"recent\": [{\"start\": \"2026-09-18T15:19:00Z\", \"end\": null, \"duration_s\": 52586, \"ip\": \"10.5.50.158\"}, {\"start\": \"2026-09-18T00:31:26Z\", \"end\": \"2026-09-18T08:57:42Z\", \"duration_s\": 30376, \"ip\": \"10.5.50.158\"}]}"
+      },
+      {
+        "tool": "get_traffic",
+        "args": {
+          "lineid": "00:A1:07:3E:93:09"
+        },
+        "result": "{\"download_mb_daily\": [1030, 980, 1060, 1000, 1020, 970, 520], \"upload_mb_daily\": [6114, 5794, 6265, 5980, 6300, 5749, 3136], \"monthly_avg_download_mb\": 940, \"monthly_avg_upload_mb\": 5619, \"pon_port_traffic\": {\"current_mbps\": 134, \"avg_mbps\": 196, \"peak_mbps\": 600}}"
+      },
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "4C:D7:C8:51:F8:2F"
+        },
+        "result": "{\"customer_id\": 22371, \"lineid\": \"4C:D7:C8:51:F8:2F\", \"mac\": \"50:0F:F5:49:4C:E2\", \"interface\": \"EPON0/6:19\", \"olt_id\": \"10417\", \"olt_host\": \"TK_AZ-OLT_SK_ANC-08\", \"olt_ip\": \"10.220.114.5\", \"olt_technology\": \"EPON\", \"olt_model\": \"V1600D\", \"router_id\": 31, \"router_name\": \"TK_Skopje13-ANC01\", \"profile\": \"profile_40M\", \"active\": 1, \"deleted\": 0, \"onu_model\": \"JM 1G + CATV\", \"onu_type\": \"Bridge\", \"has_catv\": 1, \"has_voip\": 0, \"catv_service\": 1, \"catv_synced\": 1, \"city\": \"Skopje\", \"area\": \"ANC\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "4C:D7:C8:51:F8:2F"
+        },
+        "result": "{\"onu_status\": 0, \"rx_power\": \"0\", \"tx_power\": \"0\", \"reading_age_minutes\": 6}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "4C:D7:C8:51:F8:2F",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 161, \"first\": -22.9, \"last\": -22.86, \"min\": -23.11, \"max\": -22.3, \"mean\": -22.68, \"range\": 0.81, \"change\": 0.04, \"gaps\": 7}, \"tx_power\": {\"available\": true, \"points\": 161, \"first\": 2.37, \"last\": 2.36, \"min\": 2.27, \"max\": 2.42, \"mean\": 2.35, \"range\": 0.15, \"change\": -0.01, \"gaps\": 7}, \"temperature\": {\"available\": true, \"points\": 161, \"first\": 21.75, \"last\": 20.44, \"min\": 19.66, \"max\": 24.08, \"mean\": 22.06, \"range\": 4.42, \"change\": -1.31, \"gaps\": 7}, \"distance\": {\"available\": true, \"points\": 161, \"first\": 294, \"last\": 294, \"min\": 294, \"max\": 294, \"mean\": 294.0, \"range\": 0, \"change\": 0, \"gaps\": 7}, \"tx_bias_current\": {\"available\": true, \"points\": 161, \"first\": 11.09, \"last\": 11.18, \"min\": 10.81, \"max\": 11.71, \"mean\": 11.2, \"range\": 0.9, \"change\": 0.09, \"gaps\": 7}, \"supply_voltage\": {\"available\": true, \"points\": 161, \"first\": 3.46, \"last\": 3.43, \"min\": 3.41, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.05, \"change\": -0.03, \"gaps\": 7}, \"speed_kbps\": {\"available\": true, \"points\": 161, \"first\": 8.89, \"last\": 8.68, \"min\": 0.05, \"max\": 10.51, \"mean\": 5.46, \"range\": 10.46, \"change\": -0.21, \"gaps\": 7}}}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "4C:D7:C8:51:F8:2F"
+        },
+        "result": "{\"count_24h\": 1, \"count_7d\": 15, \"avg_duration_minutes\": 706, \"last_disconnect\": \"2026-09-18T15:19:00Z\", \"recent\": [{\"start\": \"2026-09-18T15:19:00Z\", \"end\": null, \"duration_s\": 52586, \"ip\": \"10.5.50.158\"}, {\"start\": \"2026-09-18T00:31:26Z\", \"end\": \"2026-09-18T08:57:42Z\", \"duration_s\": 30376, \"ip\": \"10.5.50.158\"}]}"
+      },
+      {
+        "tool": "get_traffic",
+        "args": {
+          "lineid": "4C:D7:C8:51:F8:2F"
+        },
+        "result": "{\"download_mb_daily\": [1030, 980, 1060, 1000, 1020, 970, 520], \"upload_mb_daily\": [6114, 5794, 6265, 5980, 6300, 5749, 3136], \"monthly_avg_download_mb\": 940, \"monthly_avg_upload_mb\": 5619, \"pon_port_traffic\": {\"current_mbps\": 134, \"avg_mbps\": 196, \"peak_mbps\": 600}}"
+      },
+      {
+        "tool": "snmp_probe_olt",
+        "args": {
+          "olt_id": "TK_AZ-OLT_SK_ANC-08"
+        },
+        "result": "{\"ping_ok\": true, \"snmp_responds\": true, \"sys_uptime_seconds\": 7344000, \"oid_subtree_responds\": true}"
+      },
+      {
+        "tool": "snmp_probe_pon_port",
+        "args": {
+          "olt_id": "TK_AZ-OLT_SK_ANC-08",
+          "interface": ""
+        },
+        "result": "{\"interface_port\": \"EPON0/6\", \"onus\": [{\"onu_index\": 8, \"online\": 1, \"rx_power\": -21.89, \"tx_power\": 2.45, \"responds\": true}, {\"onu_index\": 13, \"online\": 1, \"rx_power\": -18.85, \"tx_power\": 2.46, \"responds\": true}, {\"onu_index\": 15, \"online\": 0, \"rx_power\": null, \"tx_power\": null, \"responds\": true}, {\"onu_index\": 16, \"online\": 0, \"rx_power\": null, \"tx_power\": null, \"responds\": true}, {\"onu_index\": 19, \"online\": 0, \"rx_power\": null, \"tx_power\": null, \"responds\": true}, {\"onu_index\": 20, \"online\": 0, \"rx_power\": null, \"tx_power\": null, \"responds\": true}, {\"onu_index\": 46, \"online\": 0, \"rx_power\": null, \"tx_power\": null, \"responds\": true}, {\"onu_index\": 49, \"online\": 1, \"rx_power\": -19.65, \"tx_power\": 2.3, \"responds\": true}, {\"onu_index\": 57, \"online\": 1, \"rx_power\": -20.06, \"tx_power\": 2.47, \"responds\": true}]}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "TK_AZ-OLT_SK_ANC-08",
+          "interface": ""
+        },
+        "result": "{\"interface_port\": \"EPON0/6\", \"crm_view\": {\"total_on_port\": 34, \"customers\": [{\"lineid\": \"00:A1:07:FB:A4:C4\", \"interface\": \"EPON0/6:8\", \"onu_status\": 1, \"rx_power\": \"-19.63\", \"active\": 1}, {\"lineid\": \"B4:64:15:0E:7E:77\", \"interface\": \"EPON0/6:13\", \"onu_status\": 1, \"rx_power\": \"-21.10\", \"active\": 1}, {\"lineid\": \"00:A1:07:3E:93:09\", \"interface\": \"EPON0/6:15\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"80:F1:A8:E9:86:C1\", \"interface\": \"EPON0/6:16\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"4C:D7:C8:51:F8:2F\", \"interface\": \"EPON0/6:19\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"4C:D7:C8:6A:63:74\", \"interface\": \"EPON0/6:20\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"78:88:8A:69:60:54\", \"interface\": \"EPON0/6:46\", \"onu_status\": 0, \"rx_power\": \"0\", \"active\": 1}, {\"lineid\": \"80:F1:A8:2D:46:4A\", \"interface\": \"EPON0/6:49\", \"onu_status\": 1, \"rx_power\": \"-22.43\", \"active\": 1}, {\"lineid\": \"00:A1:07:AC:12:7B\", \"interface\": \"EPON0/6:57\", \"onu_status\": 1, \"rx_power\": \"-22.77\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "get_olt_population",
+        "args": {
+          "olt_id": "TK_AZ-OLT_SK_ANC-08"
+        },
+        "result": "{\"total_customers\": 298, \"pon_ports_in_use\": 8, \"customers_per_port\": {\"EPON0/1\": 37, \"EPON0/2\": 37, \"EPON0/3\": 37, \"EPON0/4\": 37, \"EPON0/5\": 37, \"EPON0/6\": 34, \"EPON0/7\": 37, \"EPON0/8\": 42}, \"onu_online_count\": 273, \"onu_offline_count\": 25}"
+      },
+      {
+        "tool": "get_olt_series",
+        "args": {
+          "olt_id": "TK_AZ-OLT_SK_ANC-08"
+        },
+        "result": "{\"cpu_load\": {\"available\": true, \"points\": 168, \"first\": 25, \"last\": 27, \"min\": 16, \"max\": 31, \"mean\": 23.45, \"range\": 15, \"change\": 2, \"gaps\": 0}, \"memory_usage\": {\"available\": true, \"points\": 168, \"first\": 17, \"last\": 17, \"min\": 12, \"max\": 20, \"mean\": 16.58, \"range\": 8, \"change\": 0, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 43, \"last\": 43, \"min\": 36, \"max\": 46, \"mean\": 40.46, \"range\": 10, \"change\": 0, \"gaps\": 0}}"
+      },
+      {
+        "tool": "snmp_walk_vlans",
+        "args": {
+          "olt_id": "TK_AZ-OLT_SK_ANC-08"
+        },
+        "result": "{\"responds\": true, \"vlans_present\": [1, 46, 100, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1998, 1999], \"customer_vlan_expected\": 1016, \"customer_vlan_actual\": 1016}"
+      },
+      {
+        "tool": "snmp_get_onu",
+        "args": {
+          "lineid": "00:A1:07:3E:93:09"
+        },
+        "result": "{\"responds\": true, \"online\": 0, \"rx_power\": null, \"tx_power\": null, \"auth_flag\": \"Unauth\", \"exchange\": \"MPCP DEREG\", \"rtt_tq\": null}"
+      },
+      {
+        "tool": "snmp_get_onu",
+        "args": {
+          "lineid": "4C:D7:C8:51:F8:2F"
+        },
+        "result": "{\"responds\": true, \"online\": 0, \"rx_power\": null, \"tx_power\": null, \"auth_flag\": \"Unauth\", \"exchange\": \"MPCP DEREG\", \"rtt_tq\": null}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "00:A1:07:3E:93:09"
+        },
+        "result": "{\"count_24h\": 1, \"count_7d\": 15, \"avg_duration_minutes\": 706, \"last_disconnect\": \"2026-09-18T15:19:00Z\", \"recent\": [{\"start\": \"2026-09-18T15:19:00Z\", \"end\": null, \"duration_s\": 52586, \"ip\": \"10.5.50.158\"}, {\"start\": \"2026-09-18T00:31:26Z\", \"end\": \"2026-09-18T08:57:42Z\", \"duration_s\": 30376, \"ip\": \"10.5.50.158\"}]}"
+      },
+      {
+        "tool": "get_radius_status",
+        "args": {
+          "lineid": "00:A1:07:3E:93:09"
+        },
+        "result": "{\"radcheck_exists\": true, \"username\": \"50:0F:F5:49:4C:E2\", \"lineid_in_radius\": \"4C:D7:C8:51:F8:2F\", \"framed_pool\": null, \"assigned_ip\": \"10.5.50.158\", \"crm_consistent\": true, \"mismatches\": []}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "4C:D7:C8:51:F8:2F"
+        },
+        "result": "{\"count_24h\": 1, \"count_7d\": 15, \"avg_duration_minutes\": 706, \"last_disconnect\": \"2026-09-18T15:19:00Z\", \"recent\": [{\"start\": \"2026-09-18T15:19:00Z\", \"end\": null, \"duration_s\": 52586, \"ip\": \"10.5.50.158\"}, {\"start\": \"2026-09-18T00:31:26Z\", \"end\": \"2026-09-18T08:57:42Z\", \"duration_s\": 30376, \"ip\": \"10.5.50.158\"}]}"
+      },
+      {
+        "tool": "get_radius_status",
+        "args": {
+          "lineid": "4C:D7:C8:51:F8:2F"
+        },
+        "result": "{\"radcheck_exists\": true, \"username\": \"50:0F:F5:49:4C:E2\", \"lineid_in_radius\": \"4C:D7:C8:51:F8:2F\", \"framed_pool\": null, \"assigned_ip\": \"10.5.50.158\", \"crm_consistent\": true, \"mismatches\": []}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "00:A1:07:3E:93:09",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 161, \"first\": -22.9, \"last\": -22.86, \"min\": -23.11, \"max\": -22.3, \"mean\": -22.68, \"range\": 0.81, \"change\": 0.04, \"gaps\": 7}, \"tx_power\": {\"available\": true, \"points\": 161, \"first\": 2.37, \"last\": 2.36, \"min\": 2.27, \"max\": 2.42, \"mean\": 2.35, \"range\": 0.15, \"change\": -0.01, \"gaps\": 7}, \"temperature\": {\"available\": true, \"points\": 161, \"first\": 21.75, \"last\": 20.44, \"min\": 19.66, \"max\": 24.08, \"mean\": 22.06, \"range\": 4.42, \"change\": -1.31, \"gaps\": 7}, \"distance\": {\"available\": true, \"points\": 161, \"first\": 294, \"last\": 294, \"min\": 294, \"max\": 294, \"mean\": 294.0, \"range\": 0, \"change\": 0, \"gaps\": 7}, \"tx_bias_current\": {\"available\": true, \"points\": 161, \"first\": 11.09, \"last\": 11.18, \"min\": 10.81, \"max\": 11.71, \"mean\": 11.2, \"range\": 0.9, \"change\": 0.09, \"gaps\": 7}, \"supply_voltage\": {\"available\": true, \"points\": 161, \"first\": 3.46, \"last\": 3.43, \"min\": 3.41, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.05, \"change\": -0.03, \"gaps\": 7}, \"speed_kbps\": {\"available\": true, \"points\": 161, \"first\": 8.89, \"last\": 8.68, \"min\": 0.05, \"max\": 10.51, \"mean\": 5.46, \"range\": 10.46, \"change\": -0.21, \"gaps\": 7}}}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "4C:D7:C8:51:F8:2F",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 161, \"first\": -22.9, \"last\": -22.86, \"min\": -23.11, \"max\": -22.3, \"mean\": -22.68, \"range\": 0.81, \"change\": 0.04, \"gaps\": 7}, \"tx_power\": {\"available\": true, \"points\": 161, \"first\": 2.37, \"last\": 2.36, \"min\": 2.27, \"max\": 2.42, \"mean\": 2.35, \"range\": 0.15, \"change\": -0.01, \"gaps\": 7}, \"temperature\": {\"available\": true, \"points\": 161, \"first\": 21.75, \"last\": 20.44, \"min\": 19.66, \"max\": 24.08, \"mean\": 22.06, \"range\": 4.42, \"change\": -1.31, \"gaps\": 7}, \"distance\": {\"available\": true, \"points\": 161, \"first\": 294, \"last\": 294, \"min\": 294, \"max\": 294, \"mean\": 294.0, \"range\": 0, \"change\": 0, \"gaps\": 7}, \"tx_bias_current\": {\"available\": true, \"points\": 161, \"first\": 11.09, \"last\": 11.18, \"min\": 10.81, \"max\": 11.71, \"mean\": 11.2, \"range\": 0.9, \"change\": 0.09, \"gaps\": 7}, \"supply_voltage\": {\"available\": true, \"points\": 161, \"first\": 3.46, \"last\": 3.43, \"min\": 3.41, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.05, \"change\": -0.03, \"gaps\": 7}, \"speed_kbps\": {\"available\": true, \"points\": 161, \"first\": 8.89, \"last\": 8.68, \"min\": 0.05, \"max\": 10.51, \"mean\": 5.46, \"range\": 10.46, \"change\": -0.21, \"gaps\": 7}}}"
+      }
+    ]
+  },
+  "ground_truth": {
+    "fault_type": "splitter_failure",
+    "root_cause": "Eleven of the thirty-four customers on EPON0/6 lost service within the same minute while the remaining twenty-three continue normally. A shared downstream splitter branch has failed; the PON port itself is still working.",
+    "severity": "High",
+    "affected_scope": "multi_customer",
+    "affected_lineids": [
+      "00:A1:07:3E:93:09",
+      "80:F1:A8:E9:86:C1",
+      "4C:D7:C8:51:F8:2F",
+      "4C:D7:C8:6A:63:74",
+      "78:88:8A:69:60:54"
+    ],
+    "affected_customer_count": 5,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Probing EPON0/6 shows eleven ONUs offline and twenty-three still online with normal RX and TX",
+      "Because part of the port is still serving, the port optics and feeder fibre are working",
+      "The eleven failures occurred within the same minute, which rules out unrelated individual faults",
+      "A simultaneous partial loss on a working port indicates a shared element downstream of the port",
+      "That element is a splitter branch serving those eleven customers",
+      "OLT ping, SNMP, CPU, memory and temperature are all normal, so the OLT is not involved",
+      "The health check still reports the OLT healthy, which is correct here but only because the port has surviving ONUs",
+      "PON port traffic has fallen but not collapsed, consistent with losing a third of the port",
+      "The affected set is the eleven, not the whole port"
+    ],
+    "required_evidence": [
+      "subset_of_port_affected",
+      "surviving_onus_on_same_port",
+      "simultaneous_dropout"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "High",
+      "category": "infrastructure",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "Eleven simultaneous outages could be read as a PON port failure if the surviving ONUs are not probed",
+      "The OLT health check reports healthy, inviting a no_fault conclusion",
+      "The affected ONU indexes are not contiguous, obscuring the shared branch"
+    ]
+  }
+}

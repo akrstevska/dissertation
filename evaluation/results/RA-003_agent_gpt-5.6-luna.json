@@ -1,0 +1,223 @@
+{
+  "scenario_id": "RA-003",
+  "config": "agent",
+  "model": "gpt-5.6-luna",
+  "seconds": 39.4,
+  "result": {
+    "trigger": "customer_complaint",
+    "trigger_input": {
+      "lineid": "4C:D7:C8:C3:CC:A8",
+      "complaint": "Works fine but my usage history in the portal is wrong"
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [
+        {
+          "type": "customer_complaint",
+          "value": "Portal usage history reported wrong by customer",
+          "threshold": "Usage history should match recorded traffic; portal history is not available for verification"
+        },
+        {
+          "type": "traffic_record",
+          "value": "Daily download 1000-1080 MB and upload 5906-6501 MB over 7 days; monthly averages 1040 MB download and 6161 MB upload",
+          "threshold": "Nonzero recorded traffic confirms service usage, but no calibrated band or portal-history comparison is available"
+        },
+        {
+          "type": "session_activity",
+          "value": "2 sessions in 24h, 15 in 7d, average duration 702 minutes",
+          "threshold": "2-3 sessions/day normal baseline; mean duration 11.9 hours"
+        }
+      ],
+      "preliminary_severity": "Information",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "4C:D7:C8:C3:CC:A8"
+      ],
+      "olt_id": "10087",
+      "interface": "EPON0/5:14",
+      "summary": "The customer reports incorrect portal usage history, while service and traffic are active but the portal history itself is unavailable for validation."
+    },
+    "diagnosis": {
+      "fault_type": "radius_lineid_conflict",
+      "root_cause": "RADIUS still associates the username with the superseded ONU line ID B4:64:15:D6:DE:BB, while CRM and the live ONU use 4C:D7:C8:C3:CC:A8. The ONU replacement was recorded in CRM but not propagated to RADIUS, so usage may be attributed to the wrong device or omitted from the portal history.",
+      "confidence": 0.94,
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "4C:D7:C8:C3:CC:A8"
+      ],
+      "evidence": [
+        "The live ONU responds and is online with RX power -20.16 dBm, TX power 2.43 dBm, and authenticated state, confirming active service.",
+        "The customer has 2 sessions in 24 hours with an average duration of 702 minutes, consistent with the normal session baseline and not flapping.",
+        "Optical readings are stable: RX change 0.03 dBm, TX change 0.03 dBm, constant distance of 145 m, and healthy TX bias current, ruling out an optical cause.",
+        "The expected and actual customer VLAN are both 1075, ruling out the factory-default VLAN provisioning fault.",
+        "RADIUS reports lineid B4:64:15:D6:DE:BB while CRM and the requested live lineid are 4C:D7:C8:C3:CC:A8.",
+        "RADIUS identifies the old line ID as an orphan after the ONU replacement, confirming a stored identity conflict that can corrupt usage attribution.",
+        "The portal usage history itself is unavailable for direct comparison, but the RADIUS/CRM mismatch provides a concrete cause for incorrect history."
+      ],
+      "cached_vs_live_discrepancy": true,
+      "discrepancy_detail": "CRM and live ONU state identify 4C:D7:C8:C3:CC:A8, while the stored RADIUS radcheck record still references the superseded ONU B4:64:15:D6:DE:BB."
+    },
+    "remediation": {
+      "action": "manual_review",
+      "automated": false,
+      "reason": "RADIUS retains the superseded ONU line ID while CRM and the live authenticated ONU use a different line ID, creating an identity conflict that can misattribute or omit usage history. Manual review is required to safely reconcile the records.",
+      "instructions": "Verify the customer and replacement ONU identity, then update the RADIUS binding to 4C:D7:C8:C3:CC:A8 and retire the orphaned B4:64:15:D6:DE:BB record. Confirm there is only one active line ID, preserve service continuity, and validate authentication and usage attribution after the change.",
+      "alternatives_considered": [
+        {
+          "action": "create_radius_entry",
+          "rejected_because": "A RADIUS record already exists; the problem is a conflicting stale association, not a missing entry."
+        },
+        {
+          "action": "onu_reset",
+          "rejected_because": "The ONU is online, authenticated, and has stable optical readings, so resetting it would not resolve the RADIUS identity conflict."
+        },
+        {
+          "action": "dispatch_technician",
+          "rejected_because": "Optical power, distance, and stability are healthy, with no evidence of a fibre or physical fault."
+        },
+        {
+          "action": "escalate_radius_infrastructure",
+          "rejected_because": "The evidence indicates a stale or conflicting customer record rather than replication lag or a broader RADIUS infrastructure failure."
+        }
+      ]
+    },
+    "escalation": {
+      "priority": "Information",
+      "category": "provisioning",
+      "requires_human_review": true,
+      "review_reason": "RADIUS provisioning record is stale and conflicts with CRM and the live ONU. A human must verify the customer identity before updating the RADIUS binding and retiring the orphaned line ID to avoid changing the wrong customer's service.",
+      "summary": "The customer reports incorrect portal usage history, but service is active, authenticated, stable, and carrying traffic with normal session behavior and healthy optical readings. The fault is a provisioning identity mismatch: RADIUS still references superseded ONU line ID B4:64:15:D6:DE:BB, while CRM and the live ONU use 4C:D7:C8:C3:CC:A8. Verify the replacement ONU, update the RADIUS binding, retire the orphaned record, and confirm authentication and usage attribution. No network repair or technician dispatch is required.",
+      "affected_customer_count": 1,
+      "service_impact": false
+    },
+    "trace": [
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "4C:D7:C8:C3:CC:A8"
+        },
+        "result": "{\"customer_id\": 13629, \"lineid\": \"4C:D7:C8:C3:CC:A8\", \"mac\": \"C8:3A:35:26:A9:89\", \"interface\": \"EPON0/5:14\", \"olt_id\": \"10087\", \"olt_host\": \"TK_AF-OLT_SR01\", \"olt_ip\": \"10.220.1.3\", \"olt_technology\": \"EPON\", \"olt_model\": \"V1600D\", \"router_id\": 35, \"router_name\": \"TK_Router_SR01\", \"profile\": \"profile_30M_1M\", \"active\": 1, \"deleted\": 0, \"onu_model\": \"JM 1G + CATV\", \"onu_type\": \"Bridge\", \"has_catv\": 1, \"has_voip\": 0, \"catv_service\": 1, \"catv_synced\": 1, \"city\": \"Strumica\", \"area\": \"SR\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "4C:D7:C8:C3:CC:A8"
+        },
+        "result": "{\"onu_status\": 1, \"rx_power\": \"-20.13\", \"tx_power\": \"2.42\", \"reading_age_minutes\": 22}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "4C:D7:C8:C3:CC:A8"
+        },
+        "result": "{\"count_24h\": 2, \"count_7d\": 15, \"avg_duration_minutes\": 702, \"last_disconnect\": \"2026-09-17T01:06:00Z\", \"recent\": [{\"start\": \"2026-09-17T01:06:00Z\", \"end\": null, \"duration_s\": 36097, \"ip\": \"10.5.50.132\"}, {\"start\": \"2026-09-16T14:50:17Z\", \"end\": \"2026-09-17T04:31:14Z\", \"duration_s\": 49257, \"ip\": \"10.5.50.132\"}, {\"start\": \"2026-09-16T01:03:49Z\", \"end\": \"2026-09-16T12:29:58Z\", \"duration_s\": 41169, \"ip\": \"10.5.50.132\"}]}"
+      },
+      {
+        "tool": "get_traffic",
+        "args": {
+          "lineid": "4C:D7:C8:C3:CC:A8"
+        },
+        "result": "{\"download_mb_daily\": [1030, 1070, 1000, 1050, 1010, 1080, 1040], \"upload_mb_daily\": [6046, 6501, 5906, 6245, 6091, 6292, 6047], \"monthly_avg_download_mb\": 1040, \"monthly_avg_upload_mb\": 6161, \"pon_port_traffic\": {\"current_mbps\": 143, \"avg_mbps\": 139, \"peak_mbps\": 410}}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "4C:D7:C8:C3:CC:A8",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 168, \"first\": -20.12, \"last\": -20.09, \"min\": -20.41, \"max\": -19.64, \"mean\": -20.08, \"range\": 0.77, \"change\": 0.03, \"gaps\": 0}, \"tx_power\": {\"available\": true, \"points\": 168, \"first\": 2.31, \"last\": 2.34, \"min\": 2.24, \"max\": 2.44, \"mean\": 2.35, \"range\": 0.2, \"change\": 0.03, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 21.91, \"last\": 21.28, \"min\": 19.86, \"max\": 24.21, \"mean\": 22.04, \"range\": 4.35, \"change\": -0.63, \"gaps\": 0}, \"distance\": {\"available\": true, \"points\": 168, \"first\": 145, \"last\": 145, \"min\": 145, \"max\": 145, \"mean\": 145.0, \"range\": 0, \"change\": 0, \"gaps\": 0}, \"tx_bias_current\": {\"available\": true, \"points\": 168, \"first\": 11.12, \"last\": 11.3, \"min\": 10.66, \"max\": 11.55, \"mean\": 11.21, \"range\": 0.89, \"change\": 0.18, \"gaps\": 0}, \"supply_voltage\": {\"available\": true, \"points\": 168, \"first\": 3.43, \"last\": 3.42, \"min\": 3.4, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.06, \"change\": -0.01, \"gaps\": 0}, \"speed_kbps\": {\"available\": true, \"points\": 168, \"first\": 4.61, \"last\": 6.06, \"min\": 0.05, \"max\": 11.63, \"mean\": 5.53, \"range\": 11.58, \"change\": 1.45, \"gaps\": 0}}}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "10087",
+          "interface": "EPON0/5:14"
+        },
+        "result": "{\"interface_port\": \"EPON0/5\", \"crm_view\": {\"total_on_port\": 20, \"customers\": [{\"lineid\": \"4C:46:D1:45:78:3E\", \"interface\": \"EPON0/5:3\", \"onu_status\": 1, \"rx_power\": \"-18.22\", \"active\": 1}, {\"lineid\": \"00:A1:07:2E:F0:85\", \"interface\": \"EPON0/5:5\", \"onu_status\": 1, \"rx_power\": \"-19.89\", \"active\": 1}, {\"lineid\": \"00:A1:07:4C:65:45\", \"interface\": \"EPON0/5:7\", \"onu_status\": 1, \"rx_power\": \"-18.24\", \"active\": 1}, {\"lineid\": \"78:88:8A:90:51:3F\", \"interface\": \"EPON0/5:9\", \"onu_status\": 1, \"rx_power\": \"-19.07\", \"active\": 1}, {\"lineid\": \"4C:D7:C8:C3:CC:A8\", \"interface\": \"EPON0/5:14\", \"onu_status\": 1, \"rx_power\": \"-20.13\", \"active\": 1}, {\"lineid\": \"70:B6:4F:6A:EB:7D\", \"interface\": \"EPON0/5:20\", \"onu_status\": 1, \"rx_power\": \"-19.91\", \"active\": 1}, {\"lineid\": \"70:B6:4F:7F:76:B3\", \"interface\": \"EPON0/5:25\", \"onu_status\": 1, \"rx_power\": \"-20.91\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "snmp_get_onu",
+        "args": {
+          "lineid": "4C:D7:C8:C3:CC:A8"
+        },
+        "result": "{\"responds\": true, \"online\": 1, \"rx_power\": -20.16, \"tx_power\": 2.43, \"auth_flag\": \"Auth\", \"exchange\": \"Finish\", \"rtt_tq\": 57}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "4C:D7:C8:C3:CC:A8"
+        },
+        "result": "{\"count_24h\": 2, \"count_7d\": 15, \"avg_duration_minutes\": 702, \"last_disconnect\": \"2026-09-17T01:06:00Z\", \"recent\": [{\"start\": \"2026-09-17T01:06:00Z\", \"end\": null, \"duration_s\": 36097, \"ip\": \"10.5.50.132\"}, {\"start\": \"2026-09-16T14:50:17Z\", \"end\": \"2026-09-17T04:31:14Z\", \"duration_s\": 49257, \"ip\": \"10.5.50.132\"}, {\"start\": \"2026-09-16T01:03:49Z\", \"end\": \"2026-09-16T12:29:58Z\", \"duration_s\": 41169, \"ip\": \"10.5.50.132\"}]}"
+      },
+      {
+        "tool": "get_radius_status",
+        "args": {
+          "lineid": "4C:D7:C8:C3:CC:A8"
+        },
+        "result": "{\"radcheck_exists\": true, \"username\": \"C8:3A:35:26:A9:89\", \"lineid_in_radius\": \"B4:64:15:D6:DE:BB\", \"framed_pool\": null, \"assigned_ip\": \"10.5.50.132\", \"crm_consistent\": false, \"mismatches\": [{\"type\": \"lineid_conflict\", \"detail\": \"radcheck.lineid is B4:64:15:D6:DE:BB while crm_user_net.lineid is 4C:D7:C8:C3:CC:A8 for the same username. The ONU was replaced on 2026-08-30 and CRM was updated; RADIUS was not.\"}, {\"type\": \"orphan_radcheck\", \"detail\": \"The superseded ONU MAC B4:64:15:D6:DE:BB no longer corresponds to any installed device.\"}]}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "4C:D7:C8:C3:CC:A8",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 168, \"first\": -20.12, \"last\": -20.09, \"min\": -20.41, \"max\": -19.64, \"mean\": -20.08, \"range\": 0.77, \"change\": 0.03, \"gaps\": 0}, \"tx_power\": {\"available\": true, \"points\": 168, \"first\": 2.31, \"last\": 2.34, \"min\": 2.24, \"max\": 2.44, \"mean\": 2.35, \"range\": 0.2, \"change\": 0.03, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 21.91, \"last\": 21.28, \"min\": 19.86, \"max\": 24.21, \"mean\": 22.04, \"range\": 4.35, \"change\": -0.63, \"gaps\": 0}, \"distance\": {\"available\": true, \"points\": 168, \"first\": 145, \"last\": 145, \"min\": 145, \"max\": 145, \"mean\": 145.0, \"range\": 0, \"change\": 0, \"gaps\": 0}, \"tx_bias_current\": {\"available\": true, \"points\": 168, \"first\": 11.12, \"last\": 11.3, \"min\": 10.66, \"max\": 11.55, \"mean\": 11.21, \"range\": 0.89, \"change\": 0.18, \"gaps\": 0}, \"supply_voltage\": {\"available\": true, \"points\": 168, \"first\": 3.43, \"last\": 3.42, \"min\": 3.4, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.06, \"change\": -0.01, \"gaps\": 0}, \"speed_kbps\": {\"available\": true, \"points\": 168, \"first\": 4.61, \"last\": 6.06, \"min\": 0.05, \"max\": 11.63, \"mean\": 5.53, \"range\": 11.58, \"change\": 1.45, \"gaps\": 0}}}"
+      },
+      {
+        "tool": "snmp_walk_vlans",
+        "args": {
+          "olt_id": "10087"
+        },
+        "result": "{\"responds\": true, \"vlans_present\": [1, 46, 100, 1071, 1072, 1073, 1074, 1075, 1076, 1998, 1999], \"customer_vlan_expected\": 1075, \"customer_vlan_actual\": 1075}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "10087",
+          "interface": "EPON0/5:14"
+        },
+        "result": "{\"interface_port\": \"EPON0/5\", \"crm_view\": {\"total_on_port\": 20, \"customers\": [{\"lineid\": \"4C:46:D1:45:78:3E\", \"interface\": \"EPON0/5:3\", \"onu_status\": 1, \"rx_power\": \"-18.22\", \"active\": 1}, {\"lineid\": \"00:A1:07:2E:F0:85\", \"interface\": \"EPON0/5:5\", \"onu_status\": 1, \"rx_power\": \"-19.89\", \"active\": 1}, {\"lineid\": \"00:A1:07:4C:65:45\", \"interface\": \"EPON0/5:7\", \"onu_status\": 1, \"rx_power\": \"-18.24\", \"active\": 1}, {\"lineid\": \"78:88:8A:90:51:3F\", \"interface\": \"EPON0/5:9\", \"onu_status\": 1, \"rx_power\": \"-19.07\", \"active\": 1}, {\"lineid\": \"4C:D7:C8:C3:CC:A8\", \"interface\": \"EPON0/5:14\", \"onu_status\": 1, \"rx_power\": \"-20.13\", \"active\": 1}, {\"lineid\": \"70:B6:4F:6A:EB:7D\", \"interface\": \"EPON0/5:20\", \"onu_status\": 1, \"rx_power\": \"-19.91\", \"active\": 1}, {\"lineid\": \"70:B6:4F:7F:76:B3\", \"interface\": \"EPON0/5:25\", \"onu_status\": 1, \"rx_power\": \"-20.91\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      }
+    ]
+  },
+  "ground_truth": {
+    "fault_type": "radius_lineid_conflict",
+    "root_cause": "The ONU was replaced on 30 August. CRM was updated with the new ONU MAC but the RADIUS lineid still carries the superseded one, so accounting records are written against a device that is no longer installed.",
+    "severity": "Warning",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "4C:D7:C8:C3:CC:A8"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The customer reports incorrect usage history while service itself works",
+      "Authentication succeeds because it keys on the CPE MAC, which matches in both systems",
+      "The optical layer is healthy: RX -20.1, TX 2.4, distance constant, peers normal",
+      "crm_user_net.lineid and radcheck.lineid hold different ONU MACs for the same username",
+      "The CRM value is the installed device; the RADIUS value is a superseded one",
+      "Distance has been constant at 145 m throughout, so the physical path did not change with the swap",
+      "Accounting is therefore attributed to a device that no longer exists, which explains the portal discrepancy",
+      "This is a cross-system key mismatch, distinct from two CRM records colliding on one interface",
+      "Automated correction is unsafe here because the wrong row could be rewritten"
+    ],
+    "required_evidence": [
+      "crm_and_radius_lineids_differ",
+      "authentication_still_succeeds",
+      "physical_layer_healthy"
+    ],
+    "expected_remediation": "manual_review",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "provisioning",
+      "requires_human_review": true,
+      "review_reason": "Correcting a RADIUS lineid risks disconnecting the wrong customer and must be done by hand"
+    },
+    "distractors": [
+      "Service works normally, inviting a no_fault conclusion",
+      "The complaint is about a portal display rather than connectivity",
+      "The mismatch resembles a duplicate slot conflict but is cross-system"
+    ]
+  }
+}

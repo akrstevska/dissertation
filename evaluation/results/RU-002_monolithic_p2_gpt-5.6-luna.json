@@ -1,0 +1,87 @@
+{
+  "scenario_id": "RU-002",
+  "config": "monolithic_p2",
+  "model": "gpt-5.6-luna",
+  "seconds": 8.4,
+  "result": {
+    "diagnosis": {
+      "fault_type": "router_unreachable",
+      "root_cause": "The router has no recorded monitoring heartbeat or check-in, so it is unreachable to the monitoring system or has never been enrolled correctly. Customer service is nevertheless active, with a serving ONU, established RADIUS session, assigned IP, and normal traffic.",
+      "confidence": 0.84,
+      "affected_scope": "router",
+      "evidence": [
+        "The scheduled scan specifically targets the router, whose last_checkin is null and heartbeat_status is never.",
+        "A heartbeat value of never means there has never been a monitoring record; this indicates a monitoring or management reachability problem rather than a recent service outage.",
+        "The ONU is online and responding, with RX power of -21.9 dBm and TX power of 2.34 dBm, both normal.",
+        "The customer's optical telemetry is stable over seven days: RX variation is within the healthy noise range, TX variation is within the healthy noise range, distance remains constant at 87, and TX bias current remains healthy without an ageing trend.",
+        "The OLT is reachable and healthy: all six PONs passed, CPU is 22%, memory is 17%, and temperature is 40C.",
+        "The customer has normal authentication behavior with 3 sessions in 24 hours, 17 in seven days, and an average session duration of about 11.4 hours.",
+        "RADIUS data, line ID, assigned IP, CRM records, and VLAN 1124 are consistent.",
+        "Traffic is present and stable, confirming that the subscriber is currently being served.",
+        "There is no evidence for fibre degradation, ONU offline status, PON or OLT failure, authentication flapping, VLAN 46 provisioning, duplicate ONU assignment, or PON congestion."
+      ]
+    },
+    "remediation": {
+      "action": "Verify management-plane reachability to router TK_Skopje15-Madzari01, including routing, firewall rules, SNMP/API credentials, monitoring-agent configuration, and device enrollment. Restore or configure the heartbeat/check-in mechanism and rerun the router probe. Do not dispatch for fibre, ONU, OLT, VLAN, or authentication work unless the router remains unreachable after management checks."
+    },
+    "escalation": {
+      "priority": "Information"
+    },
+    "monolithic": {
+      "fault_type": "router_unreachable",
+      "root_cause": "The router has no recorded monitoring heartbeat or check-in, so it is unreachable to the monitoring system or has never been enrolled correctly. Customer service is nevertheless active, with a serving ONU, established RADIUS session, assigned IP, and normal traffic.",
+      "confidence": 0.84,
+      "severity": "Information",
+      "affected_scope": "router",
+      "remediation": "Verify management-plane reachability to router TK_Skopje15-Madzari01, including routing, firewall rules, SNMP/API credentials, monitoring-agent configuration, and device enrollment. Restore or configure the heartbeat/check-in mechanism and rerun the router probe. Do not dispatch for fibre, ONU, OLT, VLAN, or authentication work unless the router remains unreachable after management checks.",
+      "reasoning": [
+        "The scheduled scan specifically targets the router, whose last_checkin is null and heartbeat_status is never.",
+        "A heartbeat value of never means there has never been a monitoring record; this indicates a monitoring or management reachability problem rather than a recent service outage.",
+        "The ONU is online and responding, with RX power of -21.9 dBm and TX power of 2.34 dBm, both normal.",
+        "The customer's optical telemetry is stable over seven days: RX variation is within the healthy noise range, TX variation is within the healthy noise range, distance remains constant at 87, and TX bias current remains healthy without an ageing trend.",
+        "The OLT is reachable and healthy: all six PONs passed, CPU is 22%, memory is 17%, and temperature is 40C.",
+        "The customer has normal authentication behavior with 3 sessions in 24 hours, 17 in seven days, and an average session duration of about 11.4 hours.",
+        "RADIUS data, line ID, assigned IP, CRM records, and VLAN 1124 are consistent.",
+        "Traffic is present and stable, confirming that the subscriber is currently being served.",
+        "There is no evidence for fibre degradation, ONU offline status, PON or OLT failure, authentication flapping, VLAN 46 provisioning, duplicate ONU assignment, or PON congestion."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "no_fault",
+    "root_cause": "The router has no check-in record of any kind, which means it was never enrolled in heartbeat monitoring rather than that it stopped responding. Its customers are authenticated, holding long sessions and passing normal traffic.",
+    "severity": "Information",
+    "affected_scope": "none",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The router's heartbeat status is 'never' with a null last_checkin",
+      "That is different from a heartbeat that went stale, which would carry a timestamp and an elapsed time",
+      "No record at all indicates the router was never enrolled in the check-in mechanism",
+      "The ONU behind it is online with RX -21.9 and TX 2.3, both normal",
+      "The live probe confirms the ONU and its peers are all responding normally",
+      "Sessions are active with a 683 minute mean, close to the 11.9 hour network norm",
+      "Daily traffic is steady across all seven days with no interruption",
+      "Customers on this router are being served, so there is no outage",
+      "The finding is a monitoring gap, not a network fault"
+    ],
+    "required_evidence": [
+      "never_checked_in_not_stale",
+      "customers_passing_traffic",
+      "sessions_normal_duration"
+    ],
+    "expected_remediation": "flag_monitoring_defect",
+    "expected_escalation": {
+      "priority": "Information",
+      "category": "monitoring",
+      "requires_human_review": true,
+      "review_reason": "Router is not enrolled in heartbeat monitoring and should be added"
+    },
+    "distractors": [
+      "A null heartbeat looks worse than a stale one and invites a Disaster conclusion",
+      "A scheduled scan targeting the router frames it as the suspect",
+      "The correct answer is that nothing is wrong with the network"
+    ]
+  }
+}

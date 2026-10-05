@@ -1,0 +1,89 @@
+{
+  "scenario_id": "DS-002",
+  "config": "monolithic_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 6.6,
+  "result": {
+    "diagnosis": {
+      "fault_type": "duplicate_onu_slot",
+      "root_cause": "EPON0/8:41 has three active CRM ONU records assigned to the same slot. The live ONU reports line ID 78:88:8A:45:13:CE, which matches none of the CRM records or their expected ONU identities, indicating stale or incorrect inventory/provisioning data and a slot identity collision.",
+      "confidence": 0.99,
+      "affected_scope": "pon_port",
+      "evidence": [
+        "The CRM lists three active records on EPON0/8:41, which is an explicit duplicate slot conflict.",
+        "The live ONU at slot 41 is online and reports line ID 78:88:8A:45:13:CE, matching none of the three CRM line IDs.",
+        "The live ONU and the subscriber record disagree on identity, so the stored customer-to-ONU association is not trustworthy.",
+        "The target ONU has normal optical readings: RX about -23.6 dBm and TX about +2.34 dBm.",
+        "Optical telemetry is stable over seven days, distance is constant at 256 m, and TX bias current remains within the healthy range; fiber degradation, laser degradation, and distance change are not supported.",
+        "The OLT, PON port, router, VLAN, and authentication systems are responsive and healthy.",
+        "Session activity is normal at two sessions in 24 hours with long durations, so this is not session flapping or an authentication fault.",
+        "The problem is therefore an ONU slot and inventory identity collision localized to EPON0/8."
+      ]
+    },
+    "remediation": {
+      "action": "Suspend automated changes on EPON0/8:41, obtain the live ONU serial/MAC and customer mapping, then reconcile the CRM, OLT registration, and RADIUS records. Remove or deactivate the two stale duplicate records, assign the live ONU to the correct customer and unique slot, and re-provision the affected service if needed. Verify that the ONU line ID, MAC, VLAN 1068, RADIUS username, and customer record agree, then rescan the port for remaining duplicate slots."
+    },
+    "escalation": {
+      "priority": "Average"
+    },
+    "monolithic": {
+      "fault_type": "duplicate_onu_slot",
+      "root_cause": "EPON0/8:41 has three active CRM ONU records assigned to the same slot. The live ONU reports line ID 78:88:8A:45:13:CE, which matches none of the CRM records or their expected ONU identities, indicating stale or incorrect inventory/provisioning data and a slot identity collision.",
+      "confidence": 0.99,
+      "severity": "Average",
+      "affected_scope": "pon_port",
+      "remediation": "Suspend automated changes on EPON0/8:41, obtain the live ONU serial/MAC and customer mapping, then reconcile the CRM, OLT registration, and RADIUS records. Remove or deactivate the two stale duplicate records, assign the live ONU to the correct customer and unique slot, and re-provision the affected service if needed. Verify that the ONU line ID, MAC, VLAN 1068, RADIUS username, and customer record agree, then rescan the port for remaining duplicate slots.",
+      "reasoning": [
+        "The CRM lists three active records on EPON0/8:41, which is an explicit duplicate slot conflict.",
+        "The live ONU at slot 41 is online and reports line ID 78:88:8A:45:13:CE, matching none of the three CRM line IDs.",
+        "The live ONU and the subscriber record disagree on identity, so the stored customer-to-ONU association is not trustworthy.",
+        "The target ONU has normal optical readings: RX about -23.6 dBm and TX about +2.34 dBm.",
+        "Optical telemetry is stable over seven days, distance is constant at 256 m, and TX bias current remains within the healthy range; fiber degradation, laser degradation, and distance change are not supported.",
+        "The OLT, PON port, router, VLAN, and authentication systems are responsive and healthy.",
+        "Session activity is normal at two sessions in 24 hours with long durations, so this is not session flapping or an authentication fault.",
+        "The problem is therefore an ONU slot and inventory identity collision localized to EPON0/8."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "duplicate_onu_slot",
+    "root_cause": "Three active CRM records occupy EPON0/8:41. The live probe returns one ONU whose reported MAC matches none of the three, so the installed device is not represented by any current record. The available evidence does not determine which record, if any, corresponds to the customer being served.",
+    "severity": "Warning",
+    "affected_scope": "multi_customer",
+    "affected_lineids": [
+      "4C:46:D1:D5:AE:51",
+      "70:B6:4F:AA:21:98",
+      "B4:64:15:0B:B5:85"
+    ],
+    "affected_customer_count": 3,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The CRM view lists three active customers on EPON0/8:41",
+      "A slot holds exactly one ONU, so at least two records are wrong",
+      "The live probe returns a single responding device with normal optical values",
+      "The MAC the probe reports matches none of the three CRM lineids",
+      "So the installed ONU is not represented by any of the three records",
+      "One record's cached RX matches the probe reading, but that is consistent with stale copying and does not identify the occupant",
+      "RADIUS holds an entry for one of the three with active sessions, but it keys on the CPE MAC and not on the ONU",
+      "No available signal distinguishes which record belongs to the device present",
+      "The honest conclusion is that the occupant cannot be determined from this evidence and a field check is needed"
+    ],
+    "required_evidence": [
+      "three_crm_records_one_slot",
+      "probe_mac_matches_no_record",
+      "insufficient_evidence_acknowledged"
+    ],
+    "expected_remediation": "manual_review",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "provisioning",
+      "requires_human_review": true,
+      "review_reason": "Three records on one slot and none matches the installed ONU; a physical check is required before any record is changed"
+    },
+    "distractors": [
+      "One record's cached RX matches the probe exactly, inviting a confident attribution",
+      "That record also holds the active RADIUS entry, which reinforces the wrong inference",
+      "A confident answer is available and wrong; the correct answer is that the evidence is insufficient"
+    ]
+  }
+}

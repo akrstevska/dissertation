@@ -1,0 +1,86 @@
+{
+  "scenario_id": "OO-002",
+  "config": "monolithic_p2",
+  "model": "gpt-5.6-luna",
+  "seconds": 8.4,
+  "result": {
+    "diagnosis": {
+      "fault_type": "fiber_degradation",
+      "root_cause": "Progressive loss on this customer's downstream optical path, most likely a degrading drop fibre, connector, splice, or termination. RX power deteriorated from approximately -22 dBm to below -30 dBm over several days, then readings stopped and the ONU went offline. TX power and laser bias remained stable, so laser degradation is unlikely.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The ONU is currently offline, has no RX/TX readings, reports MPCP DEREG, and is marked unauthenticated; zero or null optical values indicate no reading rather than a strong signal.",
+        "The seven-day RX series shows a sustained progressive decline from about -22 dBm through the degraded range to below the -28 dBm critical threshold, reaching approximately -30.2 dBm before telemetry stopped.",
+        "TX power stayed near 2.3 dBm throughout the valid period and TX bias current stayed around 11 mA, both within healthy limits; this argues against ONU laser degradation.",
+        "Distance remained constant at 188 m, so there is no evidence of a changed fibre path or distance-change event.",
+        "Other ONUs on EPON0/7 are online with normal optical levels, ruling against a PON-port failure or splitter-wide failure.",
+        "The OLT is reachable, all eight PONs tested healthy, and CPU, memory, temperature, and uptime are normal; this rules against an OLT or OLT-health fault.",
+        "VLAN 1057 matches the expected customer VLAN, and RADIUS data is present and CRM-consistent, ruling out provisioning, VLAN, and authentication database faults.",
+        "The customer has only two sessions in the last 24 hours and 24 in seven days, so the evidence does not support session flapping or an authentication problem."
+      ]
+    },
+    "remediation": {
+      "action": "Dispatch field service to inspect and clean the ONU, optical outlet, connectors, splices, and customer drop fibre; measure optical loss with a power meter and OTDR; repair or replace the degraded fibre/termination and replace the ONU if its optical receiver is found defective. Recheck ONU registration and RX/TX levels after repair. Do not change the OLT, PON port, VLAN, or RADIUS configuration."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "fiber_degradation",
+      "root_cause": "Progressive loss on this customer's downstream optical path, most likely a degrading drop fibre, connector, splice, or termination. RX power deteriorated from approximately -22 dBm to below -30 dBm over several days, then readings stopped and the ONU went offline. TX power and laser bias remained stable, so laser degradation is unlikely.",
+      "confidence": 0.99,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Dispatch field service to inspect and clean the ONU, optical outlet, connectors, splices, and customer drop fibre; measure optical loss with a power meter and OTDR; repair or replace the degraded fibre/termination and replace the ONU if its optical receiver is found defective. Recheck ONU registration and RX/TX levels after repair. Do not change the OLT, PON port, VLAN, or RADIUS configuration.",
+      "reasoning": [
+        "The ONU is currently offline, has no RX/TX readings, reports MPCP DEREG, and is marked unauthenticated; zero or null optical values indicate no reading rather than a strong signal.",
+        "The seven-day RX series shows a sustained progressive decline from about -22 dBm through the degraded range to below the -28 dBm critical threshold, reaching approximately -30.2 dBm before telemetry stopped.",
+        "TX power stayed near 2.3 dBm throughout the valid period and TX bias current stayed around 11 mA, both within healthy limits; this argues against ONU laser degradation.",
+        "Distance remained constant at 188 m, so there is no evidence of a changed fibre path or distance-change event.",
+        "Other ONUs on EPON0/7 are online with normal optical levels, ruling against a PON-port failure or splitter-wide failure.",
+        "The OLT is reachable, all eight PONs tested healthy, and CPU, memory, temperature, and uptime are normal; this rules against an OLT or OLT-health fault.",
+        "VLAN 1057 matches the expected customer VLAN, and RADIUS data is present and CRM-consistent, ruling out provisioning, VLAN, and authentication database faults.",
+        "The customer has only two sessions in the last 24 hours and 24 in seven days, so the evidence does not support session flapping or an authentication problem."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "onu_offline",
+    "root_cause": "The ONU dropped after four days of progressive optical loss, falling from -22.0 to -31.4 dBm before it stopped registering. The preceding decline indicates a failing fibre path that has now broken, not a power cut.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "B4:64:15:DE:60:C3"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "ONU is offline with responds true and online 0, a definite negative",
+      "Telemetry shows RX declining from -22.0 to -31.4 dBm over four days before the series ends",
+      "The decline crossed the -28 dBm critical threshold roughly a day before the ONU dropped",
+      "A progressive decline ending in loss of registration indicates a failing fibre path, not an abrupt power loss",
+      "By contrast, a power cut or ONU failure would show a flat healthy signal right up to the cut-off",
+      "TX power and bias current were stable throughout, so the laser was not the cause",
+      "Peers on EPON0/7 are online with normal readings, bounding the fault to this customer's path",
+      "RADIUS is clean, so this is not a suspension",
+      "Daily traffic decayed to zero in step with the signal loss"
+    ],
+    "required_evidence": [
+      "progressive_decline_before_dropout",
+      "definite_offline_not_no_response",
+      "peers_normal_on_same_port"
+    ],
+    "expected_remediation": "dispatch_technician",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "field_service",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "An ONU reset is the reflex remediation for an offline ONU and will not help here",
+      "The telemetry series ends partway through, which could be read as a collection gap"
+    ]
+  }
+}

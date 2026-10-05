@@ -1,0 +1,85 @@
+{
+  "scenario_id": "OO-001",
+  "config": "monolithic_shared_p1",
+  "model": "gpt-5.6-luna",
+  "seconds": 6.1,
+  "result": {
+    "diagnosis": {
+      "fault_type": "onu_offline",
+      "root_cause": "The subscriber ONU on EPON0/2:9 is definitively offline (SNMP responds with online:0, auth state Una uth, and MPCP DEREG). All tested peer ONUs on the same PON port remain online, so the fault is isolated to this customer's ONU or access drop, not the PON, splitter, OLT, router, VLAN, or RADIUS. Historical RX and TX readings were stable and healthy, with no degradation trend.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The live ONU probe responds but reports online:0, which is a definite offline result rather than a monitoring failure.",
+        "The ONU reports auth_flag Una uth and exchange MPCP DEREG, confirming that the subscriber ONU is deregistered/offline.",
+        "The PON probe shows the target ONU at index 9 offline while all other tested ONUs on EPON0/2 are online, ruling out a shared PON-port or splitter outage.",
+        "The OLT answers ping, SNMP, and OID queries; CPU, memory, temperature, and historical telemetry are normal, ruling out an OLT failure.",
+        "The router heartbeat is healthy, and the customer's expected VLAN 1032 is present and correctly provisioned.",
+        "RADIUS exists, matches CRM, and the session count is normal, so this is not a RADIUS or authentication fault.",
+        "Historical RX remained around -20 dBm in the normal range, TX remained around +2.3 dBm, bias current stayed healthy, and distance stayed constant at 64; there is no evidence of fibre, laser, or distance degradation.",
+        "The complaint is consistent with the current definite ONU dropout, so the immediate fault is onu_offline."
+      ]
+    },
+    "remediation": {
+      "action": "Contact the customer to verify ONU power and cabling, then power-cycle the ONU. If it remains offline, dispatch field support to inspect or replace the ONU and test the subscriber drop, connectors, and splice. Recheck ONU registration and optical levels after restoration."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "onu_offline",
+      "root_cause": "The subscriber ONU on EPON0/2:9 is definitively offline (SNMP responds with online:0, auth state Una uth, and MPCP DEREG). All tested peer ONUs on the same PON port remain online, so the fault is isolated to this customer's ONU or access drop, not the PON, splitter, OLT, router, VLAN, or RADIUS. Historical RX and TX readings were stable and healthy, with no degradation trend.",
+      "confidence": 0.99,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Contact the customer to verify ONU power and cabling, then power-cycle the ONU. If it remains offline, dispatch field support to inspect or replace the ONU and test the subscriber drop, connectors, and splice. Recheck ONU registration and optical levels after restoration.",
+      "reasoning": [
+        "The live ONU probe responds but reports online:0, which is a definite offline result rather than a monitoring failure.",
+        "The ONU reports auth_flag Una uth and exchange MPCP DEREG, confirming that the subscriber ONU is deregistered/offline.",
+        "The PON probe shows the target ONU at index 9 offline while all other tested ONUs on EPON0/2 are online, ruling out a shared PON-port or splitter outage.",
+        "The OLT answers ping, SNMP, and OID queries; CPU, memory, temperature, and historical telemetry are normal, ruling out an OLT failure.",
+        "The router heartbeat is healthy, and the customer's expected VLAN 1032 is present and correctly provisioned.",
+        "RADIUS exists, matches CRM, and the session count is normal, so this is not a RADIUS or authentication fault.",
+        "Historical RX remained around -20 dBm in the normal range, TX remained around +2.3 dBm, bias current stayed healthy, and distance stayed constant at 64; there is no evidence of fibre, laser, or distance degradation.",
+        "The complaint is consistent with the current definite ONU dropout, so the immediate fault is onu_offline."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "onu_offline",
+    "root_cause": "The ONU has deregistered and stopped responding. Optical readings were entirely normal up to the moment it dropped, with no preceding degradation, which points to loss of power at the premises or a failed ONU rather than a fibre fault.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "4C:D7:C8:11:5F:A3"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Stored onu_status is 0 and both power columns hold the '0' no-reading sentinel",
+      "Live probe returns responds true with online 0, which is a definite negative rather than an absence of response",
+      "Auth flag is Unauth and the exchange state is MPCP DEREG, confirming deregistration on the OLT",
+      "Telemetry was flat and healthy at -20.2 dBm right up to the cut-off five hours ago, with no preceding decline",
+      "Absence of prior degradation argues against a fibre fault and for power loss or ONU failure",
+      "Peers on EPON0/2 are all online with normal readings, so the port, feeder and splitter are fine",
+      "RADIUS shows an active entry with no disable pool, so this is not a suspension",
+      "Traffic stopped today after six normal days"
+    ],
+    "required_evidence": [
+      "definite_offline_not_no_response",
+      "clean_signal_history_before_cutoff",
+      "suspension_ruled_out"
+    ],
+    "expected_remediation": "onu_reset",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "field_service",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "The '0' power values could be misread as a strong signal if the sentinel is not recognised",
+      "A single offline ONU on a large OLT is within the 4.85% background rate"
+    ]
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "dependencies": ["./pipeline"],
+  "graphs": { "fault_detection": "./pipeline/studio.py:graph" },
+  "env": ".env"
+}

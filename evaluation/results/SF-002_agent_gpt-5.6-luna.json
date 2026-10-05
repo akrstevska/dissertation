@@ -1,0 +1,261 @@
+{
+  "scenario_id": "SF-002",
+  "config": "agent",
+  "model": "gpt-5.6-luna",
+  "seconds": 40.5,
+  "result": {
+    "trigger": "threshold_breach",
+    "trigger_input": {
+      "signal": "session_disconnect_count",
+      "lineid": "00:A1:07:C4:1D:88",
+      "value": 19
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [
+        {
+          "type": "session_disconnect_count",
+          "value": "19 sessions in 24h",
+          "threshold": "Normal 2-3/day; elevated 4-7; flapping starts at 8+"
+        },
+        {
+          "type": "average_session_duration",
+          "value": "38 minutes",
+          "threshold": "Network mean 11.9 hours"
+        }
+      ],
+      "preliminary_severity": "Average",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "00:A1:07:C4:1D:88"
+      ],
+      "olt_id": "10362",
+      "interface": "EPON0/5:9",
+      "summary": "The active customer line is flapping with 19 sessions in 24 hours and a 38-minute average session duration, while OLT, port peers, optical readings, and router health are otherwise within normal bands."
+    },
+    "diagnosis": {
+      "fault_type": "session_flapping_auth",
+      "root_cause": "Duplicate radcheck rows exist for username 30:16:9D:A2:5F:03, with conflicting lineids. FreeRADIUS resolves whichever row it reaches first, causing inconsistent session attribution and authentication flapping.",
+      "confidence": 0.98,
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "00:A1:07:C4:1D:88"
+      ],
+      "evidence": [
+        "The customer has 19 sessions in 24 hours and an average session duration of 38 minutes, which meets the flapping threshold and is far below the 11.9-hour network mean.",
+        "The ONU is currently online with valid readings: RX -20.58 dBm, TX 2.45 dBm, Auth status, and completed exchange.",
+        "All six probed ONUs on EPON0/5 are online with normal optical readings, so there is no shared PON or splitter failure.",
+        "The OLT responds to ping, SNMP, and the OID subtree, ruling out an OLT failure.",
+        "The customer's RX remains in the normal band across the series and TX power and bias current are stable; there is no declining optical trend or laser degradation.",
+        "The customer VLAN is correctly provisioned as VLAN 1055, not the unprovisioned default VLAN 46.",
+        "RADIUS data shows two radcheck rows for the same username, one for the active lineid and one orphan row for a different lineid; the tool explicitly reports that FreeRADIUS resolves whichever row it reaches first."
+      ],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "remediation": {
+      "action": "manual_review",
+      "automated": false,
+      "reason": "Conflicting duplicate radcheck rows for the same username cause inconsistent lineid resolution and authentication flapping. This is a lineid conflict requiring validation before modifying customer authentication data.",
+      "instructions": "Review the two radcheck records for username 30:16:9D:A2:5F:03, confirm the active lineid 00:A1:07:C4:1D:88 with the subscriber and provisioning records, remove or correct the orphan conflicting row, then verify stable RADIUS authentication and session attribution.",
+      "alternatives_considered": [
+        {
+          "action": "onu_reset",
+          "rejected_because": "The ONU is online with valid optical readings, and the fault is caused by duplicate RADIUS records rather than an ONU state issue."
+        },
+        {
+          "action": "escalate_radius_infrastructure",
+          "rejected_because": "There is no replication lag or infrastructure-wide RADIUS failure; the issue is an isolated duplicate-data conflict."
+        },
+        {
+          "action": "dispatch_technician",
+          "rejected_because": "Optical levels are stable and normal, with no evidence of fibre, splitter, or distance degradation."
+        },
+        {
+          "action": "no_action",
+          "rejected_because": "The customer is experiencing confirmed authentication flapping caused by conflicting database entries."
+        }
+      ]
+    },
+    "escalation": {
+      "priority": "Average",
+      "category": "provisioning",
+      "requires_human_review": true,
+      "review_reason": "The fault is in the FreeRADIUS/radcheck provisioning data, not the EPON network. Duplicate username records have conflicting lineids, so the active subscriber must be validated before removing or correcting the orphan record to avoid modifying the wrong customer.",
+      "summary": "A single customer on OLT 10362, interface EPON0/5:9, is authentication-flapping with 19 sessions in 24 hours and a 38-minute average duration. OLT, PON peers, optical levels, VLAN provisioning, and router health are normal. FreeRADIUS has conflicting duplicate radcheck rows for username 30:16:9D:A2:5F:03, causing inconsistent lineid resolution. Confirm lineid 00:A1:07:C4:1D:88 against subscriber records, remove or correct the orphan conflicting row, and verify stable authentication and session attribution.",
+      "affected_customer_count": 1,
+      "service_impact": true
+    },
+    "trace": [
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "00:A1:07:C4:1D:88"
+        },
+        "result": "{\"customer_id\": 27733, \"lineid\": \"00:A1:07:C4:1D:88\", \"mac\": \"30:16:9D:A2:5F:03\", \"interface\": \"EPON0/5:9\", \"olt_id\": \"10362\", \"olt_host\": \"TK_AZ-OLT_SK-Gradezen-01\", \"olt_ip\": \"10.220.88.4\", \"olt_technology\": \"EPON\", \"olt_model\": \"V1600D\", \"router_id\": 18, \"router_name\": \"TK_Skopje02-Gradezen\", \"profile\": \"profile_40M\", \"active\": 1, \"deleted\": 0, \"onu_model\": \"JM 1G + CATV + WiFi + POTs\", \"onu_type\": \"Router\", \"has_catv\": 1, \"has_voip\": 1, \"catv_service\": 1, \"catv_synced\": 1, \"city\": \"Skopje\", \"area\": \"Gradezen\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "00:A1:07:C4:1D:88"
+        },
+        "result": "{\"onu_status\": 1, \"rx_power\": \"-20.62\", \"tx_power\": \"2.44\", \"reading_age_minutes\": 12}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "00:A1:07:C4:1D:88"
+        },
+        "result": "{\"count_24h\": 19, \"count_7d\": 118, \"avg_duration_minutes\": 38, \"last_disconnect\": \"2026-09-21T09:23:00Z\", \"recent\": [{\"start\": \"2026-09-21T09:26:00Z\", \"end\": null, \"duration_s\": 1140, \"ip\": \"10.5.50.204\"}, {\"start\": \"2026-09-21T08:41:00Z\", \"end\": \"2026-09-21T09:23:00Z\", \"duration_s\": 2520, \"ip\": \"10.5.50.204\"}, {\"start\": \"2026-09-21T07:54:00Z\", \"end\": \"2026-09-21T08:36:00Z\", \"duration_s\": 2520, \"ip\": \"10.5.50.61\"}, {\"start\": \"2026-09-21T06:43:00Z\", \"end\": \"2026-09-21T07:49:00Z\", \"duration_s\": 3960, \"ip\": \"10.5.50.204\"}, {\"start\": \"2026-09-21T05:15:00Z\", \"end\": \"2026-09-21T06:37:00Z\", \"duration_s\": 4920, \"ip\": \"10.5.50.61\"}]}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "00:A1:07:C4:1D:88",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 168, \"first\": -20.58, \"last\": -20.42, \"min\": -21.1, \"max\": -20.12, \"mean\": -20.61, \"range\": 0.98, \"change\": 0.16, \"gaps\": 0}, \"tx_power\": {\"available\": true, \"points\": 168, \"first\": 2.44, \"last\": 2.43, \"min\": 2.35, \"max\": 2.55, \"mean\": 2.44, \"range\": 0.2, \"change\": -0.01, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 21.06, \"last\": 21.04, \"min\": 19.2, \"max\": 23.21, \"mean\": 21.13, \"range\": 4.01, \"change\": -0.02, \"gaps\": 0}, \"distance\": {\"available\": true, \"points\": 168, \"first\": 96, \"last\": 96, \"min\": 96, \"max\": 96, \"mean\": 96.0, \"range\": 0, \"change\": 0, \"gaps\": 0}, \"tx_bias_current\": {\"available\": true, \"points\": 168, \"first\": 10.59, \"last\": 10.52, \"min\": 10.11, \"max\": 10.99, \"mean\": 10.64, \"range\": 0.88, \"change\": -0.07, \"gaps\": 0}, \"supply_voltage\": {\"available\": true, \"points\": 168, \"first\": 3.42, \"last\": 3.43, \"min\": 3.39, \"max\": 3.45, \"mean\": 3.42, \"range\": 0.06, \"change\": 0.01, \"gaps\": 0}, \"speed_kbps\": {\"available\": true, \"points\": 168, \"first\": 7.38, \"last\": 11.35, \"min\": 0.0, \"max\": 15.31, \"mean\": 5.59, \"range\": 15.31, \"change\": 3.97, \"gaps\": 0}}}"
+      },
+      {
+        "tool": "get_traffic",
+        "args": {
+          "lineid": "00:A1:07:C4:1D:88"
+        },
+        "result": "{\"download_mb_daily\": [820, 611, 905, 540, 738, 402, 690], \"upload_mb_daily\": [5120, 3980, 5640, 3210, 4770, 2560, 4390], \"monthly_avg_download_mb\": 871, \"monthly_avg_upload_mb\": 5533, \"pon_port_traffic\": {\"current_mbps\": 204, \"avg_mbps\": 211, \"peak_mbps\": 588}}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "10362",
+          "interface": "EPON0/5:9"
+        },
+        "result": "{\"interface_port\": \"EPON0/5\", \"crm_view\": {\"total_on_port\": 28, \"customers\": [{\"lineid\": \"4C:D7:C8:77:0A:12\", \"interface\": \"EPON0/5:2\", \"onu_status\": 1, \"rx_power\": \"-21.40\", \"active\": 1}, {\"lineid\": \"70:B6:4F:31:C9:6D\", \"interface\": \"EPON0/5:4\", \"onu_status\": 1, \"rx_power\": \"-19.95\", \"active\": 1}, {\"lineid\": \"00:A1:07:C4:1D:88\", \"interface\": \"EPON0/5:9\", \"onu_status\": 1, \"rx_power\": \"-20.62\", \"active\": 1}, {\"lineid\": \"80:F1:A8:1B:44:7F\", \"interface\": \"EPON0/5:13\", \"onu_status\": 1, \"rx_power\": \"-22.18\", \"active\": 1}, {\"lineid\": \"4C:46:D1:5E:80:A4\", \"interface\": \"EPON0/5:19\", \"onu_status\": 1, \"rx_power\": \"-20.07\", \"active\": 1}, {\"lineid\": \"B4:64:15:6C:23:11\", \"interface\": \"EPON0/5:24\", \"onu_status\": 1, \"rx_power\": \"-21.63\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "get_olt_health",
+        "args": {
+          "olt_id": "10362"
+        },
+        "result": "{\"olt_ip\": \"10.220.88.4\", \"olt_host\": \"TK_AZ-OLT_SK-Gradezen-01\", \"olt_technology\": \"EPON\", \"olt_ext_id\": \"10362\", \"ping_ok\": true, \"snmp_community_ok\": true, \"snmp_response_ok\": true, \"total_pons_tested\": 8, \"healthy_pons\": 8, \"failed_pons_list\": [], \"error_description\": null, \"overall_status\": \"healthy\", \"run_date\": \"2026-09-21\"}"
+      },
+      {
+        "tool": "get_olt_population",
+        "args": {
+          "olt_id": "10362"
+        },
+        "result": "{\"total_customers\": 281, \"pon_ports_in_use\": 8, \"customers_per_port\": {\"EPON0/1\": 33, \"EPON0/2\": 36, \"EPON0/3\": 31, \"EPON0/4\": 42, \"EPON0/5\": 28, \"EPON0/6\": 39, \"EPON0/7\": 37, \"EPON0/8\": 35}, \"onu_online_count\": 268, \"onu_offline_count\": 13}"
+      },
+      {
+        "tool": "get_olt_metrics",
+        "args": {
+          "olt_id": "10362"
+        },
+        "result": "{\"cpu_load\": 26, \"memory_usage\": 18, \"temperature\": 43, \"uptime_days\": 47, \"firmware\": \"V2.03.78R\", \"firmware_date\": \"2024-06-11\"}"
+      },
+      {
+        "tool": "get_router_status",
+        "args": {
+          "router_id": 18
+        },
+        "result": "{\"name\": \"TK_Skopje02-Gradezen\", \"model\": \"CCR2116-12G-4S+\", \"os_version\": \"7.24\", \"last_checkin\": \"2026-09-21T09:36:00Z\", \"hours_since_checkin\": 0.15, \"heartbeat_status\": \"ok\", \"cpu_usage\": 6, \"memory_utilization\": 0, \"temperature\": 41}"
+      },
+      {
+        "tool": "snmp_get_onu",
+        "args": {
+          "lineid": "00:A1:07:C4:1D:88"
+        },
+        "result": "{\"responds\": true, \"online\": 1, \"rx_power\": -20.58, \"tx_power\": 2.45, \"auth_flag\": \"Auth\", \"exchange\": \"Finish\", \"rtt_tq\": 53}"
+      },
+      {
+        "tool": "snmp_probe_olt",
+        "args": {
+          "olt_id": "10362"
+        },
+        "result": "{\"ping_ok\": true, \"snmp_responds\": true, \"sys_uptime_seconds\": 4060800, \"oid_subtree_responds\": true}"
+      },
+      {
+        "tool": "snmp_probe_pon_port",
+        "args": {
+          "olt_id": "10362",
+          "interface": "EPON0/5:9"
+        },
+        "result": "{\"interface_port\": \"EPON0/5\", \"onus\": [{\"onu_index\": 2, \"online\": 1, \"rx_power\": -21.37, \"tx_power\": 2.48, \"responds\": true}, {\"onu_index\": 4, \"online\": 1, \"rx_power\": -19.91, \"tx_power\": 2.51, \"responds\": true}, {\"onu_index\": 9, \"online\": 1, \"rx_power\": -20.58, \"tx_power\": 2.45, \"responds\": true}, {\"onu_index\": 13, \"online\": 1, \"rx_power\": -22.15, \"tx_power\": 2.33, \"responds\": true}, {\"onu_index\": 19, \"online\": 1, \"rx_power\": -20.04, \"tx_power\": 2.4, \"responds\": true}, {\"onu_index\": 24, \"online\": 1, \"rx_power\": -21.6, \"tx_power\": 2.37, \"responds\": true}]}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "00:A1:07:C4:1D:88",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 168, \"first\": -20.58, \"last\": -20.42, \"min\": -21.1, \"max\": -20.12, \"mean\": -20.61, \"range\": 0.98, \"change\": 0.16, \"gaps\": 0}, \"tx_power\": {\"available\": true, \"points\": 168, \"first\": 2.44, \"last\": 2.43, \"min\": 2.35, \"max\": 2.55, \"mean\": 2.44, \"range\": 0.2, \"change\": -0.01, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 21.06, \"last\": 21.04, \"min\": 19.2, \"max\": 23.21, \"mean\": 21.13, \"range\": 4.01, \"change\": -0.02, \"gaps\": 0}, \"distance\": {\"available\": true, \"points\": 168, \"first\": 96, \"last\": 96, \"min\": 96, \"max\": 96, \"mean\": 96.0, \"range\": 0, \"change\": 0, \"gaps\": 0}, \"tx_bias_current\": {\"available\": true, \"points\": 168, \"first\": 10.59, \"last\": 10.52, \"min\": 10.11, \"max\": 10.99, \"mean\": 10.64, \"range\": 0.88, \"change\": -0.07, \"gaps\": 0}, \"supply_voltage\": {\"available\": true, \"points\": 168, \"first\": 3.42, \"last\": 3.43, \"min\": 3.39, \"max\": 3.45, \"mean\": 3.42, \"range\": 0.06, \"change\": 0.01, \"gaps\": 0}, \"speed_kbps\": {\"available\": true, \"points\": 168, \"first\": 7.38, \"last\": 11.35, \"min\": 0.0, \"max\": 15.31, \"mean\": 5.59, \"range\": 15.31, \"change\": 3.97, \"gaps\": 0}}}"
+      },
+      {
+        "tool": "get_radius_status",
+        "args": {
+          "lineid": "00:A1:07:C4:1D:88"
+        },
+        "result": "{\"radcheck_exists\": true, \"username\": \"30:16:9D:A2:5F:03\", \"lineid_in_radius\": \"00:A1:07:C4:1D:88\", \"framed_pool\": null, \"assigned_ip\": \"10.5.50.204\", \"crm_consistent\": false, \"mismatches\": [{\"type\": \"orphan_radcheck\", \"detail\": \"A second radcheck row exists for username 30:16:9D:A2:5F:03 with lineid 1C:EF:03:90:2B:5A, which matches no active CRM customer. Two rows for one username; FreeRADIUS resolves whichever it reaches first.\"}, {\"type\": \"lineid_conflict\", \"detail\": \"The orphan row carries a different lineid to the CRM record, so sessions are attributed inconsistently between the two.\"}]}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "00:A1:07:C4:1D:88"
+        },
+        "result": "{\"count_24h\": 19, \"count_7d\": 118, \"avg_duration_minutes\": 38, \"last_disconnect\": \"2026-09-21T09:23:00Z\", \"recent\": [{\"start\": \"2026-09-21T09:26:00Z\", \"end\": null, \"duration_s\": 1140, \"ip\": \"10.5.50.204\"}, {\"start\": \"2026-09-21T08:41:00Z\", \"end\": \"2026-09-21T09:23:00Z\", \"duration_s\": 2520, \"ip\": \"10.5.50.204\"}, {\"start\": \"2026-09-21T07:54:00Z\", \"end\": \"2026-09-21T08:36:00Z\", \"duration_s\": 2520, \"ip\": \"10.5.50.61\"}, {\"start\": \"2026-09-21T06:43:00Z\", \"end\": \"2026-09-21T07:49:00Z\", \"duration_s\": 3960, \"ip\": \"10.5.50.204\"}, {\"start\": \"2026-09-21T05:15:00Z\", \"end\": \"2026-09-21T06:37:00Z\", \"duration_s\": 4920, \"ip\": \"10.5.50.61\"}]}"
+      },
+      {
+        "tool": "snmp_walk_vlans",
+        "args": {
+          "olt_id": "10362"
+        },
+        "result": "{\"responds\": true, \"vlans_present\": [1, 46, 100, 1051, 1052, 1053, 1054, 1055, 1056, 1057, 1058, 1998, 1999], \"customer_vlan_expected\": 1055, \"customer_vlan_actual\": 1055}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "10362",
+          "interface": "EPON0/5:9"
+        },
+        "result": "{\"interface_port\": \"EPON0/5\", \"crm_view\": {\"total_on_port\": 28, \"customers\": [{\"lineid\": \"4C:D7:C8:77:0A:12\", \"interface\": \"EPON0/5:2\", \"onu_status\": 1, \"rx_power\": \"-21.40\", \"active\": 1}, {\"lineid\": \"70:B6:4F:31:C9:6D\", \"interface\": \"EPON0/5:4\", \"onu_status\": 1, \"rx_power\": \"-19.95\", \"active\": 1}, {\"lineid\": \"00:A1:07:C4:1D:88\", \"interface\": \"EPON0/5:9\", \"onu_status\": 1, \"rx_power\": \"-20.62\", \"active\": 1}, {\"lineid\": \"80:F1:A8:1B:44:7F\", \"interface\": \"EPON0/5:13\", \"onu_status\": 1, \"rx_power\": \"-22.18\", \"active\": 1}, {\"lineid\": \"4C:46:D1:5E:80:A4\", \"interface\": \"EPON0/5:19\", \"onu_status\": 1, \"rx_power\": \"-20.07\", \"active\": 1}, {\"lineid\": \"B4:64:15:6C:23:11\", \"interface\": \"EPON0/5:24\", \"onu_status\": 1, \"rx_power\": \"-21.63\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      }
+    ]
+  },
+  "ground_truth": {
+    "fault_type": "session_flapping_auth",
+    "root_cause": "Two radcheck rows exist for the same username. FreeRADIUS resolves inconsistently between them, so authentication succeeds or fails depending on which row is matched, producing repeated short sessions and two alternating IP assignments.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "00:A1:07:C4:1D:88"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "19 sessions in 24h against a 2-3 baseline, with a 38 minute mean duration against an 11.9 hour norm",
+      "RX has been flat at -20.6 dBm for seven days inside the +/-0.3 dBm noise floor, so signal is not the cause",
+      "TX power, bias current, supply voltage and distance are all stable",
+      "Port neighbours are normal and the OLT is healthy, so no shared infrastructure fault",
+      "With no optical explanation available, the search moves to the authentication layer",
+      "RADIUS holds two radcheck rows for username 30:16:9D:A2:5F:03, one of them an orphan with a different lineid",
+      "Recent sessions alternate between two IP addresses, consistent with inconsistent row resolution",
+      "Traffic is erratic rather than declining, which fits intermittent authentication rather than a degrading link"
+    ],
+    "required_evidence": [
+      "optical_layer_confirmed_clean",
+      "duplicate_radcheck_identified",
+      "alternating_ip_assignment"
+    ],
+    "expected_remediation": "manual_review",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "provisioning",
+      "requires_human_review": true,
+      "review_reason": "Duplicate RADIUS rows must be resolved by hand; deleting the wrong row disconnects the customer"
+    },
+    "distractors": [
+      "The session pattern is identical to signal-related flapping and invites that diagnosis",
+      "Zero-throughput windows in the speed series look like link loss but coincide with rejected auth",
+      "ONU is a Router type, inviting a CPE-fault explanation"
+    ]
+  }
+}

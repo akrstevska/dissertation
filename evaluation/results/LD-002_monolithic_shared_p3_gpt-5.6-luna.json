@@ -1,0 +1,87 @@
+{
+  "scenario_id": "LD-002",
+  "config": "monolithic_shared_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 7.1,
+  "result": {
+    "diagnosis": {
+      "fault_type": "laser_degradation",
+      "root_cause": "The ONU laser is ageing: TX bias current rises steadily from approximately 11.6 mA to 15.0 mA, exceeding the healthy 9.5-13.0 mA range, while TX power remains within the normal range and RX power remains stable. The constant distance and healthy peer optics rule out a fibre, splitter, PON-port, OLT, or shared infrastructure fault.",
+      "confidence": 0.98,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The subscriber is currently online and responding successfully; the OLT, SNMP, router, VLAN, RADIUS entry, and customer VLAN are all functioning.",
+        "All probed peers on EPON0/7 are online with normal optical readings, so the issue is confined to this customer's ONU path.",
+        "RX power remains in the normal band throughout the seven-day window, with no declining trend into the degraded range.",
+        "TX power remains within the calibrated normal range, approximately 2.0-2.5 dBm, so the documented incorrect negative TX threshold must not be used.",
+        "Distance is constant at 241, so there is no fibre-path or record-repointing distance change.",
+        "TX bias current rises progressively from about 11.6 mA to 15.0 mA and exceeds the healthy maximum, which indicates laser ageing when RX is flat and TX power remains stable.",
+        "The OLT metrics, OLT health checks, router heartbeat, peer states, and port probe provide no evidence of a shared infrastructure failure.",
+        "The six sessions in the last 24 hours are elevated but below the 8+ flapping threshold; the optical trend identifies the physical ONU laser fault rather than an authentication fault."
+      ]
+    },
+    "remediation": {
+      "action": "Schedule replacement of the subscriber ONU, then verify TX bias, TX/RX power, authentication, and session stability after replacement. Continue monitoring until replacement; do not replace shared PON or OLT equipment. The six sessions in 24 hours are elevated but below the 8-session flapping threshold and are not the primary fault."
+    },
+    "escalation": {
+      "priority": "Warning"
+    },
+    "monolithic": {
+      "fault_type": "laser_degradation",
+      "root_cause": "The ONU laser is ageing: TX bias current rises steadily from approximately 11.6 mA to 15.0 mA, exceeding the healthy 9.5-13.0 mA range, while TX power remains within the normal range and RX power remains stable. The constant distance and healthy peer optics rule out a fibre, splitter, PON-port, OLT, or shared infrastructure fault.",
+      "confidence": 0.98,
+      "severity": "Warning",
+      "affected_scope": "single_customer",
+      "remediation": "Schedule replacement of the subscriber ONU, then verify TX bias, TX/RX power, authentication, and session stability after replacement. Continue monitoring until replacement; do not replace shared PON or OLT equipment. The six sessions in 24 hours are elevated but below the 8-session flapping threshold and are not the primary fault.",
+      "reasoning": [
+        "The subscriber is currently online and responding successfully; the OLT, SNMP, router, VLAN, RADIUS entry, and customer VLAN are all functioning.",
+        "All probed peers on EPON0/7 are online with normal optical readings, so the issue is confined to this customer's ONU path.",
+        "RX power remains in the normal band throughout the seven-day window, with no declining trend into the degraded range.",
+        "TX power remains within the calibrated normal range, approximately 2.0-2.5 dBm, so the documented incorrect negative TX threshold must not be used.",
+        "Distance is constant at 241, so there is no fibre-path or record-repointing distance change.",
+        "TX bias current rises progressively from about 11.6 mA to 15.0 mA and exceeds the healthy maximum, which indicates laser ageing when RX is flat and TX power remains stable.",
+        "The OLT metrics, OLT health checks, router heartbeat, peer states, and port probe provide no evidence of a shared infrastructure failure.",
+        "The six sessions in the last 24 hours are elevated but below the 8+ flapping threshold; the optical trend identifies the physical ONU laser fault rather than an authentication fault."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "laser_degradation",
+    "root_cause": "The ONU transmit laser is at end of life. Bias current has risen from 11.4 to 15.1 mA and, over the last two days, output power has begun to fall despite it, meaning compensation is now failing.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "78:88:8A:C4:98:64"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "The customer reports progressive worsening, which fits both fibre degradation and laser degradation",
+      "RX sits at -23.9 dBm in the low-normal band and is noisier than the usual floor, but it is flat with no downward trend",
+      "TX bias current has climbed from 11.4 to 15.1 mA, well past the 13.0 mA ceiling",
+      "TX power held at 2.42 dBm while bias rose, then began falling to 2.05 dBm in the last two days",
+      "Falling output despite maximum bias means the laser can no longer compensate",
+      "Supply voltage has drifted from 3.45 to 3.36 V, consistent with a failing transmitter",
+      "Distance is constant, so there has been no change to the fibre path",
+      "Peers on EPON0/7 are normal, so shared infrastructure is not involved",
+      "Flat RX with collapsing TX is a transmitter fault, not path attenuation"
+    ],
+    "required_evidence": [
+      "bias_current_rising",
+      "tx_power_now_falling",
+      "rx_flat_not_trending"
+    ],
+    "expected_remediation": "schedule_onu_replacement",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "field_service",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "RX in the low-normal band with extra noise invites a fibre degradation diagnosis",
+      "Steadily declining traffic fits either fault equally well",
+      "The complaint wording matches the fibre degradation pattern almost exactly"
+    ]
+  }
+}

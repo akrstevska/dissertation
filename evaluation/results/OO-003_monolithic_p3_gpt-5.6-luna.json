@@ -1,0 +1,87 @@
+{
+  "scenario_id": "OO-003",
+  "config": "monolithic_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 7.4,
+  "result": {
+    "diagnosis": {
+      "fault_type": "onu_offline",
+      "root_cause": "The subscriber ONU is offline and deregistered from the PON (MPCP DEREG), causing a complete loss of service. The exact local cause is not proven, but it is most likely an ONU power/device fault or a customer-side drop/connector issue.",
+      "confidence": 0.97,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The target ONU is explicitly offline in CRM and live probing, with auth_flag 'Unauth' and exchange state 'MPCP DEREG'.",
+        "Live readings are null because the ONU is not online; zero/null optical values are no-reading indicators, not strong-signal readings.",
+        "All six observed peer ONUs on EPON0/4 are online with normal RX power around -20 to -22 dBm and normal TX power around +2.3 to +2.4 dBm, so the PON port and splitter path are not broadly failing.",
+        "The subscriber's seven-day optical history was stable: RX remained approximately -21 to -22 dBm, TX remained within the normal range, distance stayed constant at 133, and TX bias remained healthy around 11 mA.",
+        "The OLT responds normally and its CPU, memory, temperature, and uptime are healthy; the all-PON failure result is therefore a false diagnostic/probe critical condition rather than an OLT failure.",
+        "The router heartbeat is healthy, VLAN 1094 is present and matches the expected customer VLAN, and RADIUS data is consistent, ruling out router, VLAN, and authentication database faults.",
+        "The subscriber's last disconnect was at 16:09, matching the complaint timing, while traffic dropped sharply on the latest day, confirming customer-specific service loss.",
+        "The issue affects only the target ONU; the other customers on the same PON port remain online."
+      ]
+    },
+    "remediation": {
+      "action": "Contact the customer to verify power and cabling, then power-cycle the ONU. If it does not re-register, inspect and clean the customer drop and optical connectors, test the fibre, and replace the ONU if necessary. Do not alter the OLT, PON port, VLAN, or RADIUS configuration."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "onu_offline",
+      "root_cause": "The subscriber ONU is offline and deregistered from the PON (MPCP DEREG), causing a complete loss of service. The exact local cause is not proven, but it is most likely an ONU power/device fault or a customer-side drop/connector issue.",
+      "confidence": 0.97,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Contact the customer to verify power and cabling, then power-cycle the ONU. If it does not re-register, inspect and clean the customer drop and optical connectors, test the fibre, and replace the ONU if necessary. Do not alter the OLT, PON port, VLAN, or RADIUS configuration.",
+      "reasoning": [
+        "The target ONU is explicitly offline in CRM and live probing, with auth_flag 'Unauth' and exchange state 'MPCP DEREG'.",
+        "Live readings are null because the ONU is not online; zero/null optical values are no-reading indicators, not strong-signal readings.",
+        "All six observed peer ONUs on EPON0/4 are online with normal RX power around -20 to -22 dBm and normal TX power around +2.3 to +2.4 dBm, so the PON port and splitter path are not broadly failing.",
+        "The subscriber's seven-day optical history was stable: RX remained approximately -21 to -22 dBm, TX remained within the normal range, distance stayed constant at 133, and TX bias remained healthy around 11 mA.",
+        "The OLT responds normally and its CPU, memory, temperature, and uptime are healthy; the all-PON failure result is therefore a false diagnostic/probe critical condition rather than an OLT failure.",
+        "The router heartbeat is healthy, VLAN 1094 is present and matches the expected customer VLAN, and RADIUS data is consistent, ruling out router, VLAN, and authentication database faults.",
+        "The subscriber's last disconnect was at 16:09, matching the complaint timing, while traffic dropped sharply on the latest day, confirming customer-specific service loss.",
+        "The issue affects only the target ONU; the other customers on the same PON port remain online."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "onu_offline",
+    "root_cause": "This customer's ONU has genuinely deregistered, with a clean signal history up to the cut-off. The OLT's concurrent critical health alarm is a separate false positive: the live probe answers normally for every other ONU on the port, so the health check result does not reflect the device state.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "4C:46:D1:58:21:EB"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "The customer's ONU returns responds true with online 0, a definite offline answer",
+      "Signal history was flat and healthy until the cut-off four hours ago, so power loss or ONU failure is indicated",
+      "The OLT health record separately reports critical with all PONs failed",
+      "However the live probe answers normally for every other ONU on EPON0/4, returning real RX and TX values",
+      "OLT ping and SNMP both succeed, uptime is 44 days, and CPU, memory and temperature are at baseline",
+      "If the OLT or its PON ports had genuinely failed, no ONU would be responding and many more customers would be offline",
+      "CRM shows the OLT's offline count consistent with the normal background rate, not a mass outage",
+      "The health alarm is therefore a false critical and must not be conflated with this customer's real fault",
+      "Two findings coexist: one genuine single-customer outage and one monitoring defect"
+    ],
+    "required_evidence": [
+      "definite_offline_not_no_response",
+      "peers_respond_normally",
+      "olt_alarm_contradicted_by_probe"
+    ],
+    "expected_remediation": "onu_reset",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "field_service",
+      "requires_human_review": true,
+      "review_reason": "A concurrent false critical health alarm on this OLT should be raised separately with monitoring"
+    },
+    "distractors": [
+      "The critical OLT alarm invites attributing the customer outage to an OLT failure",
+      "Dismissing the alarm too readily risks also dismissing the genuine customer fault",
+      "Only one customer is affected despite an alarm claiming the whole OLT"
+    ]
+  }
+}

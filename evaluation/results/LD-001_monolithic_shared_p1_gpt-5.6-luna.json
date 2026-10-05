@@ -1,0 +1,90 @@
+{
+  "scenario_id": "LD-001",
+  "config": "monolithic_shared_p1",
+  "model": "gpt-5.6-luna",
+  "seconds": 7.0,
+  "result": {
+    "diagnosis": {
+      "fault_type": "laser_degradation",
+      "root_cause": "The ONU transmit laser is ageing: TX bias current rises steadily from approximately 11.1 mA to 14.2 mA, exceeding the healthy 9.5-13.0 mA range, while TX power remains stable around +2.3 dBm and RX power remains stable in the normal range. This matches laser degradation rather than fibre degradation.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "Current ONU status is online and live probing returns responds=true, online=1, Auth, and Finish.",
+        "RX power is -21.28 dBm currently and remains in the normal -20 to -25 dBm band throughout the seven-day series, with no declining trend.",
+        "TX power is approximately +2.3 dBm and remains within the normal 0 to +5 dBm range.",
+        "TX bias current rises progressively from about 11.06 mA to 14.17 mA, exceeding the healthy maximum of 13.0 mA.",
+        "Rising bias at essentially constant TX power and stable RX power is the specified discriminator for laser degradation.",
+        "Distance remains constant at 77, so there is no fibre-path change or distance-change fault.",
+        "All visible peers on EPON0/4 are online, with generally normal optical readings, indicating a single-customer fault rather than shared PON infrastructure.",
+        "The OLT answers ping and SNMP, has healthy CPU, memory, temperature, and all eight tested PONs marked healthy.",
+        "The router heartbeat is healthy, the customer VLAN is correctly provisioned as 1064, and RADIUS data is present and CRM-consistent.",
+        "Three sessions in 24 hours with long durations are within the normal re-authentication baseline and do not indicate session flapping."
+      ]
+    },
+    "remediation": {
+      "action": "Schedule replacement of the ONU or its optical transmitter, and continue monitoring TX bias, TX power, RX power, and online status until replacement. No OLT, PON-port, splitter, VLAN, router, or RADIUS remediation is indicated."
+    },
+    "escalation": {
+      "priority": "Warning"
+    },
+    "monolithic": {
+      "fault_type": "laser_degradation",
+      "root_cause": "The ONU transmit laser is ageing: TX bias current rises steadily from approximately 11.1 mA to 14.2 mA, exceeding the healthy 9.5-13.0 mA range, while TX power remains stable around +2.3 dBm and RX power remains stable in the normal range. This matches laser degradation rather than fibre degradation.",
+      "confidence": 0.99,
+      "severity": "Warning",
+      "affected_scope": "single_customer",
+      "remediation": "Schedule replacement of the ONU or its optical transmitter, and continue monitoring TX bias, TX power, RX power, and online status until replacement. No OLT, PON-port, splitter, VLAN, router, or RADIUS remediation is indicated.",
+      "reasoning": [
+        "Current ONU status is online and live probing returns responds=true, online=1, Auth, and Finish.",
+        "RX power is -21.28 dBm currently and remains in the normal -20 to -25 dBm band throughout the seven-day series, with no declining trend.",
+        "TX power is approximately +2.3 dBm and remains within the normal 0 to +5 dBm range.",
+        "TX bias current rises progressively from about 11.06 mA to 14.17 mA, exceeding the healthy maximum of 13.0 mA.",
+        "Rising bias at essentially constant TX power and stable RX power is the specified discriminator for laser degradation.",
+        "Distance remains constant at 77, so there is no fibre-path change or distance-change fault.",
+        "All visible peers on EPON0/4 are online, with generally normal optical readings, indicating a single-customer fault rather than shared PON infrastructure.",
+        "The OLT answers ping and SNMP, has healthy CPU, memory, temperature, and all eight tested PONs marked healthy.",
+        "The router heartbeat is healthy, the customer VLAN is correctly provisioned as 1064, and RADIUS data is present and CRM-consistent.",
+        "Three sessions in 24 hours with long durations are within the normal re-authentication baseline and do not indicate session flapping."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "laser_degradation",
+    "root_cause": "The ONU's transmit laser is ageing. Bias current has risen from 11.1 to 14.2 mA over five days to hold output power constant, and supply voltage has drifted down. The optical path itself is unchanged.",
+    "severity": "Warning",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "4C:D7:C8:4A:13:B2"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": false,
+    "expected_reasoning": [
+      "Stored RX and TX values are both inside their healthy bands, so nothing is visible in the current-state layer",
+      "Telemetry shows TX bias current rising from 11.1 to 14.2 mA, past the 13.0 mA healthy ceiling",
+      "TX power has stayed flat at 2.3 dBm throughout, so the laser is still compensating successfully",
+      "Rising bias at constant output power is the signature of laser ageing, not of path loss",
+      "RX is flat at -21.3 dBm, so the fibre path is unaffected and this is not fibre degradation",
+      "Supply voltage has drifted from 3.44 to 3.38 V and ONU temperature is trending up, both consistent with a stressed transmitter",
+      "Sessions and traffic are normal, so there is no service impact yet",
+      "This is a precursor: the ONU should be replaced before compensation fails"
+    ],
+    "required_evidence": [
+      "bias_current_rising",
+      "tx_power_constant",
+      "rx_unaffected"
+    ],
+    "expected_remediation": "schedule_onu_replacement",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "field_service",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "Every stored value is healthy, inviting a no_fault conclusion",
+      "The customer has not complained and service is unaffected",
+      "Rising ONU temperature could be read as an environmental issue"
+    ]
+  }
+}

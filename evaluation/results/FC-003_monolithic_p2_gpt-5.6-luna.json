@@ -1,0 +1,85 @@
+{
+  "scenario_id": "FC-003",
+  "config": "monolithic_p2",
+  "model": "gpt-5.6-luna",
+  "seconds": 7.0,
+  "result": {
+    "diagnosis": {
+      "fault_type": "onu_offline",
+      "root_cause": "The subscriber ONU is persistently offline and deregistered from EPON0/3:1. Live status shows online=0, auth_flag=Unauth, and MPCP DEREG, while other ONUs on the same PON port remain online. Historical optical levels, TX bias, distance, OLT health, VLAN, and RADIUS state are normal, so there is no evidence of fibre, laser, PON-port, OLT, or authentication failure.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The subscriber ONU is offline in CRM and in the live probe; it responds to management but has no optical readings and reports MPCP DEREG.",
+        "The offline condition is persistent: the last disconnect was on 2026-09-13, traffic subsequently fell to near zero, and no active session has been established since.",
+        "Seven of eight sampled ONUs on EPON0/3 are online with normal RX and TX power, proving the PON port is functioning and limiting the impact to the target ONU.",
+        "The OLT is reachable through ping and SNMP, its OID subtree responds, and CPU, memory, temperature, and uptime are healthy; the 'all PONs failed' alarm is therefore inconsistent with live evidence.",
+        "The target's previous RX power was stable around -22 dBm, TX power around +2.3 dBm, distance was constant at 210, TX bias stayed within the healthy range, and supply voltage was stable.",
+        "VLAN 1113 is present and correct, RADIUS credentials and line ID match CRM, and session activity does not indicate authentication flapping.",
+        "The missing telemetry after index 84 is a loss of readings associated with the ONU becoming unavailable, not evidence of optical degradation."
+      ]
+    },
+    "remediation": {
+      "action": "Suppress or correct the false all-PON health alarm and open a single-subscriber ONU-offline fault. Contact the customer or dispatch field support to verify mains power, ONU LEDs, and the drop fibre/connector; power-cycle and re-seat the ONU and optical connector, then re-register it. If it remains deregistered, test the optical drop and replace the ONU if local power and fibre continuity are good. Recheck ONU online state and optical readings after restoration."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "onu_offline",
+      "root_cause": "The subscriber ONU is persistently offline and deregistered from EPON0/3:1. Live status shows online=0, auth_flag=Unauth, and MPCP DEREG, while other ONUs on the same PON port remain online. Historical optical levels, TX bias, distance, OLT health, VLAN, and RADIUS state are normal, so there is no evidence of fibre, laser, PON-port, OLT, or authentication failure.",
+      "confidence": 0.99,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Suppress or correct the false all-PON health alarm and open a single-subscriber ONU-offline fault. Contact the customer or dispatch field support to verify mains power, ONU LEDs, and the drop fibre/connector; power-cycle and re-seat the ONU and optical connector, then re-register it. If it remains deregistered, test the optical drop and replace the ONU if local power and fibre continuity are good. Recheck ONU online state and optical readings after restoration.",
+      "reasoning": [
+        "The subscriber ONU is offline in CRM and in the live probe; it responds to management but has no optical readings and reports MPCP DEREG.",
+        "The offline condition is persistent: the last disconnect was on 2026-09-13, traffic subsequently fell to near zero, and no active session has been established since.",
+        "Seven of eight sampled ONUs on EPON0/3 are online with normal RX and TX power, proving the PON port is functioning and limiting the impact to the target ONU.",
+        "The OLT is reachable through ping and SNMP, its OID subtree responds, and CPU, memory, temperature, and uptime are healthy; the 'all PONs failed' alarm is therefore inconsistent with live evidence.",
+        "The target's previous RX power was stable around -22 dBm, TX power around +2.3 dBm, distance was constant at 210, TX bias stayed within the healthy range, and supply voltage was stable.",
+        "VLAN 1113 is present and correct, RADIUS credentials and line ID match CRM, and session activity does not indicate authentication flapping.",
+        "The missing telemetry after index 84 is a loss of readings associated with the ONU becoming unavailable, not evidence of optical degradation."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "olt_health_false_critical",
+    "root_cause": "The health check samples one ONU per PON port, preferring ONU id 1. On several ports the id 1 ONU happens to be offline for individual reasons, so each port is marked failed and the OLT is reported critical. The ports and the OLT are serving normally; one customer is genuinely offline.",
+    "severity": "Information",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "B4:64:15:FB:FE:44"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "The alarm claims all seven PONs failed on this OLT",
+      "The failed_pons_list names ONU index 1 on every port, which is the check's preferred sample",
+      "Probing the rest of EPON0/3 shows 27 of 28 ONUs online with normal RX and TX",
+      "So the port is serving and only the sampled ONU is down",
+      "oid_subtree_responds is true and the probe returns definite answers, ruling out the firmware mechanism",
+      "OLT ping, SNMP, CPU, memory, temperature and 33 days of uptime are all normal",
+      "CRM offline count across the OLT is consistent with the 4.85% background rate",
+      "The subject ONU last held a session three days ago and its traffic has been zero since",
+      "The alarm is a sampling artifact; the only real fault is one customer offline for three days"
+    ],
+    "required_evidence": [
+      "rest_of_port_online",
+      "sample_onu_is_the_only_failure",
+      "olt_metrics_normal"
+    ],
+    "expected_remediation": "dispatch_technician",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "field_service",
+      "requires_human_review": true,
+      "review_reason": "The health check's one-ONU-per-port sampling produced a false OLT-wide critical; monitoring should be raised separately"
+    },
+    "distractors": [
+      "An OLT-wide critical invites a Disaster conclusion",
+      "Every port genuinely reports a failed sample, so the alarm looks internally consistent",
+      "There is a real fault here, so dismissing the alarm entirely would also miss it"
+    ]
+  }
+}

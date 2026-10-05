@@ -1,0 +1,86 @@
+{
+  "scenario_id": "RA-001",
+  "config": "monolithic_clean_p2",
+  "model": "gpt-5.6-luna",
+  "seconds": 5.4,
+  "result": {
+    "diagnosis": {
+      "fault_type": "radius_missing_entry",
+      "root_cause": "The subscriber is active in CRM and the ONU is online, but provisioning failed to create the customer's RADIUS radcheck entry. Consequently, no authentication session or IP assignment can be established.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The ONU is online and responding, with RX power -19.55 dBm and TX power 2.48 dBm, both normal.",
+        "Seven days of optical telemetry are stable: RX remains around -19.5 dBm, TX remains around +2.3 dBm, distance is constant at 63, and TX bias current remains healthy around 11 mA.",
+        "All tested peers on EPON0/3 are online and responding, so there is no ONU, splitter, PON-port, or shared infrastructure failure.",
+        "The OLT responds to ping and SNMP and has healthy CPU, memory, temperature, and all eight PONs healthy.",
+        "The router heartbeat is current and healthy.",
+        "The customer VLAN is present and matches the expected VLAN 1053, so this is not a VLAN 46 provisioning fault.",
+        "The customer has zero sessions, zero traffic, no assigned IP, and no RADIUS username.",
+        "The RADIUS record explicitly reports radcheck_exists=false and a missing_radcheck mismatch, which directly explains why the newly installed connection has never worked."
+      ]
+    },
+    "remediation": {
+      "action": "Create and verify the RADIUS radcheck entry for line ID 4C:46:D1:D3:16:C5 using the correct subscriber credentials and service profile, synchronize it to the authentication servers, then initiate a test session and confirm IP assignment and traffic. Review the failed provisioning workflow for this new installation."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "radius_missing_entry",
+      "root_cause": "The subscriber is active in CRM and the ONU is online, but provisioning failed to create the customer's RADIUS radcheck entry. Consequently, no authentication session or IP assignment can be established.",
+      "confidence": 0.99,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Create and verify the RADIUS radcheck entry for line ID 4C:46:D1:D3:16:C5 using the correct subscriber credentials and service profile, synchronize it to the authentication servers, then initiate a test session and confirm IP assignment and traffic. Review the failed provisioning workflow for this new installation.",
+      "reasoning": [
+        "The ONU is online and responding, with RX power -19.55 dBm and TX power 2.48 dBm, both normal.",
+        "Seven days of optical telemetry are stable: RX remains around -19.5 dBm, TX remains around +2.3 dBm, distance is constant at 63, and TX bias current remains healthy around 11 mA.",
+        "All tested peers on EPON0/3 are online and responding, so there is no ONU, splitter, PON-port, or shared infrastructure failure.",
+        "The OLT responds to ping and SNMP and has healthy CPU, memory, temperature, and all eight PONs healthy.",
+        "The router heartbeat is current and healthy.",
+        "The customer VLAN is present and matches the expected VLAN 1053, so this is not a VLAN 46 provisioning fault.",
+        "The customer has zero sessions, zero traffic, no assigned IP, and no RADIUS username.",
+        "The RADIUS record explicitly reports radcheck_exists=false and a missing_radcheck mismatch, which directly explains why the newly installed connection has never worked."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "radius_missing_entry",
+    "root_cause": "The customer has no radcheck row, so every authentication attempt is rejected and no session is ever established. The provisioning step that writes the RADIUS user did not complete when the line was installed.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "4C:46:D1:D3:16:C5"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "The ONU is online with RX -19.52 and TX 2.47, both comfortably normal",
+      "The live probe confirms the ONU and its peers are responding normally",
+      "The OLT and router are healthy, so no shared infrastructure fault exists",
+      "The physical layer is therefore working end to end",
+      "Despite that, the customer has zero sessions in both the 24 hour and 7 day windows",
+      "RADIUS holds no radcheck row for this CPE MAC, so authentication cannot succeed",
+      "Daily traffic is zero for all seven days, consistent with never having been authenticated",
+      "A healthy physical layer with an absent RADIUS entry is a provisioning failure, not a network fault",
+      "No technician visit is warranted; the RADIUS entry needs creating"
+    ],
+    "required_evidence": [
+      "physical_layer_confirmed_healthy",
+      "radcheck_absent",
+      "zero_sessions_since_install"
+    ],
+    "expected_remediation": "create_radius_entry",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "provisioning",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "A brand new connection that never worked suggests an installation fault",
+      "Zero traffic could be read as a dead line"
+    ]
+  }
+}

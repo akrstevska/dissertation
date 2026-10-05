@@ -1,0 +1,87 @@
+{
+  "scenario_id": "NF-001",
+  "config": "monolithic_shared",
+  "model": "gpt-5.6-luna",
+  "seconds": 25.7,
+  "result": {
+    "diagnosis": {
+      "fault_type": "fiber_degradation",
+      "root_cause": "Marginal and unstable receive optical power on this customer's own fibre path. RX varies across the normal/degraded boundary and exceeds the healthy 24-hour noise floor, while TX power, TX bias, distance, and peer ONUs remain normal. The link is currently online and the session rate is normal, so there is no evidence of flapping or a shared PON fault.",
+      "confidence": 0.84,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The ONU is currently online and responding with Finish/authenticated state, so this is not an ONU-offline fault.",
+        "Current RX power is -24.61 dBm, within the normal band but close to the -25 dBm degraded threshold; telemetry includes degraded excursions down to about -25.04 dBm.",
+        "RX variation over the week is substantially wider than the healthy +/-0.3 dBm noise floor, indicating a real optical-path change or instability rather than ordinary measurement noise.",
+        "TX power remains around +2.3 dBm and TX bias remains approximately 11 mA, both healthy and stable; this does not support laser degradation.",
+        "Distance remains fixed at 289 m, ruling out a distance or fibre-record path-change fault.",
+        "Other ONUs on EPON0/2 are online with generally stronger RX power, so the issue is confined to this customer's path rather than the PON port, splitter, or OLT.",
+        "The customer has 3 sessions in 24 hours with average duration near the network mean, so the link is not session-flapping.",
+        "OLT ping, SNMP, metrics, all tested PONs, router heartbeat, RADIUS state, and VLAN 1072 are healthy, excluding OLT, router, authentication, and provisioning faults."
+      ]
+    },
+    "remediation": {
+      "action": "Dispatch or schedule optical-path maintenance for this subscriber: inspect and clean ONU, patch-panel, splitter, and drop-fibre connectors; test optical loss and reflections end-to-end; repair or replace the degraded section or splitter/drop if measurements confirm excessive loss. Continue RX and session monitoring after remediation."
+    },
+    "escalation": {
+      "priority": "Warning"
+    },
+    "monolithic": {
+      "fault_type": "fiber_degradation",
+      "root_cause": "Marginal and unstable receive optical power on this customer's own fibre path. RX varies across the normal/degraded boundary and exceeds the healthy 24-hour noise floor, while TX power, TX bias, distance, and peer ONUs remain normal. The link is currently online and the session rate is normal, so there is no evidence of flapping or a shared PON fault.",
+      "confidence": 0.84,
+      "severity": "Warning",
+      "affected_scope": "single_customer",
+      "remediation": "Dispatch or schedule optical-path maintenance for this subscriber: inspect and clean ONU, patch-panel, splitter, and drop-fibre connectors; test optical loss and reflections end-to-end; repair or replace the degraded section or splitter/drop if measurements confirm excessive loss. Continue RX and session monitoring after remediation.",
+      "reasoning": [
+        "The ONU is currently online and responding with Finish/authenticated state, so this is not an ONU-offline fault.",
+        "Current RX power is -24.61 dBm, within the normal band but close to the -25 dBm degraded threshold; telemetry includes degraded excursions down to about -25.04 dBm.",
+        "RX variation over the week is substantially wider than the healthy +/-0.3 dBm noise floor, indicating a real optical-path change or instability rather than ordinary measurement noise.",
+        "TX power remains around +2.3 dBm and TX bias remains approximately 11 mA, both healthy and stable; this does not support laser degradation.",
+        "Distance remains fixed at 289 m, ruling out a distance or fibre-record path-change fault.",
+        "Other ONUs on EPON0/2 are online with generally stronger RX power, so the issue is confined to this customer's path rather than the PON port, splitter, or OLT.",
+        "The customer has 3 sessions in 24 hours with average duration near the network mean, so the link is not session-flapping.",
+        "OLT ping, SNMP, metrics, all tested PONs, router heartbeat, RADIUS state, and VLAN 1072 are healthy, excluding OLT, router, authentication, and provisioning faults."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "no_fault",
+    "root_cause": "No fault is present. RX sits in the lower part of the normal band, TX is inside the measured healthy range, the session count is at the network baseline, and the OLT's offline count matches the background rate.",
+    "severity": "Not classified",
+    "affected_scope": "none",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "RX is -24.58 dBm, which is in the lower part of the normal -20 to -25 band and above the -25 degraded threshold",
+      "The RX series has been flat for seven days inside the noise floor, so there is no downward trend",
+      "TX is 2.62 dBm, inside the measured healthy range of 0 to +5 for this estate",
+      "The documented -6 to -10 band would flag this value, but that threshold is wrong and would flag most of the network",
+      "Three sessions in 24 hours is the baseline that 80.8% of customers show, not flapping",
+      "Session duration of 668 minutes is close to the 11.9 hour network mean",
+      "Router heartbeat at 1.6 hours is inside the 2 hour ok threshold",
+      "The OLT's offline count is consistent with the 4.85% background rate",
+      "Traffic is steady across all seven days with no trend",
+      "Every value that looks mildly unusual is inside its calibrated normal band"
+    ],
+    "required_evidence": [
+      "rx_within_normal_band",
+      "tx_judged_against_correct_band",
+      "session_count_is_baseline"
+    ],
+    "expected_remediation": "no_action",
+    "expected_escalation": {
+      "priority": "Not classified",
+      "category": "monitoring",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "RX near -25 looks close to the degraded threshold",
+      "TX at 2.62 would be flagged by the incorrect documented threshold",
+      "Router heartbeat at 1.6 hours looks stale without the threshold",
+      "A scheduled scan implies something is expected to be found"
+    ]
+  }
+}

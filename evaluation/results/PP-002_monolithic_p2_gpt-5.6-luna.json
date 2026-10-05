@@ -1,0 +1,90 @@
+{
+  "scenario_id": "PP-002",
+  "config": "monolithic_p2",
+  "model": "gpt-5.6-luna",
+  "seconds": 8.7,
+  "result": {
+    "diagnosis": {
+      "fault_type": "pon_port_failure",
+      "root_cause": "EPON0/6 is down or unable to maintain MPCP registration, taking the customers on that PON port offline. The OLT, router, authentication, VLAN, and individual ONU historical optical telemetry are otherwise healthy.",
+      "confidence": 0.96,
+      "affected_scope": "pon_port",
+      "evidence": [
+        "The alert reports 29 offline ONUs, matching the 29 customers provisioned on EPON0/6, indicating a port-scoped event rather than a single-customer fault.",
+        "All probed ONUs on EPON0/6 are offline, respond only as deregistered, and have no current optical readings.",
+        "The OLT and SNMP subtree respond normally, with healthy CPU, memory, temperature, uptime, and seven of eight PONs healthy; this rules out a general OLT or management outage.",
+        "The router heartbeat is healthy, and RADIUS records, line ID, assigned IP, and customer VLAN 1066 are consistent, ruling out router, authentication, VLAN, and provisioning faults.",
+        "The customer's seven-day optical history is stable and healthy: RX is approximately -19.9 dBm, TX approximately +2.35 dBm, distance remains 88, and TX bias remains within the healthy range.",
+        "The current zero or null optical values are correctly interpreted as no reading because the ONU is offline, not as strong optical power.",
+        "Session counts and durations are normal rather than flapping, so this is not an authentication or signal-flapping fault.",
+        "The most likely common failure domain is EPON0/6 itself or its common feeder/splitter path; the evidence specifically supports a PON-port failure, while the exact physical component requires field and port diagnostics."
+      ]
+    },
+    "remediation": {
+      "action": "Escalate to access-network operations immediately. Check EPON0/6 administrative and operational state, port alarms, LOS/LOF and error counters, optic/transceiver health, card and backplane state, and the feeder/splitter path. Reset or bounce the PON port only after collecting diagnostics; reseat or replace the PON optic/card if required. If the port cannot recover, migrate affected ONUs to a spare PON port and repair the feeder or splitter path. Validate that ONUs re-register and that customer sessions and traffic recover."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "pon_port_failure",
+      "root_cause": "EPON0/6 is down or unable to maintain MPCP registration, taking the customers on that PON port offline. The OLT, router, authentication, VLAN, and individual ONU historical optical telemetry are otherwise healthy.",
+      "confidence": 0.96,
+      "severity": "High",
+      "affected_scope": "pon_port",
+      "remediation": "Escalate to access-network operations immediately. Check EPON0/6 administrative and operational state, port alarms, LOS/LOF and error counters, optic/transceiver health, card and backplane state, and the feeder/splitter path. Reset or bounce the PON port only after collecting diagnostics; reseat or replace the PON optic/card if required. If the port cannot recover, migrate affected ONUs to a spare PON port and repair the feeder or splitter path. Validate that ONUs re-register and that customer sessions and traffic recover.",
+      "reasoning": [
+        "The alert reports 29 offline ONUs, matching the 29 customers provisioned on EPON0/6, indicating a port-scoped event rather than a single-customer fault.",
+        "All probed ONUs on EPON0/6 are offline, respond only as deregistered, and have no current optical readings.",
+        "The OLT and SNMP subtree respond normally, with healthy CPU, memory, temperature, uptime, and seven of eight PONs healthy; this rules out a general OLT or management outage.",
+        "The router heartbeat is healthy, and RADIUS records, line ID, assigned IP, and customer VLAN 1066 are consistent, ruling out router, authentication, VLAN, and provisioning faults.",
+        "The customer's seven-day optical history is stable and healthy: RX is approximately -19.9 dBm, TX approximately +2.35 dBm, distance remains 88, and TX bias remains within the healthy range.",
+        "The current zero or null optical values are correctly interpreted as no reading because the ONU is offline, not as strong optical power.",
+        "Session counts and durations are normal rather than flapping, so this is not an authentication or signal-flapping fault.",
+        "The most likely common failure domain is EPON0/6 itself or its common feeder/splitter path; the evidence specifically supports a PON-port failure, while the exact physical component requires field and port diagnostics."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "pon_port_failure",
+    "root_cause": "EPON0/6 has failed, taking 28 of its 29 customers offline simultaneously 80 minutes ago. The twenty-ninth ONU had already been offline for three days from an unrelated individual fault and is not part of this event.",
+    "severity": "High",
+    "affected_scope": "pon_port",
+    "affected_lineids": [
+      "78:88:8A:87:AB:42",
+      "70:B6:4F:E5:1D:6A",
+      "70:B6:4F:D2:5F:22",
+      "70:B6:4F:B7:D3:FB",
+      "00:A1:07:60:84:0A",
+      "80:F1:A8:33:16:4E"
+    ],
+    "affected_customer_count": 6,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Every ONU on EPON0/6 now returns responds true with online 0",
+      "28 of the 29 stopped within the same minute, 80 minutes ago",
+      "One ONU on the port last held a session three days ago, so it was already down before this event",
+      "That ONU's separate history excludes it from this incident's affected set",
+      "OLT ping and SNMP succeed and the other seven ports are serving normally",
+      "The failure boundary follows EPON0/6 exactly",
+      "PON port traffic has collapsed from 231 Mbps average to 8 Mbps",
+      "The affected count is 28, not 29"
+    ],
+    "required_evidence": [
+      "all_onus_on_port_offline",
+      "pre_existing_outage_excluded",
+      "other_ports_healthy"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "High",
+      "category": "infrastructure",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "The trigger states 29 offline, inviting that number to be reported as the blast radius",
+      "All 29 look identical in current state and only history separates them"
+    ]
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "scenario_id": "SF-001",
+  "config": "monolithic_p1",
+  "model": "gpt-5.6-luna",
+  "seconds": 8.2,
+  "result": {
+    "diagnosis": {
+      "fault_type": "fiber_degradation",
+      "root_cause": "Intermittent degradation on this customer's optical fibre path is causing low and highly variable downstream RX power, leading to repeated loss of service sessions. The ONU's TX power and bias current are stable and healthy, so laser degradation is not indicated.",
+      "confidence": 0.95,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The customer has 16 sessions in 24 hours versus a normal baseline of 2-3, with average session duration of only 71 minutes versus an 11.9-hour mean, confirming severe intermittent session disruption.",
+        "Current RX power is -27.94 dBm, in the critical range, and the stored reading of -26.28 dBm is degraded.",
+        "The seven-day RX series varies by more than 4 dBm, repeatedly reaching approximately -28 to -28.6 dBm; this is far wider than the healthy 24-hour noise floor of +/-0.3 dBm.",
+        "Distance remains constant at 302 m, so the issue is not a changed fibre route or distance configuration.",
+        "TX power remains near 2.3 dBm and TX bias current remains around 11 mA, both healthy and stable; this argues against laser degradation or ONU power failure.",
+        "Other ONUs on EPON0/2 have materially better RX levels and are online, so the PON port and splitter are not showing a shared fault.",
+        "The OLT, router, VLAN, RADIUS record, authentication state, and ONU registration are all healthy and consistent, ruling out infrastructure, provisioning, and authentication causes.",
+        "The customer is currently online, so this is an intermittent physical degradation rather than a complete ONU-offline condition."
+      ]
+    },
+    "remediation": {
+      "action": "Dispatch field technicians to inspect the customer's drop fibre, bends, connectors, splice points, and splitter leg. Clean and reseat connectors, measure optical power at the ONU and termination points, and perform OTDR testing to locate loss or reflection. Repair or replace the affected fibre or connector and verify RX power remains in the normal range. Recheck session frequency after repair; do not change RADIUS, VLAN, OLT, or router configuration unless physical tests are normal."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "fiber_degradation",
+      "root_cause": "Intermittent degradation on this customer's optical fibre path is causing low and highly variable downstream RX power, leading to repeated loss of service sessions. The ONU's TX power and bias current are stable and healthy, so laser degradation is not indicated.",
+      "confidence": 0.95,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Dispatch field technicians to inspect the customer's drop fibre, bends, connectors, splice points, and splitter leg. Clean and reseat connectors, measure optical power at the ONU and termination points, and perform OTDR testing to locate loss or reflection. Repair or replace the affected fibre or connector and verify RX power remains in the normal range. Recheck session frequency after repair; do not change RADIUS, VLAN, OLT, or router configuration unless physical tests are normal.",
+      "reasoning": [
+        "The customer has 16 sessions in 24 hours versus a normal baseline of 2-3, with average session duration of only 71 minutes versus an 11.9-hour mean, confirming severe intermittent session disruption.",
+        "Current RX power is -27.94 dBm, in the critical range, and the stored reading of -26.28 dBm is degraded.",
+        "The seven-day RX series varies by more than 4 dBm, repeatedly reaching approximately -28 to -28.6 dBm; this is far wider than the healthy 24-hour noise floor of +/-0.3 dBm.",
+        "Distance remains constant at 302 m, so the issue is not a changed fibre route or distance configuration.",
+        "TX power remains near 2.3 dBm and TX bias current remains around 11 mA, both healthy and stable; this argues against laser degradation or ONU power failure.",
+        "Other ONUs on EPON0/2 have materially better RX levels and are online, so the PON port and splitter are not showing a shared fault.",
+        "The OLT, router, VLAN, RADIUS record, authentication state, and ONU registration are all healthy and consistent, ruling out infrastructure, provisioning, and authentication causes.",
+        "The customer is currently online, so this is an intermittent physical degradation rather than a complete ONU-offline condition."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "session_flapping_signal",
+    "root_cause": "RX power oscillates between roughly -24.4 and -28.2 dBm on an eleven hour cycle, crossing the threshold at which the link stops being usable. The session drops follow the signal excursions.",
+    "severity": "Warning",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "70:B6:4F:E2:C6:47"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Sixteen sessions in 24 hours against a 2-3 baseline, with a 71 minute mean duration",
+      "Cached RX is -26.28 dBm, already in the degraded band",
+      "Telemetry shows RX oscillating between about -24.4 and -28.2 dBm on an eleven hour cycle",
+      "The lower excursions cross -28 dBm, at which point the link becomes unusable",
+      "Live RX of -27.94 confirms the signal is currently near the bottom of that swing",
+      "TX power, bias current, supply voltage and distance are all stable, so the ONU is healthy",
+      "RADIUS is clean with a single consistent entry and no mismatches",
+      "Peers on EPON0/2 read normal, so the fault is in this customer's own path",
+      "The session pattern tracks the signal excursions, so the optical fault explains the flapping"
+    ],
+    "required_evidence": [
+      "rx_oscillates_across_threshold",
+      "radius_confirmed_clean",
+      "session_pattern_tracks_signal"
+    ],
+    "expected_remediation": "dispatch_technician",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "field_service",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "The trigger names the session count, pointing at the auth layer",
+      "Sixteen disconnects is well within the observed flapping tail and could be read as a CPE fault"
+    ]
+  }
+}

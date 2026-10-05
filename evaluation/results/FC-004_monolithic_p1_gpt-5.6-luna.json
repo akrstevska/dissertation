@@ -1,0 +1,91 @@
+{
+  "scenario_id": "FC-004",
+  "config": "monolithic_p1",
+  "model": "gpt-5.6-luna",
+  "seconds": 9.7,
+  "result": {
+    "diagnosis": {
+      "fault_type": "olt_health_false_critical",
+      "root_cause": "The health-check alarm incorrectly reports all eight PONs as failed. The OLT, subscriber ONU, and sampled ONUs are reachable, online, authenticated, and have normal optical readings; OLT CPU, memory, temperature, and uptime are also healthy.",
+      "confidence": 0.99,
+      "affected_scope": "olt",
+      "evidence": [
+        "The triggered condition claims all 8 PONs failed, but the OLT responds to ping and SNMP and its OID subtree responds.",
+        "The OLT metrics are normal: CPU 24%, memory 18%, temperature 42C, with a stable 58-day uptime.",
+        "The affected ONU is online, authenticated, completes the EPON exchange, and responds to live SNMP probing.",
+        "The affected ONU has strong/normal optical levels: RX about -19.7 dBm and TX about +2.4 dBm.",
+        "The seven-day optical telemetry is stable: RX variation is within approximately 0.3 dBm, TX variation is narrow, distance remains constant at 124, and TX bias remains healthy around 11 mA.",
+        "All sampled ONUs on EPON0/5 are online and responding, ruling out a PON-port or splitter outage for the subscriber's port.",
+        "The OLT has 207 of 214 ONUs online; seven offline is below the normal background level for this population and does not indicate an OLT-wide outage.",
+        "VLAN 1035 is present and matches the expected customer VLAN.",
+        "Authentication and sessions are normal: two sessions in 24 hours, seven-day activity within the normal baseline, long session durations, and no RADIUS mismatch.",
+        "The router heartbeat is healthy and router resource metrics are normal, so the alarm is not caused by router unreachability.",
+        "The evidence therefore indicates an erroneous OLT health-check result rather than a physical, optical, authentication, VLAN, router, or capacity fault."
+      ]
+    },
+    "remediation": {
+      "action": "Clear the false critical alarm after confirming the live probe results. Investigate and repair the PON health-check logic, data source, or result freshness that generated the 8/8 failure. Re-run the check against all eight PONs, verify alarm-to-service correlation, and add suppression or validation so a PON failure is not declared without corroborating ONU or interface loss."
+    },
+    "escalation": {
+      "priority": "Information"
+    },
+    "monolithic": {
+      "fault_type": "olt_health_false_critical",
+      "root_cause": "The health-check alarm incorrectly reports all eight PONs as failed. The OLT, subscriber ONU, and sampled ONUs are reachable, online, authenticated, and have normal optical readings; OLT CPU, memory, temperature, and uptime are also healthy.",
+      "confidence": 0.99,
+      "severity": "Information",
+      "affected_scope": "olt",
+      "remediation": "Clear the false critical alarm after confirming the live probe results. Investigate and repair the PON health-check logic, data source, or result freshness that generated the 8/8 failure. Re-run the check against all eight PONs, verify alarm-to-service correlation, and add suppression or validation so a PON failure is not declared without corroborating ONU or interface loss.",
+      "reasoning": [
+        "The triggered condition claims all 8 PONs failed, but the OLT responds to ping and SNMP and its OID subtree responds.",
+        "The OLT metrics are normal: CPU 24%, memory 18%, temperature 42C, with a stable 58-day uptime.",
+        "The affected ONU is online, authenticated, completes the EPON exchange, and responds to live SNMP probing.",
+        "The affected ONU has strong/normal optical levels: RX about -19.7 dBm and TX about +2.4 dBm.",
+        "The seven-day optical telemetry is stable: RX variation is within approximately 0.3 dBm, TX variation is narrow, distance remains constant at 124, and TX bias remains healthy around 11 mA.",
+        "All sampled ONUs on EPON0/5 are online and responding, ruling out a PON-port or splitter outage for the subscriber's port.",
+        "The OLT has 207 of 214 ONUs online; seven offline is below the normal background level for this population and does not indicate an OLT-wide outage.",
+        "VLAN 1035 is present and matches the expected customer VLAN.",
+        "Authentication and sessions are normal: two sessions in 24 hours, seven-day activity within the normal baseline, long session durations, and no RADIUS mismatch.",
+        "The router heartbeat is healthy and router resource metrics are normal, so the alarm is not caused by router unreachability.",
+        "The evidence therefore indicates an erroneous OLT health-check result rather than a physical, optical, authentication, VLAN, router, or capacity fault."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "olt_health_false_critical",
+    "root_cause": "The stored health record carries a run_date of 2025-11-11, ten months before the current date. The health check has not run since. The OLT has 58 days of uptime, answers every probe normally and is serving all its customers; the alarm describes a condition that no longer exists, if it ever did.",
+    "severity": "Information",
+    "affected_scope": "none",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The health record reports critical with all eight PONs failed",
+      "Its run_date is 2025-11-11, ten months before the scenario's capture time",
+      "A stored record that old describes history, not current state",
+      "The live probe answers normally: the ONU is online with RX -19.71 and TX 2.42",
+      "OLT ping and SNMP succeed, oid_subtree_responds is true and uptime is 58 days",
+      "58 days of uptime postdates the stored record, so the device has restarted since it was written",
+      "CPU 24, memory 18 and temperature 42 are all at healthy baseline",
+      "Customers are authenticated with normal sessions and seven days of steady traffic",
+      "The finding is not an outage but that OLT health monitoring has not run for ten months"
+    ],
+    "required_evidence": [
+      "record_age_checked",
+      "live_probe_contradicts_record",
+      "uptime_postdates_record"
+    ],
+    "expected_remediation": "flag_monitoring_defect",
+    "expected_escalation": {
+      "priority": "Information",
+      "category": "monitoring",
+      "requires_human_review": true,
+      "review_reason": "OLT health checks have not run since 2025-11-11; the schedule is not active"
+    },
+    "distractors": [
+      "The alarm text is identical to a genuine critical",
+      "The record is internally consistent and only its date betrays it",
+      "Nothing in the alarm payload signals that it is stale"
+    ]
+  }
+}

@@ -1,0 +1,288 @@
+{
+  "scenario_id": "NF-001",
+  "config": "agent",
+  "model": "gpt-5.6-luna",
+  "seconds": 46.3,
+  "result": {
+    "trigger": "scheduled_scan",
+    "trigger_input": {
+      "scope": "olt",
+      "target": "TK_AF-OLT_SR01"
+    },
+    "detection": {
+      "status": "no_anomaly",
+      "signals": [
+        {
+          "type": "olt_health",
+          "value": "healthy; 6/6 PONs healthy",
+          "threshold": "all tested PONs healthy"
+        },
+        {
+          "type": "olt_cpu",
+          "value": "22%",
+          "threshold": "healthy baseline approximately 25%"
+        },
+        {
+          "type": "olt_memory",
+          "value": "17%",
+          "threshold": "healthy baseline approximately 17%"
+        },
+        {
+          "type": "olt_temperature",
+          "value": "40 C",
+          "threshold": "healthy baseline approximately 42 C"
+        },
+        {
+          "type": "onu_offline_population",
+          "value": "8 of 148 customers offline (5.4%)",
+          "threshold": "network baseline 4.85%; proportional background is approximately 7 customers on this OLT"
+        },
+        {
+          "type": "sampled_rx_power",
+          "value": "-24.58 dBm; 7-day last value -24.38 dBm",
+          "threshold": "normal -20 to -25 dBm"
+        },
+        {
+          "type": "sampled_tx_power",
+          "value": "2.62 dBm; 7-day last value 2.38 dBm",
+          "threshold": "normal 0 to +5 dBm"
+        },
+        {
+          "type": "sampled_rx_trend",
+          "value": "7-day change -0.04 dBm",
+          "threshold": "healthy 24-hour noise floor approximately +/-0.3 dBm; ending value must remain within the normal RX band"
+        },
+        {
+          "type": "sampled_tx_trend",
+          "value": "7-day change +0.01 dBm",
+          "threshold": "healthy 24-hour noise floor approximately +/-0.08 dBm; ending value must remain within the normal TX band"
+        },
+        {
+          "type": "sampled_distance",
+          "value": "289 m with zero change over 7 days",
+          "threshold": "distance must remain constant"
+        },
+        {
+          "type": "sampled_tx_bias_current",
+          "value": "11.14 mA last value; 11.20 mA mean",
+          "threshold": "healthy 9.5 to 13.0 mA"
+        },
+        {
+          "type": "sampled_sessions",
+          "value": "3 sessions in 24 hours; average duration 668 minutes",
+          "threshold": "normal 2-3 sessions per day; mean duration approximately 11.9 hours"
+        },
+        {
+          "type": "sampled_traffic",
+          "value": "982 MB/day download and 5851 MB/day upload monthly averages",
+          "threshold": "active service should show traffic; no zero-traffic condition observed"
+        }
+      ],
+      "preliminary_severity": "Information",
+      "affected_scope": "none",
+      "affected_lineids": [],
+      "olt_id": "TK_AF-OLT_SR01",
+      "interface": null,
+      "summary": "The OLT, sampled PON customer, optical trends, sessions, and traffic are within calibrated bands with no contradictory findings."
+    },
+    "diagnosis": {
+      "fault_type": "no_fault",
+      "root_cause": "Live OLT, SNMP, VLAN, population, ONU optical, session, and traffic checks are consistent with a healthy EPON service. The 8 offline customers represent 5.4% of 148, close to the 4.85% network baseline and expected background variation.",
+      "confidence": 0.98,
+      "affected_scope": "none",
+      "affected_lineids": [],
+      "evidence": [
+        "OLT ping, SNMP, and OID subtree all respond successfully.",
+        "OLT CPU, memory, and temperature are within healthy baseline ranges.",
+        "All 6 in-use PONs are reported healthy.",
+        "ONU population is 140 online and 8 offline out of 148; the offline rate is close to the network baseline and not evidence of an outage.",
+        "Customer VLAN 1072 is present and matches the expected VLAN.",
+        "Live sampled ONU RX power is -24.61 dBm and TX power is 2.45 dBm, both within calibrated normal ranges.",
+        "Sampled ONU sessions and average duration are within normal service behavior.",
+        "Sampled traffic is nonzero, confirming active service.",
+        "Distance is stable and TX bias current is within the healthy range, with no evidence of fibre or laser degradation."
+      ],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "remediation": {
+      "action": "no_action",
+      "automated": false,
+      "reason": "Live OLT, PON, VLAN, ONU optical, session, and traffic checks are healthy. The offline rate is consistent with the normal network baseline, so no fault or targeted remediation is indicated.",
+      "instructions": "No corrective action is required. Continue routine monitoring and investigate only if the offline rate increases or new fault evidence appears.",
+      "alternatives_considered": [
+        {
+          "action": "onu_reset",
+          "rejected_because": "The diagnosis identifies no ONU-specific fault or abnormal service behavior."
+        },
+        {
+          "action": "dispatch_technician",
+          "rejected_because": "There is no evidence of fibre degradation, distance change, splitter failure, or affected customer scope."
+        },
+        {
+          "action": "escalate_infrastructure",
+          "rejected_because": "The OLT, PONs, hardware health, VLAN, and traffic checks are all normal."
+        }
+      ]
+    },
+    "escalation": {
+      "priority": "Information",
+      "category": "noc",
+      "requires_human_review": false,
+      "review_reason": null,
+      "summary": "No network fault detected. The OLT and all six PONs are healthy, hardware metrics are within baseline, VLAN checks pass, and sampled ONU optical levels, sessions, duration, traffic, distance, and TX bias are normal. Eight of 148 customers are offline (5.4%), which is consistent with normal network background variation. No corrective action is required; continue routine monitoring.",
+      "affected_customer_count": 0,
+      "service_impact": false
+    },
+    "trace": [
+      {
+        "tool": "get_olt_health",
+        "args": {
+          "olt_id": "TK_AF-OLT_SR01"
+        },
+        "result": "{\"olt_ip\": \"10.220.1.3\", \"olt_host\": \"TK_AF-OLT_SR01\", \"olt_technology\": \"EPON\", \"olt_ext_id\": \"10087\", \"ping_ok\": true, \"snmp_community_ok\": true, \"snmp_response_ok\": true, \"total_pons_tested\": 6, \"healthy_pons\": 6, \"failed_pons_list\": [], \"error_description\": null, \"overall_status\": \"healthy\", \"run_date\": \"2026-09-16\"}"
+      },
+      {
+        "tool": "get_olt_metrics",
+        "args": {
+          "olt_id": "TK_AF-OLT_SR01"
+        },
+        "result": "{\"cpu_load\": 22, \"memory_usage\": 17, \"temperature\": 40, \"uptime_days\": 90, \"firmware\": \"V2.03.78R\", \"firmware_date\": \"2024-06-11\"}"
+      },
+      {
+        "tool": "get_olt_population",
+        "args": {
+          "olt_id": "TK_AF-OLT_SR01"
+        },
+        "result": "{\"total_customers\": 148, \"pon_ports_in_use\": 6, \"customers_per_port\": {\"EPON0/1\": 25, \"EPON0/2\": 21, \"EPON0/3\": 25, \"EPON0/4\": 25, \"EPON0/5\": 25, \"EPON0/6\": 27}, \"onu_online_count\": 140, \"onu_offline_count\": 8}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "TK_AF-OLT_SR01",
+          "interface": ""
+        },
+        "result": "{\"interface_port\": \"EPON0/2\", \"crm_view\": {\"total_on_port\": 21, \"customers\": [{\"lineid\": \"B4:64:15:E4:F7:CE\", \"interface\": \"EPON0/2:9\", \"onu_status\": 1, \"rx_power\": \"-24.58\", \"active\": 1}, {\"lineid\": \"80:F1:A8:D8:FC:D5\", \"interface\": \"EPON0/2:14\", \"onu_status\": 1, \"rx_power\": \"-18.93\", \"active\": 1}, {\"lineid\": \"78:88:8A:62:88:8C\", \"interface\": \"EPON0/2:19\", \"onu_status\": 1, \"rx_power\": \"-19.88\", \"active\": 1}, {\"lineid\": \"B4:64:15:FE:9E:BE\", \"interface\": \"EPON0/2:21\", \"onu_status\": 1, \"rx_power\": \"-19.55\", \"active\": 1}, {\"lineid\": \"00:A1:07:01:33:C0\", \"interface\": \"EPON0/2:26\", \"onu_status\": 1, \"rx_power\": \"-22.85\", \"active\": 1}, {\"lineid\": \"B4:64:15:AA:66:DC\", \"interface\": \"EPON0/2:32\", \"onu_status\": 1, \"rx_power\": \"-20.09\", \"active\": 1}, {\"lineid\": \"B4:64:15:31:61:FF\", \"interface\": \"EPON0/2:34\", \"onu_status\": 1, \"rx_power\": \"-18.91\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      },
+      {
+        "tool": "get_customer_by_lineid",
+        "args": {
+          "lineid": "B4:64:15:E4:F7:CE"
+        },
+        "result": "{\"customer_id\": 26016, \"lineid\": \"B4:64:15:E4:F7:CE\", \"mac\": \"C8:3A:35:91:1C:DC\", \"interface\": \"EPON0/2:9\", \"olt_id\": \"10087\", \"olt_host\": \"TK_AF-OLT_SR01\", \"olt_ip\": \"10.220.1.3\", \"olt_technology\": \"EPON\", \"olt_model\": \"V1600D\", \"router_id\": 35, \"router_name\": \"TK_Router_SR01\", \"profile\": \"profile_20M\", \"active\": 1, \"deleted\": 0, \"onu_model\": \"Aztech 1G + CATV\", \"onu_type\": \"Bridge\", \"has_catv\": 1, \"has_voip\": 0, \"catv_service\": 1, \"catv_synced\": 1, \"city\": \"Strumica\", \"area\": \"SR\"}"
+      },
+      {
+        "tool": "get_onu_status_cached",
+        "args": {
+          "lineid": "B4:64:15:E4:F7:CE"
+        },
+        "result": "{\"onu_status\": 1, \"rx_power\": \"-24.58\", \"tx_power\": \"2.62\", \"reading_age_minutes\": 29}"
+      },
+      {
+        "tool": "get_optical_series",
+        "args": {
+          "lineid": "B4:64:15:E4:F7:CE",
+          "signal": "all"
+        },
+        "result": "{\"window_hours\": 168, \"signals\": {\"rx_power\": {\"available\": true, \"points\": 168, \"first\": -24.34, \"last\": -24.38, \"min\": -25.04, \"max\": -24.17, \"mean\": -24.6, \"range\": 0.87, \"change\": -0.04, \"gaps\": 0}, \"tx_power\": {\"available\": true, \"points\": 168, \"first\": 2.37, \"last\": 2.38, \"min\": 2.25, \"max\": 2.46, \"mean\": 2.35, \"range\": 0.21, \"change\": 0.01, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 22.38, \"last\": 21.43, \"min\": 19.74, \"max\": 24.42, \"mean\": 22.01, \"range\": 4.68, \"change\": -0.95, \"gaps\": 0}, \"distance\": {\"available\": true, \"points\": 168, \"first\": 289, \"last\": 289, \"min\": 289, \"max\": 289, \"mean\": 289.0, \"range\": 0, \"change\": 0, \"gaps\": 0}, \"tx_bias_current\": {\"available\": true, \"points\": 168, \"first\": 11.25, \"last\": 11.14, \"min\": 10.82, \"max\": 11.61, \"mean\": 11.2, \"range\": 0.79, \"change\": -0.11, \"gaps\": 0}, \"supply_voltage\": {\"available\": true, \"points\": 168, \"first\": 3.42, \"last\": 3.42, \"min\": 3.4, \"max\": 3.46, \"mean\": 3.43, \"range\": 0.06, \"change\": 0.0, \"gaps\": 0}, \"speed_kbps\": {\"available\": true, \"points\": 168, \"first\": 8.42, \"last\": 3.95, \"min\": 0.05, \"max\": 11.36, \"mean\": 5.35, \"range\": 11.31, \"change\": -4.47, \"gaps\": 0}}}"
+      },
+      {
+        "tool": "get_sessions",
+        "args": {
+          "lineid": "B4:64:15:E4:F7:CE"
+        },
+        "result": "{\"count_24h\": 3, \"count_7d\": 19, \"avg_duration_minutes\": 668, \"last_disconnect\": \"2026-09-16T00:54:00Z\", \"recent\": [{\"start\": \"2026-09-16T00:54:00Z\", \"end\": null, \"duration_s\": 50111, \"ip\": \"10.5.50.84\"}, {\"start\": \"2026-09-15T10:57:03Z\", \"end\": \"2026-09-15T20:19:28Z\", \"duration_s\": 33745, \"ip\": \"10.5.50.84\"}, {\"start\": \"2026-09-15T01:22:58Z\", \"end\": \"2026-09-15T09:58:42Z\", \"duration_s\": 30944, \"ip\": \"10.5.50.84\"}]}"
+      },
+      {
+        "tool": "get_traffic",
+        "args": {
+          "lineid": "B4:64:15:E4:F7:CE"
+        },
+        "result": "{\"download_mb_daily\": [960, 1010, 930, 990, 1040, 950, 1000], \"upload_mb_daily\": [5919, 5860, 5469, 5911, 6320, 5631, 5851], \"monthly_avg_download_mb\": 982, \"monthly_avg_upload_mb\": 5851, \"pon_port_traffic\": {\"current_mbps\": 149, \"avg_mbps\": 154, \"peak_mbps\": 455}}"
+      },
+      {
+        "tool": "snmp_probe_olt",
+        "args": {
+          "olt_id": "TK_AF-OLT_SR01"
+        },
+        "result": "{\"ping_ok\": true, \"snmp_responds\": true, \"sys_uptime_seconds\": 7776000, \"oid_subtree_responds\": true}"
+      },
+      {
+        "tool": "get_olt_population",
+        "args": {
+          "olt_id": "TK_AF-OLT_SR01"
+        },
+        "result": "{\"total_customers\": 148, \"pon_ports_in_use\": 6, \"customers_per_port\": {\"EPON0/1\": 25, \"EPON0/2\": 21, \"EPON0/3\": 25, \"EPON0/4\": 25, \"EPON0/5\": 25, \"EPON0/6\": 27}, \"onu_online_count\": 140, \"onu_offline_count\": 8}"
+      },
+      {
+        "tool": "snmp_walk_vlans",
+        "args": {
+          "olt_id": "TK_AF-OLT_SR01"
+        },
+        "result": "{\"responds\": true, \"vlans_present\": [1, 46, 100, 1071, 1072, 1073, 1074, 1075, 1076, 1998, 1999], \"customer_vlan_expected\": 1072, \"customer_vlan_actual\": 1072}"
+      },
+      {
+        "tool": "get_olt_series",
+        "args": {
+          "olt_id": "TK_AF-OLT_SR01"
+        },
+        "result": "{\"cpu_load\": {\"available\": true, \"points\": 168, \"first\": 26, \"last\": 15, \"min\": 13, \"max\": 29, \"mean\": 21.63, \"range\": 16, \"change\": -11, \"gaps\": 0}, \"memory_usage\": {\"available\": true, \"points\": 168, \"first\": 15, \"last\": 16, \"min\": 12, \"max\": 20, \"mean\": 16.35, \"range\": 8, \"change\": 1, \"gaps\": 0}, \"temperature\": {\"available\": true, \"points\": 168, \"first\": 41, \"last\": 42, \"min\": 35, \"max\": 46, \"mean\": 39.48, \"range\": 11, \"change\": 1, \"gaps\": 0}}"
+      },
+      {
+        "tool": "snmp_probe_pon_port",
+        "args": {
+          "olt_id": "TK_AF-OLT_SR01",
+          "interface": ""
+        },
+        "result": "{\"interface_port\": \"EPON0/2\", \"onus\": [{\"onu_index\": 9, \"online\": 1, \"rx_power\": -24.61, \"tx_power\": 2.45, \"responds\": true}, {\"onu_index\": 14, \"online\": 1, \"rx_power\": -18.45, \"tx_power\": 2.43, \"responds\": true}, {\"onu_index\": 19, \"online\": 1, \"rx_power\": -21.69, \"tx_power\": 2.2, \"responds\": true}, {\"onu_index\": 21, \"online\": 1, \"rx_power\": -21.03, \"tx_power\": 2.41, \"responds\": true}, {\"onu_index\": 26, \"online\": 1, \"rx_power\": -20.85, \"tx_power\": 2.35, \"responds\": true}, {\"onu_index\": 32, \"online\": 1, \"rx_power\": -20.01, \"tx_power\": 2.18, \"responds\": true}, {\"onu_index\": 34, \"online\": 1, \"rx_power\": -19.75, \"tx_power\": 2.51, \"responds\": true}]}"
+      },
+      {
+        "tool": "get_customers_on_interface",
+        "args": {
+          "olt_id": "TK_AF-OLT_SR01",
+          "interface": ""
+        },
+        "result": "{\"interface_port\": \"EPON0/2\", \"crm_view\": {\"total_on_port\": 21, \"customers\": [{\"lineid\": \"B4:64:15:E4:F7:CE\", \"interface\": \"EPON0/2:9\", \"onu_status\": 1, \"rx_power\": \"-24.58\", \"active\": 1}, {\"lineid\": \"80:F1:A8:D8:FC:D5\", \"interface\": \"EPON0/2:14\", \"onu_status\": 1, \"rx_power\": \"-18.93\", \"active\": 1}, {\"lineid\": \"78:88:8A:62:88:8C\", \"interface\": \"EPON0/2:19\", \"onu_status\": 1, \"rx_power\": \"-19.88\", \"active\": 1}, {\"lineid\": \"B4:64:15:FE:9E:BE\", \"interface\": \"EPON0/2:21\", \"onu_status\": 1, \"rx_power\": \"-19.55\", \"active\": 1}, {\"lineid\": \"00:A1:07:01:33:C0\", \"interface\": \"EPON0/2:26\", \"onu_status\": 1, \"rx_power\": \"-22.85\", \"active\": 1}, {\"lineid\": \"B4:64:15:AA:66:DC\", \"interface\": \"EPON0/2:32\", \"onu_status\": 1, \"rx_power\": \"-20.09\", \"active\": 1}, {\"lineid\": \"B4:64:15:31:61:FF\", \"interface\": \"EPON0/2:34\", \"onu_status\": 1, \"rx_power\": \"-18.91\", \"active\": 1}]}, \"duplicate_slot_conflict\": null}"
+      }
+    ]
+  },
+  "ground_truth": {
+    "fault_type": "no_fault",
+    "root_cause": "No fault is present. RX sits in the lower part of the normal band, TX is inside the measured healthy range, the session count is at the network baseline, and the OLT's offline count matches the background rate.",
+    "severity": "Not classified",
+    "affected_scope": "none",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "RX is -24.58 dBm, which is in the lower part of the normal -20 to -25 band and above the -25 degraded threshold",
+      "The RX series has been flat for seven days inside the noise floor, so there is no downward trend",
+      "TX is 2.62 dBm, inside the measured healthy range of 0 to +5 for this estate",
+      "The documented -6 to -10 band would flag this value, but that threshold is wrong and would flag most of the network",
+      "Three sessions in 24 hours is the baseline that 80.8% of customers show, not flapping",
+      "Session duration of 668 minutes is close to the 11.9 hour network mean",
+      "Router heartbeat at 1.6 hours is inside the 2 hour ok threshold",
+      "The OLT's offline count is consistent with the 4.85% background rate",
+      "Traffic is steady across all seven days with no trend",
+      "Every value that looks mildly unusual is inside its calibrated normal band"
+    ],
+    "required_evidence": [
+      "rx_within_normal_band",
+      "tx_judged_against_correct_band",
+      "session_count_is_baseline"
+    ],
+    "expected_remediation": "no_action",
+    "expected_escalation": {
+      "priority": "Not classified",
+      "category": "monitoring",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "RX near -25 looks close to the degraded threshold",
+      "TX at 2.62 would be flagged by the incorrect documented threshold",
+      "Router heartbeat at 1.6 hours looks stale without the threshold",
+      "A scheduled scan implies something is expected to be found"
+    ]
+  }
+}

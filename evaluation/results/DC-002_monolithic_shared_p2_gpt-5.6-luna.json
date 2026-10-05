@@ -1,0 +1,89 @@
+{
+  "scenario_id": "DC-002",
+  "config": "monolithic_shared_p2",
+  "model": "gpt-5.6-luna",
+  "seconds": 6.7,
+  "result": {
+    "diagnosis": {
+      "fault_type": "distance_change",
+      "root_cause": "The ONU distance changed abruptly from 95 to 41, indicating that the fibre path behind the ONU or the record pointing to it was changed. The RX power moved with this step and is now degraded at approximately -26.6 dBm; this is a consequence of the changed path, not an independent fibre-degradation trend.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The customer's RX power started in the normal band near -21.2 dBm and declined to the degraded band near -26.7 dBm.",
+        "The distance remained 95 for most of the window, then stepped abruptly to 41 and stayed there.",
+        "A distance step indicates a changed fibre path or an incorrect record; it is not normal optical noise or gradual fibre degradation.",
+        "RX power changed at the same time as the distance step, so the RX change is attributed to the new path.",
+        "TX power remains normal around +2.4 dBm and TX bias remains stable around 11 mA, ruling against laser degradation.",
+        "Peers on EPON0/5 are online with normal optical levels, so this is isolated to the customer's path rather than a PON port, splitter, or OLT fault.",
+        "The ONU is currently a definite online result, the OLT responds to ping and SNMP, and the router heartbeat is healthy.",
+        "RADIUS records and the customer VLAN are consistent, so authentication and provisioning are not the primary fault.",
+        "The eight sessions in 24 hours and short durations are symptoms of the worsening optical/path condition; the physical trend takes precedence over a flapping classification."
+      ]
+    },
+    "remediation": {
+      "action": "Inspect the customer fibre route, splitter/splice connections, and ONU/OLT provisioning record for an incorrect path or recent reroute. Restore the intended fibre path or correct the distance/path assignment, then verify that distance returns to approximately 95 and RX power returns to the prior normal range. Recheck the customer after repair for session stability."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "distance_change",
+      "root_cause": "The ONU distance changed abruptly from 95 to 41, indicating that the fibre path behind the ONU or the record pointing to it was changed. The RX power moved with this step and is now degraded at approximately -26.6 dBm; this is a consequence of the changed path, not an independent fibre-degradation trend.",
+      "confidence": 0.99,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Inspect the customer fibre route, splitter/splice connections, and ONU/OLT provisioning record for an incorrect path or recent reroute. Restore the intended fibre path or correct the distance/path assignment, then verify that distance returns to approximately 95 and RX power returns to the prior normal range. Recheck the customer after repair for session stability.",
+      "reasoning": [
+        "The customer's RX power started in the normal band near -21.2 dBm and declined to the degraded band near -26.7 dBm.",
+        "The distance remained 95 for most of the window, then stepped abruptly to 41 and stayed there.",
+        "A distance step indicates a changed fibre path or an incorrect record; it is not normal optical noise or gradual fibre degradation.",
+        "RX power changed at the same time as the distance step, so the RX change is attributed to the new path.",
+        "TX power remains normal around +2.4 dBm and TX bias remains stable around 11 mA, ruling against laser degradation.",
+        "Peers on EPON0/5 are online with normal optical levels, so this is isolated to the customer's path rather than a PON port, splitter, or OLT fault.",
+        "The ONU is currently a definite online result, the OLT responds to ping and SNMP, and the router heartbeat is healthy.",
+        "RADIUS records and the customer VLAN are consistent, so authentication and provisioning are not the primary fault.",
+        "The eight sessions in 24 hours and short durations are symptoms of the worsening optical/path condition; the physical trend takes precedence over a flapping classification."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "distance_change",
+    "root_cause": "A re-splice four days ago shortened the path from 95 m to 41 m and initially improved RX from -20.8 to -18.2 dBm. Since then RX has fallen steadily to -26.5 dBm, so the new splice itself is failing.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "78:88:8A:9E:69:74"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Current RX of -26.1 dBm is in the degraded band and live RX is worse still at -26.6",
+      "The recent RX series shows a clear downward slope, which alone reads as fibre degradation",
+      "Looking further back, distance stepped from 95 m to 41 m four days ago",
+      "At that same moment RX jumped upward from -20.8 to -18.2 dBm, consistent with a shorter path",
+      "So the sequence is: path shortened and improved first, then began degrading from the new baseline",
+      "The customer's statement that it was fixed last week corroborates a work visit at that point",
+      "TX power, bias current and supply voltage are flat, so the ONU is not implicated",
+      "Peers on EPON0/5 are normal, so the fault is in this customer's own path",
+      "A splice made four days ago that is now losing 8 dB is a defective splice, not coincidental degradation"
+    ],
+    "required_evidence": [
+      "distance_step_detected",
+      "rx_improved_then_degraded",
+      "degradation_postdates_path_change"
+    ],
+    "expected_remediation": "dispatch_technician",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "field_service",
+      "requires_human_review": true,
+      "review_reason": "Rework of a splice completed four days ago; the original job should be reviewed"
+    },
+    "distractors": [
+      "The recent RX slope is a textbook fibre degradation signature",
+      "The distance step is buried three days back in the series",
+      "Eight sessions in 24h invites a flapping diagnosis"
+    ]
+  }
+}

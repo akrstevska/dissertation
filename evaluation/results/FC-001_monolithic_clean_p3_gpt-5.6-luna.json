@@ -1,0 +1,83 @@
+{
+  "scenario_id": "FC-001",
+  "config": "monolithic_clean_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 9.2,
+  "result": {
+    "diagnosis": {
+      "fault_type": "olt_health_false_critical",
+      "root_cause": "The OLT is reachable and healthy, but the ONU/PON SNMP subtree is not responding. The health check interprets uniform monitoring no-responses as all seven PONs failed, producing a false critical alarm.",
+      "confidence": 0.99,
+      "affected_scope": "olt",
+      "evidence": [
+        "The OLT responds to both ping and SNMP, with normal CPU, memory, temperature, and uptime; this rules out an OLT failure.",
+        "The live ONU probe returns responds:false uniformly for all tested ONUs, including the entire EPON0/2 port, while the OLT SNMP agent itself responds but its OID subtree does not.",
+        "Uniform responds:false means that no ONU answered the probe; it is not definite offline evidence. This pattern, together with a reachable OLT, indicates broken monitoring.",
+        "Historical ONU status, current CRM status, active sessions, recent traffic, and healthy peers show that customers are online and passing traffic.",
+        "The customer has strong RX power (-19.84 dBm), normal TX power (2.29 dBm), stable distance, stable bias current, and no declining optical trend.",
+        "The alarm claims all 7/7 PONs failed, but the OLT and service telemetry are healthy, so the critical summary is a false critical health result.",
+        "The nine offline ONUs on 183 customers are approximately the normal 4.85% background level and do not indicate an OLT-wide outage."
+      ]
+    },
+    "remediation": {
+      "action": "Repair the ONU/PON SNMP OID polling or monitoring configuration for OLT 10.220.57.6, then rerun the health check and verify per-ONU responses. Do not dispatch for a PON, splitter, or OLT outage based on this alarm. Add handling so responds:false is classified as an indeterminate monitoring failure rather than an ONU outage."
+    },
+    "escalation": {
+      "priority": "Warning"
+    },
+    "monolithic": {
+      "fault_type": "olt_health_false_critical",
+      "root_cause": "The OLT is reachable and healthy, but the ONU/PON SNMP subtree is not responding. The health check interprets uniform monitoring no-responses as all seven PONs failed, producing a false critical alarm.",
+      "confidence": 0.99,
+      "severity": "Warning",
+      "affected_scope": "olt",
+      "remediation": "Repair the ONU/PON SNMP OID polling or monitoring configuration for OLT 10.220.57.6, then rerun the health check and verify per-ONU responses. Do not dispatch for a PON, splitter, or OLT outage based on this alarm. Add handling so responds:false is classified as an indeterminate monitoring failure rather than an ONU outage.",
+      "reasoning": [
+        "The OLT responds to both ping and SNMP, with normal CPU, memory, temperature, and uptime; this rules out an OLT failure.",
+        "The live ONU probe returns responds:false uniformly for all tested ONUs, including the entire EPON0/2 port, while the OLT SNMP agent itself responds but its OID subtree does not.",
+        "Uniform responds:false means that no ONU answered the probe; it is not definite offline evidence. This pattern, together with a reachable OLT, indicates broken monitoring.",
+        "Historical ONU status, current CRM status, active sessions, recent traffic, and healthy peers show that customers are online and passing traffic.",
+        "The customer has strong RX power (-19.84 dBm), normal TX power (2.29 dBm), stable distance, stable bias current, and no declining optical trend.",
+        "The alarm claims all 7/7 PONs failed, but the OLT and service telemetry are healthy, so the critical summary is a false critical health result.",
+        "The nine offline ONUs on 183 customers are approximately the normal 4.85% background level and do not indicate an OLT-wide outage."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "olt_health_false_critical",
+    "root_cause": "The OLT firmware (V2.04.12R) does not expose the ONU parameter OID subtree the health check reads. Every sampled ONU returns no instance, the check marks all seven PONs failed and writes a critical status, while the OLT and all 183 customers are operating normally.",
+    "severity": "Information",
+    "affected_scope": "none",
+    "affected_lineids": [],
+    "affected_customer_count": 0,
+    "service_impact": false,
+    "expected_reasoning": [
+      "Health check reports critical with all 7 of 7 PONs failed",
+      "OLT ping succeeds and SNMP sysUpTime answers, with 61 days of uptime and no recent reboot",
+      "OLT CPU 22%, memory 19% and temperature 44C are all at healthy baseline",
+      "Live probe returns oid_subtree_responds false, and every ONU on the port returns responds false rather than online 0",
+      "Uniform non-response means nothing answered; it is not a definite negative, so no ONU has been reported down",
+      "CRM shows 174 of 183 ONUs online, and 9 offline matches the 4.85% network baseline",
+      "The representative customer holds a session opened 14 hours ago and is passing normal daily traffic",
+      "Cached optical readings are 22 minutes old and normal, and telemetry has been flat for seven days",
+      "Healthy service with uniform probe non-response indicates an OID or firmware mismatch in the monitoring tool, not a network outage"
+    ],
+    "required_evidence": [
+      "olt_uptime_confirms_no_reboot",
+      "oid_subtree_non_response_is_uniform",
+      "customers_online_and_passing_traffic"
+    ],
+    "expected_remediation": "flag_monitoring_defect",
+    "expected_escalation": {
+      "priority": "Information",
+      "category": "monitoring",
+      "requires_human_review": true,
+      "review_reason": "Health check produces false criticals on firmware V2.04.12R; the OID subtree it reads is absent on this version"
+    },
+    "distractors": [
+      "The critical alarm invites an olt_failure or pon_port_failure diagnosis",
+      "Nine genuinely offline ONUs on the OLT are unrelated background noise at the normal rate",
+      "Firmware V2.04.12R differs from the estate norm V2.03.78R, which is the discriminator rather than a fault in itself"
+    ]
+  }
+}

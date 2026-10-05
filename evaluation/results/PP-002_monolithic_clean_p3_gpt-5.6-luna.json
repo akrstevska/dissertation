@@ -1,0 +1,90 @@
+{
+  "scenario_id": "PP-002",
+  "config": "monolithic_clean_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 10.4,
+  "result": {
+    "diagnosis": {
+      "fault_type": "pon_port_failure",
+      "root_cause": "EPON0/6 is down, affecting all 29 customers assigned to that PON port. The OLT itself is healthy and responsive; the healthy overall status is a monitoring defect that concealed the failed port.",
+      "confidence": 0.99,
+      "affected_scope": "pon_port",
+      "evidence": [
+        "The subscriber has a definite offline result: SNMP responds, online is 0, and the ONU reports MPCP DEREG.",
+        "All seven tested ONUs on EPON0/6 are definite negatives, so this is not a single-ONU fault or a monitoring timeout.",
+        "The port has 29 customers and the trigger reports 29 offline customers, matching the full port population.",
+        "The other seven PON ports are healthy, while OLT ping, SNMP, metrics, and uptime are normal; therefore this is not an OLT-wide or router failure.",
+        "Because the entire affected port is down, the correct fault type is pon_port_failure rather than splitter_failure.",
+        "Historical optical telemetry was stable around RX -20 dBm, TX +2.3 dBm, constant distance, and healthy bias current; the final null readings are a consequence of the outage, not evidence of fibre or laser degradation.",
+        "The VLAN is correctly provisioned and RADIUS is consistent, with only one normal session in the last 24 hours, so authentication and VLAN faults are excluded.",
+        "The OLT overall_status of healthy contradicts the failed-port detail and conceals a genuine minority-port outage; the service fault remains the PON port failure."
+      ]
+    },
+    "remediation": {
+      "action": "Escalate to PON access maintenance. Check EPON0/6 for port, line-card, optic, and configuration faults; reset or replace the port/optic as appropriate, then verify ONU registration and traffic for all 29 customers. Correct the OLT health check so a failed PON is reported despite other healthy ports."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "pon_port_failure",
+      "root_cause": "EPON0/6 is down, affecting all 29 customers assigned to that PON port. The OLT itself is healthy and responsive; the healthy overall status is a monitoring defect that concealed the failed port.",
+      "confidence": 0.99,
+      "severity": "High",
+      "affected_scope": "pon_port",
+      "remediation": "Escalate to PON access maintenance. Check EPON0/6 for port, line-card, optic, and configuration faults; reset or replace the port/optic as appropriate, then verify ONU registration and traffic for all 29 customers. Correct the OLT health check so a failed PON is reported despite other healthy ports.",
+      "reasoning": [
+        "The subscriber has a definite offline result: SNMP responds, online is 0, and the ONU reports MPCP DEREG.",
+        "All seven tested ONUs on EPON0/6 are definite negatives, so this is not a single-ONU fault or a monitoring timeout.",
+        "The port has 29 customers and the trigger reports 29 offline customers, matching the full port population.",
+        "The other seven PON ports are healthy, while OLT ping, SNMP, metrics, and uptime are normal; therefore this is not an OLT-wide or router failure.",
+        "Because the entire affected port is down, the correct fault type is pon_port_failure rather than splitter_failure.",
+        "Historical optical telemetry was stable around RX -20 dBm, TX +2.3 dBm, constant distance, and healthy bias current; the final null readings are a consequence of the outage, not evidence of fibre or laser degradation.",
+        "The VLAN is correctly provisioned and RADIUS is consistent, with only one normal session in the last 24 hours, so authentication and VLAN faults are excluded.",
+        "The OLT overall_status of healthy contradicts the failed-port detail and conceals a genuine minority-port outage; the service fault remains the PON port failure."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "pon_port_failure",
+    "root_cause": "EPON0/6 has failed, taking 28 of its 29 customers offline simultaneously 80 minutes ago. The twenty-ninth ONU had already been offline for three days from an unrelated individual fault and is not part of this event.",
+    "severity": "High",
+    "affected_scope": "pon_port",
+    "affected_lineids": [
+      "78:88:8A:87:AB:42",
+      "70:B6:4F:E5:1D:6A",
+      "70:B6:4F:D2:5F:22",
+      "70:B6:4F:B7:D3:FB",
+      "00:A1:07:60:84:0A",
+      "80:F1:A8:33:16:4E"
+    ],
+    "affected_customer_count": 6,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Every ONU on EPON0/6 now returns responds true with online 0",
+      "28 of the 29 stopped within the same minute, 80 minutes ago",
+      "One ONU on the port last held a session three days ago, so it was already down before this event",
+      "That ONU's separate history excludes it from this incident's affected set",
+      "OLT ping and SNMP succeed and the other seven ports are serving normally",
+      "The failure boundary follows EPON0/6 exactly",
+      "PON port traffic has collapsed from 231 Mbps average to 8 Mbps",
+      "The affected count is 28, not 29"
+    ],
+    "required_evidence": [
+      "all_onus_on_port_offline",
+      "pre_existing_outage_excluded",
+      "other_ports_healthy"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "High",
+      "category": "infrastructure",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "The trigger states 29 offline, inviting that number to be reported as the blast radius",
+      "All 29 look identical in current state and only history separates them"
+    ]
+  }
+}

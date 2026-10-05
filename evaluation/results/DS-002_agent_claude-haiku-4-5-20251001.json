@@ -1,0 +1,93 @@
+{
+  "scenario_id": "DS-002",
+  "config": "agent",
+  "model": "claude-haiku-4-5-20251001",
+  "seconds": 0.0,
+  "result": {
+    "trigger": "scheduled_scan",
+    "trigger_input": {
+      "scope": "olt",
+      "target": "TK_AZ-OLT_BT_Jad-04"
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [],
+      "preliminary_severity": "Warning",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        ""
+      ],
+      "olt_id": null,
+      "interface": null,
+      "summary": "stub"
+    },
+    "diagnosis": {
+      "fault_type": "no_fault",
+      "root_cause": "stub",
+      "confidence": 0.5,
+      "affected_scope": "single_customer",
+      "affected_lineids": [],
+      "evidence": [],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "remediation": {
+      "action": "no_action",
+      "automated": false,
+      "reason": "stub",
+      "instructions": "",
+      "alternatives_considered": []
+    },
+    "escalation": {
+      "priority": "Warning",
+      "category": "monitoring",
+      "requires_human_review": false,
+      "review_reason": null,
+      "summary": "stub",
+      "affected_customer_count": 0,
+      "service_impact": false
+    },
+    "trace": []
+  },
+  "ground_truth": {
+    "fault_type": "duplicate_onu_slot",
+    "root_cause": "Three active CRM records occupy EPON0/8:41. The live probe returns one ONU whose reported MAC matches none of the three, so the installed device is not represented by any current record. The available evidence does not determine which record, if any, corresponds to the customer being served.",
+    "severity": "Warning",
+    "affected_scope": "multi_customer",
+    "affected_lineids": [
+      "4C:46:D1:D5:AE:51",
+      "70:B6:4F:AA:21:98",
+      "B4:64:15:0B:B5:85"
+    ],
+    "affected_customer_count": 3,
+    "service_impact": false,
+    "expected_reasoning": [
+      "The CRM view lists three active customers on EPON0/8:41",
+      "A slot holds exactly one ONU, so at least two records are wrong",
+      "The live probe returns a single responding device with normal optical values",
+      "The MAC the probe reports matches none of the three CRM lineids",
+      "So the installed ONU is not represented by any of the three records",
+      "One record's cached RX matches the probe reading, but that is consistent with stale copying and does not identify the occupant",
+      "RADIUS holds an entry for one of the three with active sessions, but it keys on the CPE MAC and not on the ONU",
+      "No available signal distinguishes which record belongs to the device present",
+      "The honest conclusion is that the occupant cannot be determined from this evidence and a field check is needed"
+    ],
+    "required_evidence": [
+      "three_crm_records_one_slot",
+      "probe_mac_matches_no_record",
+      "insufficient_evidence_acknowledged"
+    ],
+    "expected_remediation": "manual_review",
+    "expected_escalation": {
+      "priority": "Warning",
+      "category": "provisioning",
+      "requires_human_review": true,
+      "review_reason": "Three records on one slot and none matches the installed ONU; a physical check is required before any record is changed"
+    },
+    "distractors": [
+      "One record's cached RX matches the probe exactly, inviting a confident attribution",
+      "That record also holds the active RADIUS entry, which reinforces the wrong inference",
+      "A confident answer is available and wrong; the correct answer is that the evidence is insufficient"
+    ]
+  }
+}

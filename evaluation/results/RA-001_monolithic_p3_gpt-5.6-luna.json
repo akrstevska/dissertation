@@ -1,0 +1,86 @@
+{
+  "scenario_id": "RA-001",
+  "config": "monolithic_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 5.4,
+  "result": {
+    "diagnosis": {
+      "fault_type": "radius_missing_entry",
+      "root_cause": "The customer is active in CRM and the ONU is online, authenticated, and correctly assigned to VLAN 1053, but no RADIUS radcheck entry exists. The provisioning workflow failed to create the subscriber's RADIUS account, so no PPP/session authentication can occur.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The complaint is that a new connection never worked, consistent with an initial provisioning failure rather than an intermittent fault.",
+        "The ONU is online and responding, with Auth/Finish state and stable RTT, so the customer device is reachable at the optical layer.",
+        "RX power of approximately -19.5 dBm is strong and TX power of approximately +2.5 dBm is normal.",
+        "Seven days of optical telemetry show stable RX and TX values, constant distance of 63, healthy bias current, stable voltage, and no availability gaps; there is no evidence of fibre, laser, distance, or ONU failure.",
+        "Other ONUs on EPON0/3 are online, the OLT and PON are healthy, and OLT CPU, memory, and temperature are normal.",
+        "The customer VLAN walk confirms that expected VLAN 1053 is present and correctly assigned, ruling out a stuck VLAN 46 provisioning condition.",
+        "There are zero sessions, zero traffic, and no RADIUS username or radcheck row.",
+        "The explicit RADIUS mismatch states that the active CRM customer has no radcheck row, identifying the missing RADIUS entry as the direct cause."
+      ]
+    },
+    "remediation": {
+      "action": "Create the missing RADIUS radcheck/user entry for line ID 4C:46:D1:D3:16:C5, ensuring it matches the CRM subscriber and CPE record. Replicate or reload the entry on the serving RADIUS path, then initiate authentication and verify that a session, framed IP/pool assignment, and customer traffic are established. Check the provisioning workflow for this new installation so the failure does not recur."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "radius_missing_entry",
+      "root_cause": "The customer is active in CRM and the ONU is online, authenticated, and correctly assigned to VLAN 1053, but no RADIUS radcheck entry exists. The provisioning workflow failed to create the subscriber's RADIUS account, so no PPP/session authentication can occur.",
+      "confidence": 0.99,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Create the missing RADIUS radcheck/user entry for line ID 4C:46:D1:D3:16:C5, ensuring it matches the CRM subscriber and CPE record. Replicate or reload the entry on the serving RADIUS path, then initiate authentication and verify that a session, framed IP/pool assignment, and customer traffic are established. Check the provisioning workflow for this new installation so the failure does not recur.",
+      "reasoning": [
+        "The complaint is that a new connection never worked, consistent with an initial provisioning failure rather than an intermittent fault.",
+        "The ONU is online and responding, with Auth/Finish state and stable RTT, so the customer device is reachable at the optical layer.",
+        "RX power of approximately -19.5 dBm is strong and TX power of approximately +2.5 dBm is normal.",
+        "Seven days of optical telemetry show stable RX and TX values, constant distance of 63, healthy bias current, stable voltage, and no availability gaps; there is no evidence of fibre, laser, distance, or ONU failure.",
+        "Other ONUs on EPON0/3 are online, the OLT and PON are healthy, and OLT CPU, memory, and temperature are normal.",
+        "The customer VLAN walk confirms that expected VLAN 1053 is present and correctly assigned, ruling out a stuck VLAN 46 provisioning condition.",
+        "There are zero sessions, zero traffic, and no RADIUS username or radcheck row.",
+        "The explicit RADIUS mismatch states that the active CRM customer has no radcheck row, identifying the missing RADIUS entry as the direct cause."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "radius_missing_entry",
+    "root_cause": "The customer has no radcheck row, so every authentication attempt is rejected and no session is ever established. The provisioning step that writes the RADIUS user did not complete when the line was installed.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "4C:46:D1:D3:16:C5"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "The ONU is online with RX -19.52 and TX 2.47, both comfortably normal",
+      "The live probe confirms the ONU and its peers are responding normally",
+      "The OLT and router are healthy, so no shared infrastructure fault exists",
+      "The physical layer is therefore working end to end",
+      "Despite that, the customer has zero sessions in both the 24 hour and 7 day windows",
+      "RADIUS holds no radcheck row for this CPE MAC, so authentication cannot succeed",
+      "Daily traffic is zero for all seven days, consistent with never having been authenticated",
+      "A healthy physical layer with an absent RADIUS entry is a provisioning failure, not a network fault",
+      "No technician visit is warranted; the RADIUS entry needs creating"
+    ],
+    "required_evidence": [
+      "physical_layer_confirmed_healthy",
+      "radcheck_absent",
+      "zero_sessions_since_install"
+    ],
+    "expected_remediation": "create_radius_entry",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "provisioning",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "A brand new connection that never worked suggests an installation fault",
+      "Zero traffic could be read as a dead line"
+    ]
+  }
+}

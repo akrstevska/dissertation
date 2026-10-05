@@ -1,0 +1,86 @@
+{
+  "scenario_id": "SF-002",
+  "config": "monolithic_shared_p1",
+  "model": "gpt-5.6-luna",
+  "seconds": 6.4,
+  "result": {
+    "diagnosis": {
+      "fault_type": "session_flapping_auth",
+      "root_cause": "Conflicting duplicate radcheck rows exist for the same username. FreeRADIUS may select either the valid CRM line ID or the orphan line ID, causing inconsistent session attribution and repeated re-authentication.",
+      "confidence": 0.99,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The subscriber has 19 sessions in 24 hours, exceeding the 8-session flapping threshold.",
+        "The average session duration is only 38 minutes, far below the 11.9-hour network mean, confirming repeated disconnect and re-authentication behavior.",
+        "RX power is stable in the normal band at approximately -20.6 dBm, with only normal telemetry variation.",
+        "TX power is normal at approximately +2.4 dBm and TX bias current is stable within the healthy range, so there is no evidence of laser degradation.",
+        "Distance is constant at 96, so there is no path or provisioning distance change.",
+        "The ONU is currently online and responding, peers on EPON0/5 are healthy, and the OLT, router, VLAN, and PON port are operational.",
+        "RADIUS contains two rows for the same username, one with the valid CRM line ID and one orphan row with a different line ID; FreeRADIUS resolves whichever row it reaches first.",
+        "With clean optics and 8 or more short sessions in 24 hours, the presenting fault is authentication-driven session flapping rather than a physical signal fault."
+      ]
+    },
+    "remediation": {
+      "action": "Remove the orphan radcheck row carrying line ID 1C:EF:03:90:2B:5A, retain and validate the row for CRM line ID 00:A1:07:C4:1D:88, then terminate stale sessions and force one clean re-authentication. Monitor the subscriber for session count and duration returning to normal."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "session_flapping_auth",
+      "root_cause": "Conflicting duplicate radcheck rows exist for the same username. FreeRADIUS may select either the valid CRM line ID or the orphan line ID, causing inconsistent session attribution and repeated re-authentication.",
+      "confidence": 0.99,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Remove the orphan radcheck row carrying line ID 1C:EF:03:90:2B:5A, retain and validate the row for CRM line ID 00:A1:07:C4:1D:88, then terminate stale sessions and force one clean re-authentication. Monitor the subscriber for session count and duration returning to normal.",
+      "reasoning": [
+        "The subscriber has 19 sessions in 24 hours, exceeding the 8-session flapping threshold.",
+        "The average session duration is only 38 minutes, far below the 11.9-hour network mean, confirming repeated disconnect and re-authentication behavior.",
+        "RX power is stable in the normal band at approximately -20.6 dBm, with only normal telemetry variation.",
+        "TX power is normal at approximately +2.4 dBm and TX bias current is stable within the healthy range, so there is no evidence of laser degradation.",
+        "Distance is constant at 96, so there is no path or provisioning distance change.",
+        "The ONU is currently online and responding, peers on EPON0/5 are healthy, and the OLT, router, VLAN, and PON port are operational.",
+        "RADIUS contains two rows for the same username, one with the valid CRM line ID and one orphan row with a different line ID; FreeRADIUS resolves whichever row it reaches first.",
+        "With clean optics and 8 or more short sessions in 24 hours, the presenting fault is authentication-driven session flapping rather than a physical signal fault."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "session_flapping_auth",
+    "root_cause": "Two radcheck rows exist for the same username. FreeRADIUS resolves inconsistently between them, so authentication succeeds or fails depending on which row is matched, producing repeated short sessions and two alternating IP assignments.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "00:A1:07:C4:1D:88"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "19 sessions in 24h against a 2-3 baseline, with a 38 minute mean duration against an 11.9 hour norm",
+      "RX has been flat at -20.6 dBm for seven days inside the +/-0.3 dBm noise floor, so signal is not the cause",
+      "TX power, bias current, supply voltage and distance are all stable",
+      "Port neighbours are normal and the OLT is healthy, so no shared infrastructure fault",
+      "With no optical explanation available, the search moves to the authentication layer",
+      "RADIUS holds two radcheck rows for username 30:16:9D:A2:5F:03, one of them an orphan with a different lineid",
+      "Recent sessions alternate between two IP addresses, consistent with inconsistent row resolution",
+      "Traffic is erratic rather than declining, which fits intermittent authentication rather than a degrading link"
+    ],
+    "required_evidence": [
+      "optical_layer_confirmed_clean",
+      "duplicate_radcheck_identified",
+      "alternating_ip_assignment"
+    ],
+    "expected_remediation": "manual_review",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "provisioning",
+      "requires_human_review": true,
+      "review_reason": "Duplicate RADIUS rows must be resolved by hand; deleting the wrong row disconnects the customer"
+    },
+    "distractors": [
+      "The session pattern is identical to signal-related flapping and invites that diagnosis",
+      "Zero-throughput windows in the speed series look like link loss but coincide with rejected auth",
+      "ONU is a Router type, inviting a CPE-fault explanation"
+    ]
+  }
+}

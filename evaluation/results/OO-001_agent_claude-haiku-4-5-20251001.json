@@ -1,0 +1,89 @@
+{
+  "scenario_id": "OO-001",
+  "config": "agent",
+  "model": "claude-haiku-4-5-20251001",
+  "seconds": 0.0,
+  "result": {
+    "trigger": "customer_complaint",
+    "trigger_input": {
+      "lineid": "4C:D7:C8:11:5F:A3",
+      "complaint": "No internet at all since this afternoon"
+    },
+    "detection": {
+      "status": "anomaly_detected",
+      "signals": [],
+      "preliminary_severity": "Warning",
+      "affected_scope": "single_customer",
+      "affected_lineids": [
+        "4C:D7:C8:11:5F:A3"
+      ],
+      "olt_id": null,
+      "interface": null,
+      "summary": "stub"
+    },
+    "diagnosis": {
+      "fault_type": "no_fault",
+      "root_cause": "stub",
+      "confidence": 0.5,
+      "affected_scope": "single_customer",
+      "affected_lineids": [],
+      "evidence": [],
+      "cached_vs_live_discrepancy": false,
+      "discrepancy_detail": null
+    },
+    "remediation": {
+      "action": "no_action",
+      "automated": false,
+      "reason": "stub",
+      "instructions": "",
+      "alternatives_considered": []
+    },
+    "escalation": {
+      "priority": "Warning",
+      "category": "monitoring",
+      "requires_human_review": false,
+      "review_reason": null,
+      "summary": "stub",
+      "affected_customer_count": 0,
+      "service_impact": false
+    },
+    "trace": []
+  },
+  "ground_truth": {
+    "fault_type": "onu_offline",
+    "root_cause": "The ONU has deregistered and stopped responding. Optical readings were entirely normal up to the moment it dropped, with no preceding degradation, which points to loss of power at the premises or a failed ONU rather than a fibre fault.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "4C:D7:C8:11:5F:A3"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Stored onu_status is 0 and both power columns hold the '0' no-reading sentinel",
+      "Live probe returns responds true with online 0, which is a definite negative rather than an absence of response",
+      "Auth flag is Unauth and the exchange state is MPCP DEREG, confirming deregistration on the OLT",
+      "Telemetry was flat and healthy at -20.2 dBm right up to the cut-off five hours ago, with no preceding decline",
+      "Absence of prior degradation argues against a fibre fault and for power loss or ONU failure",
+      "Peers on EPON0/2 are all online with normal readings, so the port, feeder and splitter are fine",
+      "RADIUS shows an active entry with no disable pool, so this is not a suspension",
+      "Traffic stopped today after six normal days"
+    ],
+    "required_evidence": [
+      "definite_offline_not_no_response",
+      "clean_signal_history_before_cutoff",
+      "suspension_ruled_out"
+    ],
+    "expected_remediation": "onu_reset",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "field_service",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "The '0' power values could be misread as a strong signal if the sentinel is not recognised",
+      "A single offline ONU on a large OLT is within the 4.85% background rate"
+    ]
+  }
+}

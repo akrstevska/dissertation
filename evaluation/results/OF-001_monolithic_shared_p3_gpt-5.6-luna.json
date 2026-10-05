@@ -1,0 +1,84 @@
+{
+  "scenario_id": "OF-001",
+  "config": "monolithic_shared_p3",
+  "model": "gpt-5.6-luna",
+  "seconds": 5.7,
+  "result": {
+    "diagnosis": {
+      "fault_type": "olt_failure",
+      "root_cause": "The OLT TK_AZ-OLT_SK-Madzari-01 is currently unreachable: ping and SNMP both fail, and the OLT population reports all 139 ONUs offline. The uniform ONU probe failures are a consequence of the unreachable OLT, not a monitoring-only defect.",
+      "confidence": 0.99,
+      "affected_scope": "olt",
+      "evidence": [
+        "The live OLT probe shows ping_ok=false and snmp_responds=false, which meets the definition of an OLT failure.",
+        "The OLT health record independently reports the same current condition: offline and not reachable.",
+        "All 139 customers on the OLT are reported offline across all six PON ports, indicating OLT-wide impact rather than a single ONU, splitter, or port fault.",
+        "Every tested ONU returns responds=false, not responds=true with online=0; therefore these probes cannot establish individual ONU faults.",
+        "Uniform ONU non-responses while the OLT itself fails to answer are consistent with the OLT being down, not with broken monitoring.",
+        "The router heartbeat is healthy, so there is no evidence that the associated router is the failed shared device.",
+        "Historical optical telemetry was healthy and is not evidence against the current outage; current reachability and population state take precedence.",
+        "The subscriber's RADIUS entry is present and consistent, session activity is not flapping, and the physical readings of zero are no-reading values rather than strong optical readings."
+      ]
+    },
+    "remediation": {
+      "action": "Escalate as an OLT-wide outage. Check the OLT power, physical uplink, management VLAN/IP path, and upstream switch/router connectivity; restore or reboot the OLT if appropriate, then verify ping, SNMP, PON status, ONU recovery, and customer traffic. Do not diagnose this subscriber as an optical, RADIUS, VLAN, or ONU fault until OLT reachability is restored."
+    },
+    "escalation": {
+      "priority": "Disaster"
+    },
+    "monolithic": {
+      "fault_type": "olt_failure",
+      "root_cause": "The OLT TK_AZ-OLT_SK-Madzari-01 is currently unreachable: ping and SNMP both fail, and the OLT population reports all 139 ONUs offline. The uniform ONU probe failures are a consequence of the unreachable OLT, not a monitoring-only defect.",
+      "confidence": 0.99,
+      "severity": "Disaster",
+      "affected_scope": "olt",
+      "remediation": "Escalate as an OLT-wide outage. Check the OLT power, physical uplink, management VLAN/IP path, and upstream switch/router connectivity; restore or reboot the OLT if appropriate, then verify ping, SNMP, PON status, ONU recovery, and customer traffic. Do not diagnose this subscriber as an optical, RADIUS, VLAN, or ONU fault until OLT reachability is restored.",
+      "reasoning": [
+        "The live OLT probe shows ping_ok=false and snmp_responds=false, which meets the definition of an OLT failure.",
+        "The OLT health record independently reports the same current condition: offline and not reachable.",
+        "All 139 customers on the OLT are reported offline across all six PON ports, indicating OLT-wide impact rather than a single ONU, splitter, or port fault.",
+        "Every tested ONU returns responds=false, not responds=true with online=0; therefore these probes cannot establish individual ONU faults.",
+        "Uniform ONU non-responses while the OLT itself fails to answer are consistent with the OLT being down, not with broken monitoring.",
+        "The router heartbeat is healthy, so there is no evidence that the associated router is the failed shared device.",
+        "Historical optical telemetry was healthy and is not evidence against the current outage; current reachability and population state take precedence.",
+        "The subscriber's RADIUS entry is present and consistent, session activity is not flapping, and the physical readings of zero are no-reading values rather than strong optical readings."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "olt_failure",
+    "root_cause": "The OLT is not reachable by ICMP and does not answer SNMP. All 139 customers behind it lost service two hours ago. The device is down, powered off, or isolated from the management and transport network.",
+    "severity": "Disaster",
+    "affected_scope": "olt",
+    "affected_lineids": [],
+    "affected_customer_count": 139,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Ping to the OLT fails, so the health check stopped before any SNMP test was attempted",
+      "The live probe confirms neither ICMP nor SNMP answers",
+      "No ONU on the OLT responds, and no probe returns a definite online or offline state",
+      "This differs from the firmware mismatch case, where ping and SNMP both succeed",
+      "All 139 customers on the OLT are offline and sessions ended together two hours ago",
+      "Optical readings are stale by 118 minutes, consistent with polling stopping when the device went down",
+      "The upstream router is still checking in normally, so the fault is the OLT and not the router",
+      "Traffic through the OLT has fallen to zero",
+      "Unreachable by both ICMP and SNMP with total customer loss is a device or transport failure"
+    ],
+    "required_evidence": [
+      "ping_and_snmp_both_fail",
+      "all_customers_affected",
+      "router_still_reachable"
+    ],
+    "expected_remediation": "escalate_infrastructure",
+    "expected_escalation": {
+      "priority": "Disaster",
+      "category": "infrastructure",
+      "requires_human_review": false,
+      "review_reason": null
+    },
+    "distractors": [
+      "Zero values in olt_metrics could be read as healthy low utilisation",
+      "Stale cached readings might be mistaken for current state"
+    ]
+  }
+}

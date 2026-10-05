@@ -1,0 +1,87 @@
+{
+  "scenario_id": "DC-002",
+  "config": "monolithic_clean_p1",
+  "model": "gpt-5.6-luna",
+  "seconds": 11.2,
+  "result": {
+    "diagnosis": {
+      "fault_type": "distance_change",
+      "root_cause": "The ONU distance changed abruptly from 95 km to 41 km, indicating that the fibre path or the record pointing to it changed. The new path has degraded RX power, falling from approximately -21 dBm in the normal band to -26.58 dBm in the degraded band. The elevated re-authentication rate is a symptom of the degraded optical condition, not a separate authentication fault.",
+      "confidence": 0.98,
+      "affected_scope": "single_customer",
+      "evidence": [
+        "The subscriber is currently online and responding, while all tested peers on EPON0/5 are online with substantially healthier RX levels; this localizes the issue to the customer's path.",
+        "The OLT responds to ping and SNMP, its CPU, memory, temperature, and uptime are normal, and all seven tested PONs are healthy; this rules out an OLT, PON-port, splitter, or shared-infrastructure failure.",
+        "RX power began at approximately -21.23 dBm, within the normal band, and later declined to approximately -26.25 dBm, in the degraded band.",
+        "At the same point in the telemetry, distance changed abruptly from 95 to 41 rather than drifting. A step change in distance identifies a changed fibre path or incorrect path record; the RX movement is a consequence of that change.",
+        "TX power remains normal and stable around +2.3 dBm, and TX bias remains flat around 11 mA, so there is no evidence of laser degradation.",
+        "The current RX reading of -26.58 dBm confirms degraded optical performance, but the ONU remains online.",
+        "There are 8 sessions in 24 hours with short average durations, but the optical decline takes precedence under the diagnostic rules; the session churn is consistent with the degraded link.",
+        "RADIUS data, line ID, CRM mapping, VLAN 1115, and assigned IP are consistent, so this is not a RADIUS, VLAN, or authentication fault."
+      ]
+    },
+    "remediation": {
+      "action": "Verify the subscriber's fibre path, ONU/OLT registration, splitter and splice records, and correct any incorrect port or path mapping. Perform OTDR and optical-loss testing on the current route, inspect and clean connectors and splice points, and restore the intended 95 km path or repair the newly introduced path. Monitor RX power and session stability after correction."
+    },
+    "escalation": {
+      "priority": "High"
+    },
+    "monolithic": {
+      "fault_type": "distance_change",
+      "root_cause": "The ONU distance changed abruptly from 95 km to 41 km, indicating that the fibre path or the record pointing to it changed. The new path has degraded RX power, falling from approximately -21 dBm in the normal band to -26.58 dBm in the degraded band. The elevated re-authentication rate is a symptom of the degraded optical condition, not a separate authentication fault.",
+      "confidence": 0.98,
+      "severity": "High",
+      "affected_scope": "single_customer",
+      "remediation": "Verify the subscriber's fibre path, ONU/OLT registration, splitter and splice records, and correct any incorrect port or path mapping. Perform OTDR and optical-loss testing on the current route, inspect and clean connectors and splice points, and restore the intended 95 km path or repair the newly introduced path. Monitor RX power and session stability after correction.",
+      "reasoning": [
+        "The subscriber is currently online and responding, while all tested peers on EPON0/5 are online with substantially healthier RX levels; this localizes the issue to the customer's path.",
+        "The OLT responds to ping and SNMP, its CPU, memory, temperature, and uptime are normal, and all seven tested PONs are healthy; this rules out an OLT, PON-port, splitter, or shared-infrastructure failure.",
+        "RX power began at approximately -21.23 dBm, within the normal band, and later declined to approximately -26.25 dBm, in the degraded band.",
+        "At the same point in the telemetry, distance changed abruptly from 95 to 41 rather than drifting. A step change in distance identifies a changed fibre path or incorrect path record; the RX movement is a consequence of that change.",
+        "TX power remains normal and stable around +2.3 dBm, and TX bias remains flat around 11 mA, so there is no evidence of laser degradation.",
+        "The current RX reading of -26.58 dBm confirms degraded optical performance, but the ONU remains online.",
+        "There are 8 sessions in 24 hours with short average durations, but the optical decline takes precedence under the diagnostic rules; the session churn is consistent with the degraded link.",
+        "RADIUS data, line ID, CRM mapping, VLAN 1115, and assigned IP are consistent, so this is not a RADIUS, VLAN, or authentication fault."
+      ]
+    }
+  },
+  "ground_truth": {
+    "fault_type": "distance_change",
+    "root_cause": "A re-splice four days ago shortened the path from 95 m to 41 m and initially improved RX from -20.8 to -18.2 dBm. Since then RX has fallen steadily to -26.5 dBm, so the new splice itself is failing.",
+    "severity": "Average",
+    "affected_scope": "single_customer",
+    "affected_lineids": [
+      "78:88:8A:9E:69:74"
+    ],
+    "affected_customer_count": 1,
+    "service_impact": true,
+    "expected_reasoning": [
+      "Current RX of -26.1 dBm is in the degraded band and live RX is worse still at -26.6",
+      "The recent RX series shows a clear downward slope, which alone reads as fibre degradation",
+      "Looking further back, distance stepped from 95 m to 41 m four days ago",
+      "At that same moment RX jumped upward from -20.8 to -18.2 dBm, consistent with a shorter path",
+      "So the sequence is: path shortened and improved first, then began degrading from the new baseline",
+      "The customer's statement that it was fixed last week corroborates a work visit at that point",
+      "TX power, bias current and supply voltage are flat, so the ONU is not implicated",
+      "Peers on EPON0/5 are normal, so the fault is in this customer's own path",
+      "A splice made four days ago that is now losing 8 dB is a defective splice, not coincidental degradation"
+    ],
+    "required_evidence": [
+      "distance_step_detected",
+      "rx_improved_then_degraded",
+      "degradation_postdates_path_change"
+    ],
+    "expected_remediation": "dispatch_technician",
+    "expected_escalation": {
+      "priority": "Average",
+      "category": "field_service",
+      "requires_human_review": true,
+      "review_reason": "Rework of a splice completed four days ago; the original job should be reviewed"
+    },
+    "distractors": [
+      "The recent RX slope is a textbook fibre degradation signature",
+      "The distance step is buried three days back in the series",
+      "Eight sessions in 24h invites a flapping diagnosis"
+    ]
+  }
+}
