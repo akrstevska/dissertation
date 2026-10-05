@@ -49,6 +49,19 @@ def load(sid: str) -> dict:
     return json.loads(next((ROOT / "scenarios").glob(f"{sid}-*.json")).read_text())
 
 
+def diagnose(scenario: dict, config: str) -> dict:
+    answer = ask_json(build(scenario, THRESHOLDS, CONFIGS[config]), REQUIRED)
+    # mirrored into the pipeline's key names so one scorer reads both
+    return {"diagnosis": {"fault_type": answer["fault_type"],
+                          "root_cause": answer["root_cause"],
+                          "confidence": answer["confidence"],
+                          "affected_scope": answer["affected_scope"],
+                          "evidence": answer["reasoning"]},
+            "remediation": {"action": answer["remediation"]},
+            "escalation": {"priority": answer["severity"]},
+            "monolithic": answer}
+
+
 def run_one(sid: str, config: str, tag: str = "", fresh: bool = False) -> dict:
     out = RESULTS / f"{sid}_{config}{tag}_{MODEL}.json"
     if out.exists() and not fresh:
@@ -57,20 +70,10 @@ def run_one(sid: str, config: str, tag: str = "", fresh: bool = False) -> dict:
     scenario = load(sid)
     start = time.time()
     try:
-        answer = ask_json(build(scenario, THRESHOLDS, CONFIGS[config]), REQUIRED)
+        result = diagnose(scenario, config)
         record = {"scenario_id": sid, "config": config + tag, "model": MODEL,
                   "seconds": round(time.time() - start, 1),
-                  "result": {
-                      # mirrored into the pipeline's key names so one scorer reads both
-                      "diagnosis": {"fault_type": answer["fault_type"],
-                                    "root_cause": answer["root_cause"],
-                                    "confidence": answer["confidence"],
-                                    "affected_scope": answer["affected_scope"],
-                                    "evidence": answer["reasoning"]},
-                      "remediation": {"action": answer["remediation"]},
-                      "escalation": {"priority": answer["severity"]},
-                      "monolithic": answer},
-                  "ground_truth": scenario["ground_truth"]}
+                  "result": result, "ground_truth": scenario["ground_truth"]}
     except Exception as e:
         record = {"scenario_id": sid, "config": config + tag, "model": MODEL,
                   "seconds": round(time.time() - start, 1),
