@@ -41,6 +41,15 @@ def fault_type(outputs, reference_outputs):
     return _match("fault_type", _diag(outputs).get("fault_type"), reference_outputs["fault_type"])
 
 
+def detection(outputs, reference_outputs):
+    """Agent only: the screening stage should raise every fault and clear only no_fault."""
+    status = (outputs.get("detection") or {}).get("status")
+    if status is None:
+        return {"key": "detection", "score": None, "comment": "no detection stage"}
+    want = "no_anomaly" if reference_outputs["fault_type"] == "no_fault" else "anomaly_detected"
+    return _match("detection", status, want)
+
+
 def remediation(outputs, reference_outputs):
     got = (outputs.get("remediation") or {}).get("action")
     return _match("remediation", got, reference_outputs["expected_remediation"])
@@ -84,20 +93,24 @@ def confidence(outputs, reference_outputs):
     return {"key": "confidence", "score": _diag(outputs).get("confidence")}
 
 
-DETERMINISTIC = [fault_type, remediation, priority, priority_distance, category,
+DETERMINISTIC = [detection, fault_type, remediation, priority, priority_distance, category,
                  human_review, scope, confidence]
 
 
 # --- LLM judge ----------------------------------------------------------------
 # A different model family from the system under test, so it is not marking its own work.
 
-JUDGE_MODEL = "claude-sonnet-5-5"
+JUDGE_MODEL = "claude-haiku-4-5"
+
+
+class Item(BaseModel):
+    item: str = Field(description="the required evidence item, copied exactly")
+    present: bool = Field(description="true only if the diagnosis states this evidence with the observation behind it")
+    reason: str = Field(description="one sentence")
 
 
 class Coverage(BaseModel):
-    present: bool = Field(description="true only if the diagnosis states this evidence with the observation behind it")
-    quote: str = Field(description="the sentence from the diagnosis that carries it, or empty")
-    reason: str = Field(description="one sentence")
+    items: list[Item]
 
 
 class Claim(BaseModel):
@@ -110,11 +123,12 @@ class Claims(BaseModel):
     claims: list[Claim]
 
 
-COVERAGE_PROMPT = """You are checking a network fault diagnosis for one piece of required evidence.
+COVERAGE_PROMPT = """You are checking a network fault diagnosis for required pieces of evidence.
 
-Required evidence: {item}
+Required evidence items:
+{items}
 
-What this item means in this case, from the reference reasoning:
+What these items mean in this case, from the reference reasoning:
 {reasoning}
 
 The system's diagnosis:
@@ -122,9 +136,9 @@ Root cause: {root_cause}
 Evidence:
 {evidence}
 
-Does the diagnosis state this evidence, together with the observation or value that shows it?
-Reaching the conclusion without the observation behind it does not count. Wording may differ
-from the reference; judge the substance."""
+For each required item separately: does the diagnosis state this evidence, together with the
+observation or value that shows it? Reaching the conclusion without the observation behind it
+does not count. Wording may differ from the reference; judge the substance."""
 
 CLAIMS_PROMPT = """You are checking whether a network fault diagnosis is supported by its data.
 
@@ -156,19 +170,18 @@ def _bullets(items):
 
 
 def evidence_coverage(outputs, reference_outputs):
-    """Share of required_evidence items the diagnosis actually states. One judge call per item."""
+    """Share of required_evidence items the diagnosis actually states. One judge call per run."""
     d = _diag(outputs)
     if not d.get("evidence"):
         return {"key": "evidence_coverage", "score": 0, "comment": "no evidence given"}
-    verdicts = []
-    for item in reference_outputs["required_evidence"]:
-        v = _judge(Coverage).invoke(COVERAGE_PROMPT.format(
-            item=item, reasoning=_bullets(reference_outputs["expected_reasoning"]),
-            root_cause=d.get("root_cause", ""), evidence=_bullets(d["evidence"])))
-        verdicts.append((item, v))
-    score = sum(v.present for _, v in verdicts) / len(verdicts)
-    comment = "\n".join(f"[{'Y' if v.present else 'N'}] {item}: {v.reason}" for item, v in verdicts)
-    return {"key": "evidence_coverage", "score": round(score, 2), "comment": comment}
+    required = reference_outputs["required_evidence"]
+    r = _judge(Coverage).invoke(COVERAGE_PROMPT.format(
+        items=_bullets(required), reasoning=_bullets(reference_outputs["expected_reasoning"]),
+        root_cause=d.get("root_cause", ""), evidence=_bullets(d["evidence"])))
+    verdicts = {v.item: v for v in r.items}
+    present = sum(1 for item in required if item in verdicts and verdicts[item].present)
+    comment = "\n".join(f"[{'Y' if v.present else 'N'}] {v.item}: {v.reason}" for v in r.items)
+    return {"key": "evidence_coverage", "score": round(present / len(required), 2), "comment": comment}
 
 
 def unsupported_claims(inputs, outputs, reference_outputs):
@@ -177,7 +190,8 @@ def unsupported_claims(inputs, outputs, reference_outputs):
     if not evidence:
         return {"key": "unsupported_claims", "score": None, "comment": "no evidence given"}
     scenario = json.loads(next(SCENARIOS.glob(f"{inputs['scenario_id']}-*.json")).read_text())
-    data = {k: v for k, v in scenario.items() if k not in ("metadata", "ground_truth")}
+    hidden = {"metadata", "ground_truth"} | ({"snmp_live"} if "monolithic" in outputs else set())
+    data = {k: v for k, v in scenario.items() if k not in hidden}  # what this system could see
     r = _judge(Claims).invoke(CLAIMS_PROMPT.format(
         thresholds=THRESHOLDS, data=json.dumps(data, separators=(",", ":")),
         statements="\n".join(f"{i}. {s}" for i, s in enumerate(evidence))))

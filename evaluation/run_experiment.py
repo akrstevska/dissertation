@@ -1,15 +1,18 @@
 """Run one architecture over the LangSmith dataset as an experiment, scored by the evaluators.
 
   python evaluation/run_experiment.py                                  # agent, smoke split
-  python evaluation/run_experiment.py --config monolithic_shared
-  python evaluation/run_experiment.py --split base --repeat 3 --judge
-  python evaluation/run_experiment.py --add-judge <experiment name>    # judge an existing run
+  python evaluation/run_experiment.py --config monolithic_shared_stored
+  MODEL=gpt-6-luna python evaluation/run_experiment.py --split base --repeat 3
+  python evaluation/run_experiment.py --add-judge <experiment name>    # judge one run per scenario
+  python evaluation/run_experiment.py --add-judge <experiment name> --judge-repeats 3  # top up
 
 LangSmith records tokens, cost and latency per run; the evaluators add the score columns.
 """
 import argparse
+import inspect
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -32,15 +35,53 @@ CONFIGS = ["agent"] + list(monolithic.CONFIGS)
 
 
 def agent(inputs: dict) -> dict:
+    """Only the agents' decisions; the full run, tool calls included, is in the trace."""
     tools.load(inputs["scenario_id"])
-    return pipeline.invoke({"trigger": inputs["trigger"],
-                            "trigger_input": inputs["trigger_input"], "trace": []})
+    state = pipeline.invoke({"trigger": inputs["trigger"],
+                             "trigger_input": inputs["trigger_input"], "trace": []})
+    out = {k: state.get(k) for k in ("diagnosis", "remediation", "escalation", "detection")}
+    if out["remediation"] is None:
+        # routing.after_diagnosis skipped the remediation agent; that route is itself the
+        # decision: low confidence goes to a human, olt/router scope to infrastructure
+        low = out["diagnosis"]["confidence"] < 0.5
+        out["remediation"] = {"action": "manual_review" if low else "escalate_infrastructure",
+                              "routed": True}
+    return out
 
 
 def baseline(config: str):
     def target(inputs: dict) -> dict:
         return monolithic.diagnose(monolithic.load(inputs["scenario_id"]), config)
     return target
+
+
+def add_judge(client, experiment: str, repeats: int, workers: int):
+    """Judge the first `repeats` repetitions of each scenario and attach the scores as feedback.
+    A judge key a run already has is skipped, so a top-up never judges or pays twice."""
+    per_example = {}
+    for r in sorted(client.list_runs(project_name=experiment, is_root=True), key=lambda r: r.start_time):
+        per_example.setdefault(r.reference_example_id, []).append(r)
+    runs = [r for reps in per_example.values() for r in reps[:repeats]]
+    done = {}
+    for f in client.list_feedback(run_ids=[r.id for r in runs], feedback_key=[ev.__name__ for ev in JUDGE]):
+        done.setdefault(f.run_id, set()).add(f.key)
+    examples = {e.id: e for e in client.list_examples(dataset_name=DATASET)}
+
+    def judge(run):
+        todo = [ev for ev in JUDGE if ev.__name__ not in done.get(run.id, set())]
+        if not todo:
+            return 0
+        ex = examples[run.reference_example_id]
+        args = {"inputs": ex.inputs, "outputs": run.outputs or {}, "reference_outputs": ex.outputs}
+        for ev in todo:
+            r = ev(**{k: args[k] for k in inspect.signature(ev).parameters})
+            client.create_feedback(run.id, key=r["key"], score=r["score"], comment=r.get("comment"))
+        print(ex.inputs["scenario_id"], "judged")
+        return 1
+
+    with ThreadPoolExecutor(workers) as ex:
+        judged = sum(ex.map(judge, runs))
+    print(f"\n{experiment}: judged {judged} runs, {len(runs) - judged} already judged")
 
 
 def summary(results):
@@ -61,11 +102,14 @@ if __name__ == "__main__":
     ap.add_argument("--workers", type=int, default=5)
     ap.add_argument("--judge", action="store_true", help="add the LLM judge evaluators")
     ap.add_argument("--add-judge", metavar="EXPERIMENT", help="judge an existing experiment, no re-run")
+    ap.add_argument("--judge-repeats", type=int, default=1, metavar="N",
+                    help="with --add-judge: judge the first N repetitions per scenario")
     a = ap.parse_args()
     client = Client()
 
     if a.add_judge:
-        results = client.evaluate(a.add_judge, evaluators=JUDGE, max_concurrency=a.workers)
+        add_judge(client, a.add_judge, a.judge_repeats, a.workers)
+        sys.exit()
     else:
         commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT,
                                 capture_output=True, text=True).stdout.strip()
