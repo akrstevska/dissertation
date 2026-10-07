@@ -2048,7 +2048,7 @@
   "ground_truth": {
     "fault_type": "distance_change",
     "root_cause": "A re-splice four days ago shortened the path from 95 m to 41 m and initially improved RX from -20.8 to -18.2 dBm. Since then RX has fallen steadily to -26.5 dBm, so the new splice itself is failing.",
-    "severity": "Average",
+    "severity": "Warning",
     "affected_scope": "single_customer",
     "affected_lineids": [
       "78:88:8A:9E:69:74"
@@ -2073,7 +2073,7 @@
     ],
     "expected_remediation": "dispatch_technician",
     "expected_escalation": {
-      "priority": "Average",
+      "priority": "Warning",
       "category": "field_service",
       "requires_human_review": true,
       "review_reason": "Rework of a splice completed four days ago; the original job should be reviewed"

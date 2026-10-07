@@ -2034,7 +2034,7 @@
   "ground_truth": {
     "fault_type": "session_flapping_auth",
     "root_cause": "On 17 September a Session-Timeout of 4500 seconds was written to radreply for this username when the profile was changed. The MikroTik ends the session each time the timer expires and the CPE re-authenticates within about a minute, so the customer is disconnected every 75 minutes on a physically healthy line.",
-    "severity": "Average",
+    "severity": "Warning",
     "affected_scope": "single_customer",
     "affected_lineids": [
       "00:A1:07:C4:1D:88"
@@ -2060,7 +2060,7 @@
     ],
     "expected_remediation": "manual_review",
     "expected_escalation": {
-      "priority": "Average",
+      "priority": "Warning",
       "category": "provisioning",
       "requires_human_review": true,
       "review_reason": "The per-user Session-Timeout has to be removed by hand, and the profile change that wrote it should be checked for other customers"

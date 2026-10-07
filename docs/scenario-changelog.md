@@ -16,6 +16,17 @@ All 35 validate.
 | OF-001 | Same convention. | Telemetry goes to 0 instead of null at the failure hour, and the reading is no longer "stale". Also fixed a defect: OLT CPU, memory and temperature read about 0 for all seven days, although the OLT failed two hours ago. | Reasoning line on staleness reworded. Answer unchanged. |
 | RU-001 | Fine. If OLT management runs through the same MikroTik, the OLTs would be unreachable too. | Reasoning line added: OLT management is reachable here, so it does not route through this BNG. | None. |
 
+### Severity consistency correction (7 October 2026)
+
+| Scenario | Change | Reason |
+|---|---|---|
+| DC-002 | severity and priority Average → **Warning** | RX ends at −26.5 dBm, inside the degraded band, and the customer is still connected (8 sessions in 24h). The severity model (`docs/scenario-schema.md` §12) defines Warning as "degradation, service still usable" and Average as "single customer out of service". FD-001, the same situation at −26.4 dBm, is Warning. |
+| SF-002 | severity and priority Average → **Warning** | When the mechanism was rewritten (75-minute session timer, reconnect within a minute), the severity was carried over from the old mechanism instead of being re-derived. Service is interrupted but usable, so it is Warning, consistent with SF-001 (signal flapping, Warning). |
+
+Disclosure: in a 5-scenario smoke test every system answered Warning for both, and that is how the
+inconsistency was noticed. The correction follows the documented severity model and the matching
+scenarios, not the scores. It was made before the final evaluation runs, with the author's approval.
+
 ### Knowledge corrected alongside the scenarios
 
 The pipeline and the baselines were taught the same wrong mechanisms. They were corrected
