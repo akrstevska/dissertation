@@ -18,27 +18,40 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT / "pipeline"))
 
 from llm import ask_json, MODEL              # noqa: E402
-from prompts import DIAGNOSIS                # noqa: E402
+from prompts import DETECTION, DIAGNOSIS, REMEDIATION, ESCALATION  # noqa: E402
+from prompts.remediation_prompt import ACTIONS          # noqa: E402
 from prompts.thresholds import THRESHOLDS    # noqa: E402
-from prompt_template import (build, discriminators, CLEAN_DISCRIMINATORS,  # noqa: E402
-                             FAULT_TYPES)
+from prompt_template import (build, between, discriminators,  # noqa: E402
+                             FAULT_TYPES, CATEGORIES, STORED_SECTIONS)
 
 RESULTS = ROOT / "evaluation" / "results"
 RESULTS.mkdir(parents=True, exist_ok=True)
 
-# "monolithic" gets the enum and the calibrated thresholds only. "monolithic_shared" also
-# gets the diagnosis agent's discriminator block, which isolates staging and tools from the
-# domain knowledge the pipeline's prompts accumulated.
-CONFIGS = {"monolithic": "",
-           "monolithic_shared": discriminators(DIAGNOSIS),
-           "monolithic_clean": CLEAN_DISCRIMINATORS}
+# Everything the pipeline's agents know, sliced from their live prompts so it cannot drift:
+# detection's reading and screening rules (its tool-order instructions excluded), the
+# diagnosis discriminators and closing rules, and the remediation and escalation rules.
+SHARED = "\n\n".join([
+    "Reading and screening rules:\n" + between(DETECTION, "- Read every number", "Give preliminary_severity"),
+    discriminators(DIAGNOSIS),
+    between(DIAGNOSIS, "Verify before you conclude.", "fault_type must be exactly"),
+    "Remediation rules:\n" + between(REMEDIATION, "- ONU offline", "action must be exactly"),
+    "Escalation rules:\n" + between(ESCALATION, "Priority:", "Reply with JSON only"),
+])
 
-REQUIRED = ["fault_type", "root_cause", "confidence", "severity",
-            "affected_scope", "remediation", "reasoning"]
+# config -> (domain knowledge, data sections). Both get the thresholds and the closed
+# lists, and only stored data: live probes are what only an agent that acts can collect.
+# monolithic_stored is a single general prompt; monolithic_shared_stored also carries every
+# rule the agents have, which separates the architecture from the knowledge.
+CONFIGS = {"monolithic_stored": ("", STORED_SECTIONS),
+           "monolithic_shared_stored": (SHARED, STORED_SECTIONS)}
 
-# The enum must match the pipeline's or the comparison measures vocabulary, not diagnosis.
-missing = [f for f in FAULT_TYPES if f not in DIAGNOSIS]
-assert not missing, f"fault types absent from the diagnosis prompt: {missing}"
+REQUIRED = ["fault_type", "root_cause", "confidence", "affected_scope", "action", "priority",
+            "category", "requires_human_review", "review_reason", "affected_customer_count",
+            "service_impact", "reasoning"]
+
+# The vocabularies must match the pipeline's or the comparison measures wording, not diagnosis.
+missing = [f for f in FAULT_TYPES if f not in DIAGNOSIS] + [c for c in CATEGORIES if c not in ESCALATION]
+assert not missing, f"vocabulary absent from the pipeline prompts: {missing}"
 
 
 def all_ids() -> list[str]:
@@ -50,16 +63,16 @@ def load(sid: str) -> dict:
 
 
 def diagnose(scenario: dict, config: str) -> dict:
-    answer = ask_json(build(scenario, THRESHOLDS, CONFIGS[config]), REQUIRED)
+    knowledge, sections = CONFIGS[config]
+    a = ask_json(build(scenario, THRESHOLDS, ACTIONS, knowledge, sections), REQUIRED)
     # mirrored into the pipeline's key names so one scorer reads both
-    return {"diagnosis": {"fault_type": answer["fault_type"],
-                          "root_cause": answer["root_cause"],
-                          "confidence": answer["confidence"],
-                          "affected_scope": answer["affected_scope"],
-                          "evidence": answer["reasoning"]},
-            "remediation": {"action": answer["remediation"]},
-            "escalation": {"priority": answer["severity"]},
-            "monolithic": answer}
+    return {"diagnosis": {k: a[k] for k in ("fault_type", "root_cause", "confidence", "affected_scope")}
+                         | {"evidence": a["reasoning"]},
+            "remediation": {"action": a["action"]},
+            "escalation": {k: a[k] for k in ("priority", "category", "requires_human_review",
+                                             "review_reason", "affected_customer_count",
+                                             "service_impact")},
+            "monolithic": a}
 
 
 def run_one(sid: str, config: str, tag: str = "", fresh: bool = False) -> dict:
@@ -107,7 +120,7 @@ if __name__ == "__main__":
     ap.add_argument("--fresh", action="store_true")
     ap.add_argument("--repeat", type=int, default=1,
                     help="passes to run; results are tagged _p1, _p2, ... when above 1")
-    ap.add_argument("--config", default="monolithic", choices=sorted(CONFIGS))
+    ap.add_argument("--config", default="monolithic_stored", choices=sorted(CONFIGS))
     a = ap.parse_args()
 
     ids = all_ids() if a.target == "all" else [a.target]

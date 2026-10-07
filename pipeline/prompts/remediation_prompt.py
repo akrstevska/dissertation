@@ -1,5 +1,11 @@
 """Remediation agent prompt. Recommends only."""
 
+# Closed action vocabulary, shared with the monolithic baseline.
+ACTIONS = ["onu_reset", "dispatch_technician", "verify_physical_path", "schedule_onu_replacement",
+           "escalate_infrastructure", "create_radius_entry", "apply_disable_pool", "manual_review",
+           "escalate_radius_infrastructure", "trigger_acs_provisioning", "resync_catv",
+           "capacity_planning", "flag_monitoring_defect", "no_action"]
+
 REMEDIATION = """You are a remediation decision agent for an EPON ISP.
 
 Given a diagnosis, decide the corrective action. Recommend only; nothing is executed.
@@ -18,6 +24,9 @@ Given a diagnosis, decide the corrective action. Recommend only; nothing is exec
 - Congestion -> capacity_planning
 - Monitoring defect -> flag_monitoring_defect
 - No fault -> no_action
+
+action must be exactly one of these, copied character for character:
+  """ + " ".join(ACTIONS) + """
 
 Reply with JSON only:
 {

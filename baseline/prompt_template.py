@@ -21,6 +21,24 @@ FAULT_TYPES = [
 # exposes it either, so excluding it is also what matches the agents' view.
 SECTIONS = ["trigger", "subscriber", "network_state", "peers", "telemetry",
             "snmp_live", "session_auth"]
+# What a single call could hold without acting: everything except the live device probes.
+STORED_SECTIONS = [s for s in SECTIONS if s != "snmp_live"]
+
+DESCRIBE = {"trigger": "the trigger that raised it", "subscriber": "the subscriber record",
+            "network_state": "current stored network state",
+            "peers": "the customers on the same PON port", "telemetry": "seven days of telemetry",
+            "snmp_live": "live device probe results",
+            "session_auth": "session and authentication state"}
+
+# Same closed vocabularies the pipeline's remediation and escalation agents answer in.
+CATEGORIES = ["field_service", "infrastructure", "provisioning", "monitoring", "noc"]
+PRIORITIES = ["Not classified", "Information", "Warning", "Average", "High", "Disaster"]
+
+
+def between(text: str, start: str, end: str) -> str:
+    i, j = text.find(start), text.find(end)
+    assert i != -1 and j > i, f"markers not found: {start!r} .. {end!r}"
+    return text[i:j].strip()
 
 
 # Boundaries of the discriminator block inside the live DIAGNOSIS prompt. Sliced at run
@@ -35,30 +53,38 @@ def discriminators(diagnosis_prompt: str) -> str:
     return diagnosis_prompt[i:j].rstrip()
 
 
-def build(scenario: dict, thresholds: str, shared: str = "") -> str:
+def build(scenario: dict, thresholds: str, actions: list[str], shared: str = "",
+          sections: list[str] = SECTIONS) -> str:
     import json
-    data = {k: scenario[k] for k in SECTIONS if k in scenario}
+    data = {k: scenario[k] for k in sections if k in scenario}
+    held = [DESCRIBE[k] for k in sections]
+    held = ", ".join(held[:-1]) + ", and " + held[-1]
     shared = f"\n{shared}\n" if shared else ""
-    enum = "\n".join("  " + " ".join(FAULT_TYPES[i:i + 4])
-                     for i in range(0, len(FAULT_TYPES), 4))
+
+    def wrap(xs):
+        return "\n".join("  " + " ".join(xs[i:i + 4]) for i in range(0, len(xs), 4))
+
     return f"""You are a network fault diagnosis system for an EPON ISP.
 
-Below is everything known about one case: the trigger that raised it, the subscriber
-record, current stored network state, the customers on the same PON port, seven days of
-telemetry, live device probe results, and session and authentication state.
+Below is everything known about one case: {held}.
 
-Work out what is wrong and what should be done about it.
+Work out what is wrong, what should be done about it, and how it should be escalated.
 
 {thresholds}
 {shared}
 fault_type must be exactly one of these, copied character for character. It is a closed
 list; never invent a label, reword one, or describe the fault in this field:
-{enum}
+{wrap(FAULT_TYPES)}
 
 Choose the closest member of that list even when you are unsure, and carry your
 uncertainty in confidence. Use no_fault only when every reading has a normal explanation.
 
-severity is the Zabbix six-level scale. affected_scope says how far the evidence reaches.
+action must be exactly one of these, copied character for character:
+{wrap(actions)}
+
+priority is the Zabbix six-level scale. category is one of: {", ".join(CATEGORIES)}.
+affected_scope says how far the evidence reaches. service_impact says whether customers
+are actually losing service, separately from priority.
 
 Case data:
 {json.dumps(data, indent=2)}
@@ -68,9 +94,14 @@ Reply with JSON only:
   "fault_type": "one of the listed values",
   "root_cause": "...",
   "confidence": 0.0-1.0,
-  "severity": "Not classified"|"Information"|"Warning"|"Average"|"High"|"Disaster",
   "affected_scope": "none"|"single_customer"|"pon_port"|"olt"|"router"|"multi_customer",
-  "remediation": "...",
+  "action": "one of the listed actions",
+  "priority": {"|".join(f'"{p}"' for p in PRIORITIES)},
+  "category": {"|".join(f'"{c}"' for c in CATEGORIES)},
+  "requires_human_review": true|false,
+  "review_reason": "..." or null,
+  "affected_customer_count": 0,
+  "service_impact": true|false,
   "reasoning": ["each step that led to the conclusion"]
 }}"""
 
