@@ -175,7 +175,7 @@
         "70:B6:4F:AA:21:98",
         "B4:64:15:0B:B5:85"
       ],
-      "detail": "Three active CRM records occupy one slot. None of the three ONU MACs matches the MAC the live probe reports."
+      "detail": "Three active CRM records occupy one slot. Only one ONU can occupy a slot."
     }
   },
   "telemetry": {

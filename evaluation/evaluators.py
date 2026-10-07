@@ -115,7 +115,8 @@ class Coverage(BaseModel):
 
 class Claim(BaseModel):
     index: int
-    supported: bool
+    supported: bool = Field(description="false only if the statement gives a value, event or "
+                            "observation the data lacks or contradicts; interpretations are true")
     reason: str = Field(description="one sentence; for an unsupported claim, what the data actually shows")
 
 
@@ -128,7 +129,8 @@ COVERAGE_PROMPT = """You are checking a network fault diagnosis for required pie
 Required evidence items:
 {items}
 
-What these items mean in this case, from the reference reasoning:
+What these items mean in this case, from the reference reasoning. This only explains the
+items; it is not part of the diagnosis:
 {reasoning}
 
 The system's diagnosis:
@@ -138,16 +140,20 @@ Evidence:
 
 For each required item separately: does the diagnosis state this evidence, together with the
 observation or value that shows it? Reaching the conclusion without the observation behind it
-does not count. Wording may differ from the reference; judge the substance."""
+does not count. Judge only what the diagnosis itself says: an observation that appears in the
+reference reasoning but not in the diagnosis is absent. Wording may differ from the reference;
+judge the substance."""
 
 CLAIMS_PROMPT = """You are checking whether a network fault diagnosis is supported by its data.
 
 Below is all the data the system had access to, the calibrated thresholds for this network,
 and the numbered evidence statements the system gave. For each statement decide:
 
-supported   - every value, event and observation it states is in the data or follows directly
-              from it under the thresholds
 unsupported - it states a value, event or observation the data does not contain or contradicts
+supported   - everything else. A statement that also draws a conclusion or interpretation
+              (calling a change abnormal, naming a cause or a fault type) is supported when the
+              values, events and observations it gives are in the data or follow directly from
+              them under the thresholds. Do not mark a statement unsupported for interpreting.
 
 Judge factual support only, not whether the diagnosis is correct. Rounding is fine.
 

@@ -7,13 +7,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 MODEL = os.getenv("MODEL", "claude-haiku-4-5-20251001")
+# gpt-6-luna rejects temperature; langchain_openai already drops it for gpt-5 models,
+# so every tested model runs at its default
+NO_TEMPERATURE = {"gpt-6-luna"}
 
 
 def get_llm(tools=None, temperature=0.0):
     if MODEL.startswith("gpt"):
         from langchain_openai import ChatOpenAI
         # this model only accepts function tools over /v1/responses
-        llm = ChatOpenAI(model=MODEL, temperature=temperature, use_responses_api=True)
+        llm = ChatOpenAI(model=MODEL, use_responses_api=True,
+                         temperature=None if MODEL in NO_TEMPERATURE else temperature)
     else:
         from langchain_anthropic import ChatAnthropic
         llm = ChatAnthropic(model=MODEL, temperature=temperature, max_tokens=2000)

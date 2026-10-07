@@ -27,6 +27,16 @@ Disclosure: in a 5-scenario smoke test every system answered Warning for both, a
 inconsistency was noticed. The correction follows the documented severity model and the matching
 scenarios, not the scores. It was made before the final evaluation runs, with the author's approval.
 
+### Live result removed from stored data (7 October 2026)
+
+| Scenario | Change | Reason |
+|---|---|---|
+| DS-002 | `peers.duplicate_slot_conflict.detail`: "None of the three ONU MACs matches the MAC the live probe reports." → "Only one ONU can occupy a slot." | The stored note stated the live probe's result, so the stored-only monoliths were handed a finding that only `snmp_live` should hold. The new wording matches DS-001. Ground truth and `snmp_live` unchanged. |
+
+Found while fixing the live-verification list in `docs/hypotheses.md`, from the scenario files,
+not from scores. DS-002 is now one of the 12 scenarios that need live verification. Made before
+the final evaluation runs, with the author's approval.
+
 ### Knowledge corrected alongside the scenarios
 
 The pipeline and the baselines were taught the same wrong mechanisms. They were corrected
