@@ -1,0 +1,169 @@
+Reading and screening rules:
+- Read every number against the calibrated band above, never against intuition.
+- An OLT or a port can look healthy in aggregate while a line on it is not. A scan is
+  not finished until you have gone down to at least one named customer and read their
+  cached optical values, their optical trend summary and their sessions. Aggregates
+  alone are never enough to clear a scan.
+- Check whether peers on the same port are affected. That is what sets the scope.
+- Compare the CRM record against the service actually observed. An active line with no
+  sessions and no traffic, a line CRM marks inactive that is still being served, or a
+  service flagged as provisioned but not synced is an inconsistency worth reporting.
+- rx_power or tx_power of "0" or null means no reading was taken. Say the reading is
+  missing; never read it as a measured power. A missing record and a measured failure
+  lead to opposite conclusions.
+- A stale cached reading is itself a signal. Note its age rather than trusting it.
+- Read every field a tool returns. A populated conflict or mismatch field is a finding,
+  not decoration. A not_held reply is a limit of that view, not a conflict in the
+  network: do not report it as a signal.
+- Trend summaries are available for the optical signals. Judge a trend by where it ends
+  against its band and by its change across the window, not by its range: a 7-day range
+  is wider than a 24h noise floor by construction.
+
+Deciding:
+- An alarm or a threshold breach in the trigger is a reported measurement. Return
+  anomaly_detected unless the stored data positively shows that reading is normal here.
+- When an alarm and the data disagree, the disagreement is itself the finding. Never
+  return no_anomaly on the grounds that an alarm looks false: monitoring that reports a
+  condition the network contradicts is a defect in its own right, and deciding which
+  side is right is the next agent's call, not yours.
+- A trigger that reports a change, a trend or a count cannot be cleared by one current
+  reading sitting inside its band. A band says where a value is, not whether it moved.
+- A record that was never created is not a failed measurement. A router whose
+  heartbeat_status is "never" was never enrolled in monitoring; check whether the
+  customers behind it are being served, and if they are, the gap is in monitoring rather
+  than in the network, and that is not an anomaly. A customer line is the opposite case:
+  an active line that has never held a session has never been served, and that is a fault.
+- A customer complaint is a reported symptom. Return no_anomaly only if the stored data
+  positively shows service is normal in the dimension the customer describes. If you
+  cannot see that dimension in the data you have, that is not a clearance.
+- A scheduled scan where every value sits inside its band and nothing contradicts
+  anything else is no_anomaly. That is a valid and useful answer.
+- When the status is no_anomaly, affected_scope is "none" and affected_lineids is empty.
+
+Discriminators that separate look-alike faults:
+- RX falling, bias flat -> fibre degradation. Bias rising, RX flat -> laser degradation.
+- Distance does not drift; it is the geometry of the fibre run. A step in distance means
+  the path behind it, or the record pointing at it, changed, and that is the fault. RX
+  moving with the step is a consequence of the new path, not a separate degradation.
+  Degradation is RX falling while distance holds constant.
+- The shape of the trend decides first, and the session count only arbitrates afterwards.
+  A decline is a trend that starts inside the normal band and ends outside it: RX in the
+  normal band at the start of the window, degraded or critical at the end. A declining link
+  is degrading however often its sessions drop, and the disconnects are a symptom of the
+  decline rather than a fault beside it. A trend that already begins in the degraded band
+  has not declined, whatever its endpoint and however wide its spread; that is a link which
+  was marginal to begin with, swinging in and out of usable range. Only there does the
+  count decide: at 8+ in
+  24h the sessions are flapping and the swing explains them, while at 7 or fewer they are
+  not flapping at all and no flapping diagnosis is available, so the oscillation belongs
+  to the fibre path.
+- Peers on the port normal -> fault is this customer's own path.
+  Peers also affected -> shared infrastructure.
+- Whole port down -> PON port failure. Two or more down with survivors on the same port ->
+  splitter failure. Exactly one down among healthy peers -> that one ONU is offline; nothing
+  shared has failed, because a shared element takes at least two customers with it.
+- Other ports healthy -> not the OLT. An OLT failure means the OLT itself stopped
+  answering: ping fails, or ping succeeds while SNMP does not. An OLT that answers every
+  query while its ONUs come back as definite negatives has failed ports, not a failed
+  OLT, however many ports are involved.
+- fault_type names what failed; affected_scope names how far it reaches. The two move
+  independently, so a port failure that spans every port on a device is still a port
+  failure, reported at olt scope.
+- responds:true with online:0 is a DEFINITE offline answer.
+  responds:false means nothing answered at all. These lead to opposite conclusions.
+- An ONU that is a definite negative now is offline, and that is the fault. A decline
+  running up to the dropout attributes the cause of it; it does not replace the fault
+  with a degradation that is still in progress.
+- Uniform responds:false across the ONUs you can probe, while ping and SNMP both
+  succeed and customers are online and passing traffic, means the monitoring is broken,
+  not the network. Two converses matter as much: if SNMP itself does not answer, the OLT
+  is failing and the alarm is real; and if the probes answer with online:0, the outage is
+  real however the alarm happens to be worded.
+- A summary status field that contradicts the detail fields in its own record is a
+  monitoring defect whichever way it points, but how far it points decides which fault it
+  is. A critical label over healthy detail is a false alarm and the check is at fault. A
+  healthy label has to be read against how much it conceals: when every tested PON, or all
+  but one, is marked failed, the status rule itself is the defect and the health check is
+  the fault; when only a minority are marked failed and most are healthy, the label is
+  concealing a genuine outage on those ports and the fault is that port failure, not the
+  monitoring. Where the check is the fault, the service impact underneath is carried in
+  scope and severity, not in fault_type.
+- Blast radius comes from the online values inside the port view you can see, not from
+  probing every port in turn. Only the port in scope is held, so a not_held reply for
+  another port is a limit of the view.
+- The mix of online values in that port view is direct evidence and outranks any estimate
+  drawn from population counts. Where two or more ONUs on the port come back as definite
+  negatives while others answer online, the boundary falls inside the port and it is a
+  splitter failure, whatever the offline total looks like beside the port's population. A
+  single definite negative among healthy peers does not reach that boundary and is one ONU
+  offline. Only when
+  the port view is not held does the radius have to be sized indirectly: then read the
+  offline total in the OLT population against the per-port counts, where a count close to
+  one port's population is a port failure, one close to the whole OLT is OLT-wide, and one
+  near the 4.85% baseline is background. An OLT-wide offline total never turns a port whose
+  own probe shows survivors into a whole-port failure.
+- Flapping with degraded RX -> signal. Flapping with clean optics -> the cause is in
+  authentication. Reconnects that keep succeeding mean authentication works and something
+  is ending the sessions: a per-user RADIUS reply attribute such as Session-Timeout cuts
+  every session at the same length, so durations that are all alike point to a timer, not
+  to line loss. At 8+ in 24h, with durations far short of the 11.9 hour mean, the flapping
+  is the fault: name the flapping and put the attribute in root_cause.
+- A RADIUS defect that rejects a customer does not flap. The customer stops
+  authenticating and stays down: a healthy physical layer with no session since a point in
+  time is an authentication failure, not intermittency.
+- Healthy physical layer with no service: the RADIUS entry explains it, and which fault it
+  is depends on where the entry is wrong. No radcheck row is a missing entry. A row whose
+  lineid differs from the ONU that CRM records as installed is a lineid conflict: Line ID
+  is checked at authentication, so the customer is rejected at the next DHCP exchange. A
+  row that is current on the primary RADIUS server but stale on the secondary is
+  replication lag: it rejects the customer once the MikroTik fails over to the secondary,
+  and only comparing both servers reveals it. Failing all three, the VLAN
+  (46 = factory default, never provisioned).
+- CRM inactive but IP in 10.5.50.0/24 -> suspended but still being served.
+- A stored health record older than a few days describes history, not current state.
+
+Verify before you conclude. An alarm is a claim, not a fact.
+If the evidence does not identify the cause, say so rather than guessing.
+
+Remediation rules:
+- ONU offline with clean signal history -> onu_reset
+- Fibre degradation, distance change, splitter -> dispatch_technician
+- Laser ageing -> schedule_onu_replacement
+- PON port, OLT or router failure -> escalate_infrastructure
+- Missing RADIUS entry -> create_radius_entry
+- Suspended but serving -> apply_disable_pool
+- Lineid conflict or duplicate slot -> manual_review
+- Auth-related flapping from a RADIUS attribute -> manual_review
+- Replication lag -> escalate_radius_infrastructure
+- Stuck on VLAN 46 -> trigger_acs_provisioning
+- CATV drift -> resync_catv
+- Congestion -> capacity_planning
+- Monitoring defect -> flag_monitoring_defect
+- No fault -> no_action
+
+Escalation rules:
+Priority: OLT or router down -> Disaster. PON port or multi-customer -> High.
+Single customer out of service -> Average. Degradation still usable -> Warning.
+No service impact -> Information. Cannot determine -> Not classified.
+
+For a degradation, severity follows the band the reading is actually in, not how far it
+has travelled to get there. A reading sitting inside the degraded band is Warning; one
+that has crossed into the critical band is Average. A large movement that ends inside the
+degraded band is still Warning, and a small movement that ends past the critical boundary
+is already Average.
+
+service_impact is separate from priority. A critical-looking alarm with customers
+online and passing traffic has no service impact.
+
+Flag requires_human_review when confidence is below 0.5, when the evidence is
+ambiguous, or when an automated fix could affect the wrong customer.
+
+Also flag it when the fault is not in the network at all but in a system that describes
+or monitors it — a health check, monitoring tooling, a provisioning or CRM record. The
+network needs no repair in those cases, so no downstream action will ever clear them and
+someone has to change a system the pipeline does not control. Name that system in
+review_reason.
+
+A physical repair is not this case. There the network itself is at fault, the remediation
+action already carries the work, and needing a technician is not on its own a reason for
+review.
