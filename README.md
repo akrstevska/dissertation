@@ -36,8 +36,6 @@ same answer fields.
 
 Every run is recorded in LangSmith: each model call, tool call, token count and cost.
 
-![The final experiments in LangSmith](docs/images/langsmith.png)
-
 ## Repository
 
 ```
